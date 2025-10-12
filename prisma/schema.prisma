@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Trade {
+  id              String    @id @default(cuid())
+  ticker          String
+  strategy        String
+  status          String    @default("open")
+  entryDate       DateTime  @default(now())
+  exitDate        DateTime?
+  
+  legs            Json
+  entryPrice      Float
+  exitPrice       Float?
+  contracts       Int
+  
+  accountSize     Float
+  riskPercentage  Float
+  maxLoss         Float
+  
+  iv              Float
+  hv20            Float
+  hv30            Float
+  ivHvRatio       Float
+  
+  underlyingPrice Float
+  volume          Int
+  openInterest    Int
+  bidAskSpread    Float
+  
+  rationale       String?
+  marketRegime    String?
+  
+  notes           Note[]
+  tags            Tag[]     @relation("TradeTags")
+  snapshot        Snapshot?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  content   String
+  type      String   @default("general")
+  
+  tradeId   String?
+  trade     Trade?   @relation(fields: [tradeId], references: [id])
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Tag {
+  id     String  @id @default(cuid())
+  name   String  @unique
+  trades Trade[] @relation("TradeTags")
+}
+
+model Snapshot {
+  id           String   @id @default(cuid())
+  tradeId      String   @unique
+  trade        Trade    @relation(fields: [tradeId], references: [id])
+  
+  marketData   Json
+  greeks       Json?
+  chainData    Json
+  newsEvents   Json?
+  
+  capturedAt   DateTime @default(now())
+}
+
+model Settings {
+  id                String   @id @default("default")
+  defaultRisk       Float    @default(1.0)
+  accountSize       Float    @default(10000)
+  liquidityThreshold Float   @default(100)
+  ivThreshold       Float    @default(80)
+  
+  updatedAt         DateTime @updatedAt
+}
