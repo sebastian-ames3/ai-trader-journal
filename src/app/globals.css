@@ -2,13 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
+@layer base {
+  :root {
+    --border: 214.3 31.8% 91.4%;
+    /* other variables */
+  }
+  
+  .border-border {
+    border-color: hsl(var(--border));
   }
 }
 
-
+@layer utilities {
+  .border-border {
+    border-color: hsl(var(--border));
+  }
+}
 
 @layer base {
   :root {
@@ -65,8 +74,6 @@
     --chart-5: 340 75% 55%;
   }
 }
-
-
 
 @layer base {
   * {
