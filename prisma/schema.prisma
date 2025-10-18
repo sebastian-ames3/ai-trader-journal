@@ -71,7 +71,11 @@ model Snapshot {
   marketData   Json
   greeks       Json?
   chainData    Json
+  hv20        Float?    // 20-day historical volatility
+  hv30        Float?    // 30-day historical volatility  
+  hvSource    String?   // Data source (e.g., "yfinance")
   newsEvents   Json?
+  calcAt      DateTime? // When HV was calculated
   
   capturedAt   DateTime @default(now())
 }
