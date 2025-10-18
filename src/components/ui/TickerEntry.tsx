@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, TrendingUp, AlertCircle, Loader, RefreshCw, Clock } from 'lucide-react';
+import { HvCard } from '@/components/ui/HvCard';
 
 // Update this to match your backend URL
 const API_BASE_URL = 'http://localhost:5000/api';
@@ -353,14 +354,7 @@ const TickerEntry: React.FC = () => {
             </div>
 
             {/* HV Display */}
-            <div className="bg-blue-50 p-3 rounded-lg mb-4">
-              <p className="text-sm text-blue-800">
-                <strong>Historical Volatility (HV20):</strong> {tickerData.historicalVolatility || 'N/A'}%
-              </p>
-              <p className="text-xs text-gray-600 mt-1">
-                Auto-calculated 20-day volatility. Enter IV manually for comparison.
-              </p>
-            </div>
+            <HvCard ticker={tickerData?.symbol} />
 
             {/* Update Time */}
             <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
