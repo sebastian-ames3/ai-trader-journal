@@ -25,16 +25,18 @@ export async function GET() {
       sampleSnapshot: firstSnapshot,
       message: 'Database connection working!'
     });
-    
-  } catch (error: any) {
-    console.error('Database test error:', error);
-    
-    return NextResponse.json({ 
-      success: false, 
-      error: error.message,
-      errorCode: error.code,
-      fullError: String(error),
-      databaseUrl: process.env.DATABASE_URL 
-    }, { status: 500 });
-  }
-}
+
+ } catch (error) {
+  console.error('Database test error:', error);
+  
+  const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+  const errorCode = (error as Error & { code?: string })?.code;
+  
+  return NextResponse.json({ 
+    success: false, 
+    error: errorMessage,
+    errorCode: errorCode,
+    fullError: String(error),
+    databaseUrl: process.env.DATABASE_URL 
+  }, { status: 500 });
+}}

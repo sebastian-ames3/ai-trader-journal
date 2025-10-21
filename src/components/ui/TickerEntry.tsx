@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Search, TrendingUp, AlertCircle, Loader, RefreshCw, Clock } from 'lucide-react';
 import { HvCard } from '@/components/ui/HvCard';
 import debounce from 'lodash.debounce';
@@ -58,18 +58,18 @@ const TickerEntry: React.FC = () => {
   };
 
   // Search for ticker suggestions
-  const searchTickers = async (query: string): Promise<TickerResult[]> => {
+  const searchTickers = useCallback(async (query: string): Promise<TickerResult[]> => {
   const response = await fetch(`/api/ticker?q=${query}`);
   if (!response.ok) throw new Error('Failed to fetch suggestions');
   const data = await response.json();
   console.log('API response:', data);  
   console.log('Results:', data.results);
   return data.results || [];  // Extract the results array here
-};
+}, []);
 
 // Debouncer
-const debouncedSearch = useCallback(
-  debounce(async (query: string) => {
+const debouncedSearch = useMemo(
+  () => debounce(async (query: string) => {
     try {
       const results = await searchTickers(query);
       setSuggestions(results);
@@ -78,8 +78,8 @@ const debouncedSearch = useCallback(
       console.error('Failed to fetch suggestions:', err);
       setSuggestions([]);
     }
-  }, 500), // 500ms delay should be enough
-  []
+  }, 500),
+  [searchTickers] // Add dependencies here
 );
   // Handle input changes with debounced autocomplete
   useEffect(() => {

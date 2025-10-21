@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { ManualIvPayload, ManualIvResponse } from '@/lib/types/iv';
 import { validateIvPct, normalizeTermDays } from '@/lib/iv';
 import { persistIvForTicker } from '@/lib/persistIV';
