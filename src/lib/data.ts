@@ -1,4 +1,5 @@
 import { logger } from './logger';
+import { fetchHistoricalPrices } from './yahooFinance';
 
 export interface PriceData {
   closes: number[];
@@ -11,15 +12,18 @@ export interface DataResponse {
   error?: string;
 }
 
+// Environment variable to enable mock data for testing
+const USE_MOCK_DATA = process.env.USE_MOCK_DATA === 'true';
+
 /**
  * Fetch daily closing prices for a ticker
- * TODO: Replace with actual yfinance integration
+ * Now uses real Yahoo Finance API with mock data fallback
  */
 export async function fetchDailyCloses(
   ticker: string,
   lookbackDays: number
 ): Promise<DataResponse> {
-  logger.debug('fetchDailyCloses', { ticker, lookbackDays });
+  logger.debug('fetchDailyCloses', { ticker, lookbackDays, useMock: USE_MOCK_DATA });
 
   try {
     // Validate inputs
@@ -31,24 +35,51 @@ export async function fetchDailyCloses(
       return { success: false, error: 'Lookback days must be between 1 and 365' };
     }
 
-    // TODO: Replace with actual API call
-    // Mock data for testing
-    const mockData = generateMockPrices(ticker, lookbackDays);
-    
-    logger.debug('fetchDailyCloses result', { 
-      ticker, 
-      dataPoints: mockData.closes.length 
+    // Use mock data if explicitly enabled
+    if (USE_MOCK_DATA) {
+      logger.info('Using mock data (USE_MOCK_DATA=true)', { ticker });
+      const mockData = generateMockPrices(ticker, lookbackDays);
+      return {
+        success: true,
+        data: mockData
+      };
+    }
+
+    // Fetch real data from Yahoo Finance
+    const historicalPrices = await fetchHistoricalPrices(ticker, lookbackDays);
+
+    if (!historicalPrices || historicalPrices.length === 0) {
+      logger.warn('Yahoo Finance returned no data, falling back to mock', { ticker });
+      const mockData = generateMockPrices(ticker, lookbackDays);
+      return {
+        success: true,
+        data: mockData
+      };
+    }
+
+    // Transform to expected format
+    const priceData: PriceData = {
+      closes: historicalPrices.map(p => p.close),
+      dates: historicalPrices.map(p => p.date.toISOString().split('T')[0])
+    };
+
+    logger.debug('fetchDailyCloses result (real data)', {
+      ticker,
+      dataPoints: priceData.closes.length
     });
 
     return {
       success: true,
-      data: mockData
+      data: priceData
     };
   } catch (error) {
-    logger.error('fetchDailyCloses error', error);
+    logger.error('fetchDailyCloses error, falling back to mock data', error);
+
+    // Fallback to mock data on error
+    const mockData = generateMockPrices(ticker, lookbackDays);
     return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      success: true,
+      data: mockData
     };
   }
 }

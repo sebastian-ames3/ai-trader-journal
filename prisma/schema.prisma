@@ -1,10 +1,35 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
-  provider = "postgresql" 
+  provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// Entry types for journal entries
+enum EntryType {
+  TRADE_IDEA    // Pre-trade thoughts and analysis
+  TRADE         // Actual executed trade (links to Trade model)
+  REFLECTION    // Post-trade analysis and lessons learned
+  OBSERVATION   // General market observations and notes
+}
+
+// Trader's emotional state when creating entry
+enum EntryMood {
+  CONFIDENT
+  NERVOUS
+  EXCITED
+  UNCERTAIN
+  NEUTRAL
+}
+
+// Conviction level for trade ideas and analysis
+enum ConvictionLevel {
+  LOW
+  MEDIUM
+  HIGH
 }
 
 model Trade {
@@ -14,60 +39,116 @@ model Trade {
   status          String    @default("open")
   entryDate       DateTime  @default(now())
   exitDate        DateTime?
-  
+
   legs            Json
   entryPrice      Float
   exitPrice       Float?
   contracts       Int
-  
+
   accountSize     Float
   riskPercentage  Float
   maxLoss         Float
-  
+
   iv              Float
   hv20            Float
   hv30            Float
   ivHvRatio       Float
-  
+
   underlyingPrice Float
   volume          Int
   openInterest    Int
   bidAskSpread    Float
-  
+
   rationale       String?
   marketRegime    String?
-  
+
   notes           Note[]
   tags            Tag[]     @relation("TradeTags")
   snapshot        Snapshot?
-  
+  entries         Entry[]   // Journal entries related to this trade
+
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+
+  @@index([ticker])
+  @@index([entryDate(sort: Desc)])
+  @@index([status])
 }
 
 model Note {
   id        String   @id @default(cuid())
   content   String
   type      String   @default("general")
-  
+
   tradeId   String?
   trade     Trade?   @relation(fields: [tradeId], references: [id])
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([tradeId])
 }
 
 model Tag {
-  id     String  @id @default(cuid())
-  name   String  @unique
-  trades Trade[] @relation("TradeTags")
+  id      String   @id @default(cuid())
+  name    String   @unique
+  trades  Trade[]  @relation("TradeTags")
+  entries Entry[]  @relation("EntryTags")
+}
+
+// Journal Entry model - standalone entries that can optionally link to trades
+model Entry {
+  id       String   @id @default(cuid())
+
+  // Entry classification
+  type     EntryType
+
+  // Core content (Phase 1)
+  content  String   @db.Text  // Main journal text, supports full-text search
+  mood     EntryMood?
+  conviction ConvictionLevel?
+
+  // Optional associations
+  ticker   String?  // Optional ticker symbol - entries don't require a ticker
+
+  // Relationships
+  tradeId     String?    // Optional link to Trade (null if Trade deleted)
+  trade       Trade?     @relation(fields: [tradeId], references: [id], onDelete: SetNull)
+
+  snapshotId  String?    @unique  // Optional link to market conditions snapshot
+  snapshot    Snapshot?  @relation(fields: [snapshotId], references: [id], onDelete: SetNull)
+
+  tags        Tag[]      @relation("EntryTags")
+
+  // Media fields (Phase 2 - Issue #19)
+  audioUrl    String?    // Voice note URL
+  imageUrls   String[]   // Screenshot URLs
+
+  // AI analysis fields (Phase 2 - Issue #20)
+  sentiment          String?    // AI-detected sentiment: positive/negative/neutral
+  emotionalKeywords  String[]   // AI-extracted emotional keywords
+  detectedBiases     String[]   // AI-identified cognitive biases
+  aiTags             String[]   // AI-generated tags
+  convictionInferred ConvictionLevel?  // AI-inferred conviction vs user-selected
+
+  // Timestamps
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Indexes for common query patterns
+  @@index([type])
+  @@index([ticker])
+  @@index([createdAt(sort: Desc)])
+  @@index([mood])
+  @@index([conviction])
+  @@index([tradeId])
 }
 
 model Snapshot {
   id           String   @id @default(cuid())
   tradeId      String   @unique
   trade        Trade    @relation(fields: [tradeId], references: [id])
-  
+
   price      Float?    // Underlying price at snapshot
   volume     Int?      // Volume
   openInterest Int?    // Open interest
@@ -76,7 +157,7 @@ model Snapshot {
   greeks       Json?
   chainData    Json
   hv20        Float?    // 20-day historical volatility
-  hv30        Float?    // 30-day historical volatility  
+  hv30        Float?    // 30-day historical volatility
   hvSource    String?   // Data source (e.g., "yfinance")
   newsEvents   Json?
   calcAt      DateTime? // When HV was calculated
@@ -85,7 +166,9 @@ model Snapshot {
   ivTermDays Int?      // Term in days, default 30
   ivSource   String?   // Source of IV data, default "manual"
   ivAt       DateTime? // When IV was recorded
-  
+
+  entry        Entry?    // Optional link back to journal entry
+
   capturedAt   DateTime @default(now())
 }
 
@@ -95,6 +178,6 @@ model Settings {
   accountSize       Float    @default(10000)
   liquidityThreshold Float   @default(100)
   ivThreshold       Float    @default(80)
-  
+
   updatedAt         DateTime @updatedAt
 }
