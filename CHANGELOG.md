@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Real Yahoo Finance API Integration**
+  - Replaced mock data system with `yahoo-finance2` npm package
+  - Created `/src/lib/yahooFinance.ts` with real API integration
+  - Created `/src/lib/cache.ts` with intelligent TTL-based caching system:
+    - 1-hour cache during market hours (9:30 AM - 4:00 PM ET)
+    - 24-hour cache outside market hours
+    - Simple in-memory Map-based cache with automatic eviction
+  - Created `/src/app/api/prices/route.ts` for client-side price data fetching
+  - Real historical price data fetching with Yahoo Finance
+  - Real ticker search with exchange and type filtering
+  - Real quote data with market cap, volume, 52-week high/low
+  - Comprehensive error handling with automatic fallback to mock data
+  - Retry logic and stale data fallback on API failures
+- Environment variable `USE_MOCK_DATA=true` to enable mock data for testing
 - 7 specialized AI agents for domain-specific development:
   - AI/NLP Integration Specialist (sentiment analysis, LLM integration)
   - Voice & Media Processing Specialist (transcription, image handling)
@@ -22,6 +36,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CHANGELOG.md for tracking project changes
 
 ### Changed
+- **Data Layer Architecture**: Refactored to support real API integration
+  - Updated `/src/lib/data.ts` to use real Yahoo Finance API with mock fallback
+  - Updated `/src/app/api/ticker/route.ts` to use real ticker search
+  - Updated `/src/app/api/ticker/[symbol]/route.ts` to use real quote data
+  - Refactored `/src/components/ui/HvCard.tsx` to fetch data via API route (prevents client-side Node.js module issues)
+- **Caching Strategy**: Implemented smart caching based on market hours
+  - Price data cached for 1 hour during trading hours, 24 hours otherwise
+  - Ticker info cached for 24 hours
+  - Search results cached for 1 hour
+  - Automatic stale data fallback when API is unavailable
 - **Product Strategy**: Refined mission to emphasize AI journal-first approach (80% AI journaling, 20% vol analysis)
 - Updated `agent-os/product/mission.md` to focus on solving journaling friction and behavioral pattern recognition
 - Restructured `agent-os/product/roadmap.md` with AI features marked as CRITICAL priority
@@ -30,6 +54,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Market Data Foundation (Contextual Enrichment - 20%)
   - Supporting Features
 - Moved options chain display, go/no-go precheck, and CSV import to Phase 2
+
+### Deprecated
+- Mock data system (now used only as fallback when `USE_MOCK_DATA=true` or when Yahoo Finance API fails)
+
+### Technical Notes
+- Yahoo Finance free API has rate limits - aggressive caching implemented to minimize API calls
+- `yahoo-finance2` package uses Deno shims which require Node.js modules, so it must only be used server-side
+- TypeScript type conflicts in `yahoo-finance2` resolved with `@ts-expect-error` annotations and interface casting
+- Build process validates TypeScript and ESLint successfully
 
 ---
 

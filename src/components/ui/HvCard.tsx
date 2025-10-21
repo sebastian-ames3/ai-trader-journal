@@ -3,9 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle, TrendingUp } from 'lucide-react';
-import { fetchDailyCloses } from '@/lib/data';
 import { calculateHVMetrics, HVResult } from '@/lib/hv';
-import { logger } from '@/lib/logger';
 
 interface HvCardProps {
   ticker: string;
@@ -25,22 +23,27 @@ export function HvCard({ ticker }: HvCardProps) {
 
       setLoading(true);
       setError(null);
-      
+
       try {
         // Fetch 35 days to ensure we have enough for HV30
-        const response = await fetchDailyCloses(ticker.toUpperCase(), 35);
-        
-        if (!response.success || !response.data) {
-          setError(response.error || 'Failed to load data');
+        const response = await fetch(`/api/prices?ticker=${encodeURIComponent(ticker.toUpperCase())}&days=35`);
+
+        if (!response.ok) {
+          setError('Failed to load data');
           return;
         }
 
-        const metrics = calculateHVMetrics(response.data.closes);
+        const data = await response.json();
+
+        if (!data.success || !data.data) {
+          setError(data.error || 'Failed to load data');
+          return;
+        }
+
+        const metrics = calculateHVMetrics(data.data.closes);
         setHvData(metrics);
-        
-        logger.debug('HvCard data loaded', { ticker, metrics });
       } catch (err) {
-        logger.error('HvCard error', err);
+        console.error('HvCard error', err);
         setError('Failed to calculate HV');
       } finally {
         setLoading(false);

@@ -10,6 +10,7 @@ AI Trader Journal is a mobile-first options trading journal with intelligent IV/
 - Manually enter IV data and persist it to the database
 - Analyze whether options are overpriced or undervalued based on IV/HV ratios
 - Size positions based on account risk rather than arbitrary share counts
+- Journal trade ideas, reflections, and market observations
 
 **Tech Stack:** Next.js 14 (App Router) • TypeScript • Tailwind CSS • Prisma • PostgreSQL • shadcn/ui
 
@@ -34,6 +35,10 @@ npm run db:push      # Push schema changes to database
 npm run db:seed      # Seed database with initial data
 npm run db:studio    # Open Prisma Studio (database GUI)
 
+# Migrations (recommended for production)
+npx prisma migrate dev --name [migration_name]  # Create and apply migration in dev
+npx prisma migrate deploy                        # Apply migrations in production
+
 # Environment Setup
 cp .env.example .env.local  # Create environment file
 npm run postinstall  # Generate Prisma client (runs automatically after install)
@@ -46,12 +51,61 @@ npm run postinstall  # Generate Prisma client (runs automatically after install)
 The application uses PostgreSQL with Prisma ORM. The schema is defined in `prisma/schema.prisma`:
 
 - **Trade**: Core model storing trade details, market conditions, and IV/HV metrics at entry
+- **Entry**: Standalone journal entries for trade ideas, reflections, observations, and trade documentation
 - **Snapshot**: Captures complete market state at trade entry including IV data, HV calculations, Greeks, and options chain data
-- **Note**: Journal notes attached to trades
-- **Tag**: Categorization tags for trades
+- **Note**: Journal notes attached to trades (legacy - being superseded by Entry model)
+- **Tag**: Categorization tags for both trades and entries
 - **Settings**: User preferences for risk management and thresholds
 
 **Important:** The schema uses PostgreSQL (not SQLite as initially mentioned in README). Environment requires `DATABASE_URL` connection string.
+
+#### Entry Model
+
+The **Entry** model is a flexible journal entry system that supports multiple use cases:
+
+**Entry Types:**
+- `TRADE_IDEA`: Pre-trade thoughts and analysis (most common)
+- `TRADE`: Documentation of actual executed trades (links to Trade model)
+- `REFLECTION`: Post-trade analysis and lessons learned
+- `OBSERVATION`: General market observations and notes
+
+**Core Fields (Phase 1):**
+- `content`: Main journal text (TEXT field, supports full-text search)
+- `mood`: Trader's emotional state (CONFIDENT, NERVOUS, EXCITED, UNCERTAIN, NEUTRAL)
+- `conviction`: Confidence level in the idea (LOW, MEDIUM, HIGH)
+- `ticker`: Optional ticker symbol (entries don't require a ticker)
+- `tradeId`: Optional link to Trade record
+- `snapshotId`: Optional link to market conditions snapshot
+
+**Future Fields (Phase 2):**
+- `audioUrl`: For voice notes (Issue #19)
+- `imageUrls`: For screenshots (Issue #19)
+- AI analysis fields (Issue #20): `sentiment`, `emotionalKeywords`, `detectedBiases`, `aiTags`, `convictionInferred`
+
+**Relationships:**
+- Entry can optionally link to Trade (many-to-one)
+- Entry can optionally link to Snapshot (one-to-one)
+- Entry has many Tags (many-to-many via `_EntryTags` join table)
+- Trade has many Entries (one-to-many: idea → execution → reflection)
+
+**Cascading Behavior:**
+- If Trade is deleted, Entry's `tradeId` is set to NULL (preserves journal entry)
+- If Snapshot is deleted, Entry's `snapshotId` is set to NULL
+
+**Query Patterns:**
+The Entry model is indexed for common queries:
+- Date DESC (most recent first)
+- Ticker symbol
+- Entry type
+- Mood
+- Conviction level
+- Associated trade
+
+**Validation Rules:**
+- TRADE type entries should have a `tradeId` (enforce at application level)
+- Content field is required
+- Type field is required
+- All other fields are optional
 
 ### Volatility Calculation System
 
@@ -135,3 +189,5 @@ Example: `import { calculateHV } from '@/lib/hv'`
 4. **Branch Protection**: Main branch is protected. All changes must go through pull requests from feature branches (e.g., `feat/your-feature`).
 
 5. **Mock Data**: Current implementation uses mock data for ticker search and price fetching. This is intentional for MVP development and should be replaced with real API integration later.
+
+6. **Database Migrations**: Migration files are stored in `prisma/migrations/`. Use `npx prisma migrate dev` for development and `npx prisma migrate deploy` for production. The `db:push` command is available for rapid prototyping but doesn't create migration history.
