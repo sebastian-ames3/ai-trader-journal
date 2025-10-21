@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql" 
   url      = env("DATABASE_URL")
 }
 
@@ -68,6 +68,10 @@ model Snapshot {
   tradeId      String   @unique
   trade        Trade    @relation(fields: [tradeId], references: [id])
   
+  price      Float?    // Underlying price at snapshot
+  volume     Int?      // Volume
+  openInterest Int?    // Open interest
+
   marketData   Json
   greeks       Json?
   chainData    Json
@@ -76,6 +80,11 @@ model Snapshot {
   hvSource    String?   // Data source (e.g., "yfinance")
   newsEvents   Json?
   calcAt      DateTime? // When HV was calculated
+
+  iv         Float?    // Implied volatility as decimal (0.285 = 28.5%)
+  ivTermDays Int?      // Term in days, default 30
+  ivSource   String?   // Source of IV data, default "manual"
+  ivAt       DateTime? // When IV was recorded
   
   capturedAt   DateTime @default(now())
 }

@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Search, TrendingUp, AlertCircle, Loader, RefreshCw, Clock } from 'lucide-react';
 import { HvCard } from '@/components/ui/HvCard';
-
-// Update this to match your backend URL
-const API_BASE_URL = 'http://localhost:5000/api';
+import debounce from 'lodash.debounce';
+import { useCallback } from 'react';
+import ManualIvForm from '@/components/ui/ManualIvForm';
 
 // Type definitions
 interface TickerData {
@@ -32,13 +32,16 @@ interface TickerData {
   timestamp: string;
   cached?: boolean;
 }
-
+interface TickerResult {
+  symbol: string;
+  name: string;
+}
 const TickerEntry: React.FC = () => {
   const [tickerInput, setTickerInput] = useState<string>('');
   const [tickerData, setTickerData] = useState<TickerData | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
-  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<TickerResult[]>([]);
   const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -46,7 +49,7 @@ const TickerEntry: React.FC = () => {
 
   // Fetch ticker data from backend
   const fetchTickerData = async (symbol: string): Promise<TickerData> => {
-    const response = await fetch(`${API_BASE_URL}/ticker/${symbol}`);
+    const response = await fetch(`api/ticker/${symbol}`);
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.error || 'Failed to fetch ticker data');
@@ -55,32 +58,42 @@ const TickerEntry: React.FC = () => {
   };
 
   // Search for ticker suggestions
-  const searchTickers = async (query: string): Promise<string[]> => {
-    const response = await fetch(`${API_BASE_URL}/ticker/search?q=${query}`);
-    if (!response.ok) throw new Error('Failed to fetch suggestions');
-    return response.json();
-  };
+  const searchTickers = useCallback(async (query: string): Promise<TickerResult[]> => {
+  const response = await fetch(`/api/ticker?q=${query}`);
+  if (!response.ok) throw new Error('Failed to fetch suggestions');
+  const data = await response.json();
+  console.log('API response:', data);  
+  console.log('Results:', data.results);
+  return data.results || [];  // Extract the results array here
+}, []);
 
+// Debouncer
+const debouncedSearch = useMemo(
+  () => debounce(async (query: string) => {
+    try {
+      const results = await searchTickers(query);
+      setSuggestions(results);
+      setShowSuggestions(true);
+    } catch (err) {
+      console.error('Failed to fetch suggestions:', err);
+      setSuggestions([]);
+    }
+  }, 500),
+  [searchTickers] // Add dependencies here
+);
   // Handle input changes with debounced autocomplete
   useEffect(() => {
-    const timer = setTimeout(async () => {
-      if (tickerInput.length >= 1) {
-        try {
-          const results = await searchTickers(tickerInput);
-          setSuggestions(results);
-          setShowSuggestions(true);
-        } catch (err) {
-          console.error('Failed to fetch suggestions:', err);
-          setSuggestions([]);
-        }
-      } else {
-        setSuggestions([]);
-        setShowSuggestions(false);
-      }
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [tickerInput]);
+    if (tickerInput.length >= 1) {
+      setShowSuggestions(false); // Hide old lines while loading
+      debouncedSearch(tickerInput);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+    return () => {
+      debouncedSearch.cancel(); // Cancel pending requests on cleanup
+    };
+  }, [tickerInput, debouncedSearch]);
 
   // Load recent searches from localStorage
   useEffect(() => {
@@ -183,19 +196,23 @@ const TickerEntry: React.FC = () => {
                 />
                 
                 {/* Autocomplete Suggestions */}
-                {showSuggestions && suggestions.length > 0 && (
+                  {showSuggestions && suggestions.length > 0 && (
                     <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg">
-                    {suggestions.map((symbol) => (
-                      <button
-                        key={symbol}
-                        onClick={() => handleSuggestionClick(symbol)}
-                        className="w-full px-4 py-2 text-left hover:bg-gray-100 first:rounded-t-lg last:rounded-b-lg"
-                      >
-                        {symbol}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                      {suggestions.map((suggestion) => {
+                        console.log('Rendering suggestion:', suggestion);  // Add this
+                        return (
+                          <button
+                            key={suggestion.symbol}
+                            onClick={() => handleSuggestionClick(suggestion.symbol)}
+                            className="w-full px-4 py-2 text-left hover:bg-gray-100 first:rounded-t-lg last:rounded-b-lg"
+                          >
+                            <div className="font-medium">{suggestion.symbol}</div>
+                            <div className="text-sm text-gray-500">{suggestion.name}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
               </div>
               
               <button
@@ -355,7 +372,24 @@ const TickerEntry: React.FC = () => {
 
             {/* HV Display */}
             <HvCard ticker={tickerData?.symbol} />
-
+            
+          {/* After the Historical Volatility section */}
+            {tickerData && (
+              <div className="mt-8">
+                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Implied Volatility Entry
+                </h2>
+                <ManualIvForm 
+                  selectedTicker={tickerData.symbol} 
+                  onIvSaved={(data) => {
+                    console.log('IV saved:', data);
+                    // You can update your UI here if needed
+                  }}
+                />
+              </div>
+            )}
+            
             {/* Update Time */}
             <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
               <span className="flex items-center">
