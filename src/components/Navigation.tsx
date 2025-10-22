@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, BookOpen } from 'lucide-react';
+import { Home, BookOpen, BarChart3 } from 'lucide-react';
 
 export default function Navigation() {
   const pathname = usePathname();
@@ -45,6 +45,18 @@ export default function Navigation() {
             >
               <BookOpen className="h-5 w-5" />
               <span className="hidden sm:inline">Journal</span>
+            </Link>
+
+            <Link
+              href="/insights"
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors min-h-[44px] ${
+                isActive('/insights')
+                  ? 'bg-primary text-primary-foreground'
+                  : 'hover:bg-gray-100'
+              }`}
+            >
+              <BarChart3 className="h-5 w-5" />
+              <span className="hidden sm:inline">Insights</span>
             </Link>
           </div>
         </div>
