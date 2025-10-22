@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Plus, Loader } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import SearchFilters, { FilterState } from '@/components/SearchFilters';
 
 interface Entry {
   id: string;
@@ -14,6 +16,8 @@ interface Entry {
   mood: 'CONFIDENT' | 'NERVOUS' | 'EXCITED' | 'UNCERTAIN' | 'NEUTRAL' | null;
   conviction: 'LOW' | 'MEDIUM' | 'HIGH' | null;
   ticker: string | null;
+  sentiment: string | null;
+  detectedBiases: string[];
   createdAt: string;
 }
 
@@ -38,25 +42,79 @@ const convictionColors = {
   HIGH: 'bg-red-100 text-red-800 border-red-300',
 };
 
-export default function JournalPage() {
+function JournalContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
+  const [filters, setFilters] = useState<FilterState>({
+    search: searchParams.get('search') || '',
+    type: searchParams.get('type') || '',
+    ticker: searchParams.get('ticker') || '',
+    mood: searchParams.get('mood') || '',
+    conviction: searchParams.get('conviction') || '',
+    sentiment: searchParams.get('sentiment') || '',
+    biases: searchParams.get('bias')?.split(',').filter(Boolean) || [],
+    dateFrom: searchParams.get('dateFrom') || '',
+    dateTo: searchParams.get('dateTo') || '',
+  });
 
   useEffect(() => {
     fetchEntries();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const fetchEntries = async () => {
+    setLoading(true);
     try {
-      const response = await fetch('/api/entries');
+      // Build query string from filters
+      const params = new URLSearchParams();
+      if (filters.search) params.set('search', filters.search);
+      if (filters.type) params.set('type', filters.type);
+      if (filters.ticker) params.set('ticker', filters.ticker);
+      if (filters.mood) params.set('mood', filters.mood);
+      if (filters.conviction) params.set('conviction', filters.conviction);
+      if (filters.sentiment) params.set('sentiment', filters.sentiment);
+      if (filters.biases.length > 0) params.set('bias', filters.biases.join(','));
+      if (filters.dateFrom) params.set('dateFrom', filters.dateFrom);
+      if (filters.dateTo) params.set('dateTo', filters.dateTo);
+
+      const queryString = params.toString();
+      const url = `/api/entries${queryString ? `?${queryString}` : ''}`;
+
+      const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to fetch entries');
       const data = await response.json();
-      setEntries(data);
+
+      setEntries(data.entries);
+      setTotalCount(data.pagination.total);
     } catch (error) {
       console.error('Error fetching entries:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleFiltersChange = (newFilters: FilterState) => {
+    setFilters(newFilters);
+  };
+
+  const handleSearch = () => {
+    // Update URL query params
+    const params = new URLSearchParams();
+    if (filters.search) params.set('search', filters.search);
+    if (filters.type) params.set('type', filters.type);
+    if (filters.ticker) params.set('ticker', filters.ticker);
+    if (filters.mood) params.set('mood', filters.mood);
+    if (filters.conviction) params.set('conviction', filters.conviction);
+    if (filters.sentiment) params.set('sentiment', filters.sentiment);
+    if (filters.biases.length > 0) params.set('bias', filters.biases.join(','));
+    if (filters.dateFrom) params.set('dateFrom', filters.dateFrom);
+    if (filters.dateTo) params.set('dateTo', filters.dateTo);
+
+    const queryString = params.toString();
+    router.push(`/journal${queryString ? `?${queryString}` : ''}`);
   };
 
   const formatTimeAgo = (dateString: string) => {
@@ -88,15 +146,21 @@ export default function JournalPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      {/* Header */}
-      <div className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <h1 className="text-2xl font-bold">Journal</h1>
-        </div>
-      </div>
+      {/* Search & Filters */}
+      <SearchFilters
+        filters={filters}
+        onFiltersChange={handleFiltersChange}
+        onSearch={handleSearch}
+      />
 
       {/* Content */}
       <div className="max-w-4xl mx-auto px-4 py-6">
+        {/* Results Count */}
+        {!loading && totalCount > 0 && (
+          <p className="text-sm text-gray-600 mb-4">
+            Showing {entries.length} of {totalCount} entries
+          </p>
+        )}
         {entries.length === 0 ? (
           // Empty State
           <div className="text-center py-12">
@@ -156,6 +220,40 @@ export default function JournalPage() {
                       {entry.content}
                     </p>
 
+                    {/* AI Analysis Badges */}
+                    {(entry.sentiment || entry.detectedBiases?.length > 0) && (
+                      <div className="flex items-center gap-2 flex-wrap mb-2">
+                        {entry.sentiment && (
+                          <Badge
+                            variant="outline"
+                            className={`text-xs ${
+                              entry.sentiment === 'positive'
+                                ? 'bg-green-50 text-green-700 border-green-200'
+                                : entry.sentiment === 'negative'
+                                ? 'bg-red-50 text-red-700 border-red-200'
+                                : 'bg-gray-50 text-gray-700 border-gray-200'
+                            }`}
+                          >
+                            {entry.sentiment}
+                          </Badge>
+                        )}
+                        {entry.detectedBiases?.slice(0, 2).map((bias) => (
+                          <Badge
+                            key={bias}
+                            variant="outline"
+                            className="text-xs bg-orange-50 text-orange-700 border-orange-200"
+                          >
+                            {bias.replace(/_/g, ' ')}
+                          </Badge>
+                        ))}
+                        {entry.detectedBiases?.length > 2 && (
+                          <span className="text-xs text-gray-500">
+                            +{entry.detectedBiases.length - 2} more
+                          </span>
+                        )}
+                      </div>
+                    )}
+
                     {/* Timestamp */}
                     <p className="text-xs text-gray-500">
                       {formatTimeAgo(entry.createdAt)}
@@ -179,5 +277,19 @@ export default function JournalPage() {
         </Button>
       </Link>
     </div>
+  );
+}
+
+export default function JournalPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <Loader className="animate-spin h-8 w-8 text-gray-400" />
+        </div>
+      }
+    >
+      <JournalContent />
+    </Suspense>
   );
 }

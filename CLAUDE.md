@@ -234,7 +234,31 @@ Currently uses mock data (`src/lib/data.ts`) for price fetching:
 ### API Routes
 
 **Entry Management:**
-- `GET /api/entries`: List all entries with optional filtering
+- `GET /api/entries`: List entries with optional search and filters
+  - **Query Parameters:**
+    - `search` - Full-text search on content (case-insensitive)
+    - `type` - Filter by entry type (TRADE_IDEA, TRADE, REFLECTION, OBSERVATION)
+    - `ticker` - Filter by ticker symbol (case-insensitive)
+    - `mood` - Filter by mood (CONFIDENT, NERVOUS, EXCITED, etc.)
+    - `conviction` - Filter by conviction level (LOW, MEDIUM, HIGH)
+    - `sentiment` - Filter by AI sentiment (positive, negative, neutral)
+    - `bias` - Filter by cognitive biases (comma-separated, supports multiple)
+    - `dateFrom` - ISO date string (entries created after this date)
+    - `dateTo` - ISO date string (entries created before this date)
+    - `limit` - Max results per page (default: 50)
+    - `offset` - Pagination offset (default: 0)
+  - **Response:**
+    ```json
+    {
+      "entries": [...],
+      "pagination": {
+        "total": 100,
+        "limit": 50,
+        "offset": 0,
+        "hasMore": true
+      }
+    }
+    ```
 - `POST /api/entries`: Create new entry
 - `GET /api/entries/[id]`: Get single entry
 - `PUT /api/entries/[id]`: Update entry
@@ -258,10 +282,53 @@ Currently uses mock data (`src/lib/data.ts`) for price fetching:
 **IV Persistence (Phase 2):**
 - `POST /api/iv/manual`: Persist manually entered IV data
 
+### Search & Filters (Issue #24 - Implemented)
+
+The application provides comprehensive search and filtering capabilities for journal entries:
+
+**Search Component:** `src/components/SearchFilters.tsx`
+- Full-text search across entry content
+- Multi-filter support with collapsible advanced filters panel
+- Visual filter chips for cognitive biases
+- URL query parameter integration for shareable filtered views
+- Active filter count badge
+- One-click filter clearing
+
+**API Implementation:** `src/app/api/entries/route.ts`
+- Query string parsing with validation
+- Prisma where clause builder
+- Pagination support with total count
+- Case-insensitive search and matching
+- Array-based bias filtering with `hasSome`
+
+**Journal Page Integration:** `src/app/journal/page.tsx`
+- Real-time filter state management
+- URL synchronization for bookmarkable searches
+- Results count display
+- AI analysis badges in entry cards (sentiment, biases)
+- Reverse chronological ordering
+
+**Supported Filters:**
+1. **Text Search**: Case-insensitive content search
+2. **Entry Type**: TRADE_IDEA, TRADE, REFLECTION, OBSERVATION
+3. **Ticker**: Symbol filter (case-insensitive)
+4. **Mood**: 14 emotional states (CONFIDENT, NERVOUS, etc.)
+5. **Conviction**: LOW, MEDIUM, HIGH
+6. **Sentiment**: AI-detected positive/negative/neutral
+7. **Biases**: Multi-select from 9 cognitive biases
+8. **Date Range**: Filter by creation date (dateFrom/dateTo)
+9. **Pagination**: Limit and offset for result sets
+
+**Test Coverage:**
+- 18 integration tests covering all filter combinations
+- Test suite: `tests/api-search-filters.test.ts`
+- Run with: `npm run test:search`
+
 ### Component Architecture
 
 - **UI Components**: `src/components/ui/` contains shadcn/ui primitives (Button, Card, Input, Select, etc.)
 - **Feature Components**:
+  - `SearchFilters.tsx`: Comprehensive search and filter interface for journal entries
   - `TickerEntry.tsx`: Main ticker search and selection interface
   - `HvCard.tsx`: Displays HV20 and HV30 calculations
   - `ManualIvForm.tsx`: IV manual entry form with validation
@@ -302,7 +369,7 @@ Example: `import { calculateHV } from '@/lib/hv'`
    - Git operations can be done from either environment
 
 3. **Testing Requirements**:
-   - All integration tests (`test:api`, `test:ai`, `test:insights`) require:
+   - All integration tests (`test:api`, `test:ai`, `test:insights`, `test:search`) require:
      1. Dev server running on `localhost:3000`
      2. Database connection (must run from PowerShell)
      3. `OPENAI_API_KEY` in `.env` file (for AI tests)
@@ -376,13 +443,21 @@ Example: `import { calculateHV } from '@/lib/hv'`
   - Responsive dashboard UI
   - Comprehensive test suite (10 tests)
 
+- ✅ **Search & Filters** (Issue #24)
+  - Full-text search on entry content
+  - Multi-filter support (type, ticker, mood, conviction, sentiment, biases, date range)
+  - Collapsible advanced filters panel with shadcn/ui components
+  - URL query parameter integration for shareable filtered views
+  - Pagination support (limit/offset)
+  - AI analysis badges in entry cards
+  - Comprehensive test suite (18 tests)
+
 **In Progress:**
 - None (ready for next feature)
 
 **Pending Phase 1:**
 - ⏳ Auto-tagging system (Issue #22)
 - ⏳ Voice notes & screenshots (Issue #19)
-- ⏳ Search & filters (Issue #24)
 
 ### 🔮 Phase 2 - Financial Data Integration (Future)
 
@@ -445,6 +520,7 @@ Example: `import { calculateHV } from '@/lib/hv'`
 - Entry API: 11 tests covering CRUD operations, validation, error handling
 - AI Analysis: 9 tests covering sentiment, bias detection, API endpoints
 - Weekly Insights: 10 tests covering analytics, aggregation, personalization
+- Search & Filters: 18 tests covering all filter types, pagination, combined filters
 
 **Running Tests:**
 ```powershell
@@ -455,6 +531,7 @@ npm run dev
 npm run test:api        # Entry API tests
 npm run test:ai         # AI analysis tests (requires OPENAI_API_KEY)
 npm run test:insights   # Weekly insights tests
+npm run test:search     # Search & filter tests
 ```
 
 ## Known Issues
