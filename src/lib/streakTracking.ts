@@ -20,54 +20,59 @@ const STREAK_MILESTONES = [3, 7, 14, 30, 60, 90, 180, 365];
  * Implements grace day logic: allows 1 missed day before resetting streak
  */
 export async function updateStreakAfterEntry(): Promise<StreakData> {
-  const settings = await prisma.settings.upsert({
-    where: { id: 'default' },
-    create: {
-      id: 'default',
-      currentStreak: 0,
-      longestStreak: 0,
-      totalEntries: 0,
-    },
-    update: {},
-  });
+  try {
+    const settings = await prisma.settings.upsert({
+      where: { id: 'default' },
+      create: {
+        id: 'default',
+        currentStreak: 0,
+        longestStreak: 0,
+        totalEntries: 0,
+        defaultRisk: 1.0,
+        accountSize: 10000,
+        liquidityThreshold: 100,
+        ivThreshold: 80,
+      },
+      update: {},
+    });
 
-  const now = startOfDay(new Date());
-  const lastEntry = settings.lastEntryDate ? startOfDay(settings.lastEntryDate) : null;
-  const lastGrace = settings.lastGraceDate ? startOfDay(settings.lastGraceDate) : null;
+    const now = startOfDay(new Date());
+    const lastEntry = settings.lastEntryDate ? startOfDay(settings.lastEntryDate) : null;
+    const lastGrace = settings.lastGraceDate ? startOfDay(settings.lastGraceDate) : null;
 
-  let newStreak = settings.currentStreak;
-  let usedGraceToday = false;
+    let newStreak = settings.currentStreak;
+    let usedGraceToday = false;
 
-  // Calculate days since last entry
-  if (lastEntry) {
-    const daysSinceLastEntry = differenceInCalendarDays(now, lastEntry);
+    // Calculate days since last entry
+    if (lastEntry) {
+      const daysSinceLastEntry = differenceInCalendarDays(now, lastEntry);
 
-    if (daysSinceLastEntry === 0) {
-      // Same day entry - no streak change
-      newStreak = settings.currentStreak;
-    } else if (daysSinceLastEntry === 1) {
-      // Consecutive day - increment streak
-      newStreak = settings.currentStreak + 1;
-    } else if (daysSinceLastEntry === 2) {
-      // Missed 1 day - check if we can use grace day
-      const daysSinceGrace = lastGrace ? differenceInCalendarDays(now, lastGrace) : Infinity;
-
-      if (daysSinceGrace > 7) {
-        // Grace day available (not used in past week)
+      if (daysSinceLastEntry === 0) {
+        // Same day entry - no streak change
+        newStreak = settings.currentStreak;
+      } else if (daysSinceLastEntry === 1) {
+        // Consecutive day - increment streak
         newStreak = settings.currentStreak + 1;
-        usedGraceToday = true;
+      } else if (daysSinceLastEntry === 2) {
+        // Missed 1 day - check if we can use grace day
+        const daysSinceGrace = lastGrace ? differenceInCalendarDays(now, lastGrace) : Infinity;
+
+        if (daysSinceGrace > 7) {
+          // Grace day available (not used in past week)
+          newStreak = settings.currentStreak + 1;
+          usedGraceToday = true;
+        } else {
+          // Grace day already used recently - reset streak
+          newStreak = 1;
+        }
       } else {
-        // Grace day already used recently - reset streak
+        // Missed 2+ days - reset streak
         newStreak = 1;
       }
     } else {
-      // Missed 2+ days - reset streak
+      // First entry ever
       newStreak = 1;
     }
-  } else {
-    // First entry ever
-    newStreak = 1;
-  }
 
   const newTotalEntries = settings.totalEntries + 1;
   const newLongestStreak = Math.max(newStreak, settings.longestStreak);
@@ -98,51 +103,77 @@ export async function updateStreakAfterEntry(): Promise<StreakData> {
     milestoneValue = newStreak;
   }
 
-  // Update database
-  await prisma.settings.update({
-    where: { id: 'default' },
-    data: {
+    // Update database
+    await prisma.settings.update({
+      where: { id: 'default' },
+      data: {
+        currentStreak: newStreak,
+        longestStreak: newLongestStreak,
+        totalEntries: newTotalEntries,
+        lastEntryDate: now,
+        lastGraceDate: usedGraceToday ? now : settings.lastGraceDate,
+      },
+    });
+
+    return {
       currentStreak: newStreak,
       longestStreak: newLongestStreak,
       totalEntries: newTotalEntries,
       lastEntryDate: now,
-      lastGraceDate: usedGraceToday ? now : settings.lastGraceDate,
-    },
-  });
-
-  return {
-    currentStreak: newStreak,
-    longestStreak: newLongestStreak,
-    totalEntries: newTotalEntries,
-    lastEntryDate: now,
-    isNewMilestone,
-    milestoneType,
-    milestoneValue,
-  };
+      isNewMilestone,
+      milestoneType,
+      milestoneValue,
+    };
+  } catch (error) {
+    console.error('Error updating streak:', error);
+    // Return default values on error to prevent blocking entry creation
+    return {
+      currentStreak: 0,
+      longestStreak: 0,
+      totalEntries: 0,
+      lastEntryDate: null,
+      isNewMilestone: false,
+    };
+  }
 }
 
 /**
  * Gets current streak data without updating
  */
 export async function getStreakData(): Promise<StreakData> {
-  const settings = await prisma.settings.upsert({
-    where: { id: 'default' },
-    create: {
-      id: 'default',
+  try {
+    const settings = await prisma.settings.upsert({
+      where: { id: 'default' },
+      create: {
+        id: 'default',
+        currentStreak: 0,
+        longestStreak: 0,
+        totalEntries: 0,
+        defaultRisk: 1.0,
+        accountSize: 10000,
+        liquidityThreshold: 100,
+        ivThreshold: 80,
+      },
+      update: {},
+    });
+
+    return {
+      currentStreak: settings.currentStreak,
+      longestStreak: settings.longestStreak,
+      totalEntries: settings.totalEntries,
+      lastEntryDate: settings.lastEntryDate,
+      isNewMilestone: false,
+    };
+  } catch (error) {
+    console.error('Error fetching streak data:', error);
+    return {
       currentStreak: 0,
       longestStreak: 0,
       totalEntries: 0,
-    },
-    update: {},
-  });
-
-  return {
-    currentStreak: settings.currentStreak,
-    longestStreak: settings.longestStreak,
-    totalEntries: settings.totalEntries,
-    lastEntryDate: settings.lastEntryDate,
-    isNewMilestone: false,
-  };
+      lastEntryDate: null,
+      isNewMilestone: false,
+    };
+  }
 }
 
 /**
