@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Plus, Loader } from 'lucide-react';
@@ -42,7 +42,7 @@ const convictionColors = {
   HIGH: 'bg-red-100 text-red-800 border-red-300',
 };
 
-export default function JournalPage() {
+function JournalContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [entries, setEntries] = useState<Entry[]>([]);
@@ -277,5 +277,19 @@ export default function JournalPage() {
         </Button>
       </Link>
     </div>
+  );
+}
+
+export default function JournalPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <Loader className="animate-spin h-8 w-8 text-gray-400" />
+        </div>
+      }
+    >
+      <JournalContent />
+    </Suspense>
   );
 }

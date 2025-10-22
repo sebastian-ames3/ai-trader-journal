@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
 
     // Entry type filter
     if (type && Object.values(EntryType).includes(type as EntryType)) {
-      where.type = type;
+      where.type = type as EntryType;
     }
 
     // Ticker filter (case-insensitive exact match)
@@ -62,12 +62,12 @@ export async function GET(request: NextRequest) {
 
     // Mood filter
     if (mood && Object.values(EntryMood).includes(mood as EntryMood)) {
-      where.mood = mood;
+      where.mood = mood as EntryMood;
     }
 
     // Conviction filter
     if (conviction && Object.values(ConvictionLevel).includes(conviction as ConvictionLevel)) {
-      where.conviction = conviction;
+      where.conviction = conviction as ConvictionLevel;
     }
 
     // Sentiment filter
