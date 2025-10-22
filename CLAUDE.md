@@ -14,6 +14,166 @@ AI Trader Journal is a mobile-first trading psychology journal with AI-powered b
 **Current Focus:** MVP journal and psychology features (Phase 1)
 **Tech Stack:** Next.js 14 (App Router) • TypeScript • Tailwind CSS • Prisma • PostgreSQL (Supabase) • shadcn/ui • OpenAI GPT-4o-mini • date-fns
 
+## Design System & UI Standards
+
+### Design Persona
+When working on UI/UX tasks, adopt the persona of a **Senior Product Designer** focused on mobile-first psychology applications. Prioritize:
+- Trust and emotional safety (traders share vulnerable psychological states)
+- Scannable, glanceable information (mobile usage, quick journaling)
+- Touch-friendly interactions (44x44px minimum touch targets)
+- Accessibility (WCAG 2.1 AA compliance)
+
+### Style Tokens
+
+**Colors (HSL format):**
+```css
+/* Light Mode (Primary) */
+--background: 0 0% 100%;        /* #FFFFFF */
+--foreground: 0 0% 3.9%;        /* #0A0A0A */
+--primary: 0 0% 9%;             /* #171717 - main actions */
+--primary-foreground: 0 0% 98%; /* #FAFAFA */
+--secondary: 0 0% 96.1%;        /* #F5F5F5 */
+--muted: 0 0% 96.1%;            /* #F5F5F5 - subtle backgrounds */
+--muted-foreground: 0 0% 45.1%; /* #737373 - secondary text */
+--border: 0 0% 89.8%;           /* #E5E5E5 */
+--destructive: 0 84.2% 60.2%;   /* #EF4444 - errors/delete */
+
+/* Sentiment Colors (AI Analysis) */
+--sentiment-positive: 142 76% 36%;   /* #16A34A - green */
+--sentiment-negative: 0 84% 60%;     /* #EF4444 - red */
+--sentiment-neutral: 0 0% 45%;       /* #737373 - gray */
+
+/* Entry Type Colors */
+--type-trade-idea: 217 91% 60%;      /* #3B82F6 - blue */
+--type-trade: 142 76% 36%;           /* #16A34A - green */
+--type-reflection: 262 83% 58%;      /* #A855F7 - purple */
+--type-observation: 25 95% 53%;      /* #F97316 - orange */
+
+/* Conviction Colors */
+--conviction-low: 0 0% 45%;          /* #737373 - gray */
+--conviction-medium: 45 93% 47%;     /* #EAB308 - yellow */
+--conviction-high: 0 84% 60%;        /* #EF4444 - red */
+```
+
+**Typography:**
+- Font Family: System font stack (Inter via next/font)
+- Base Size: 16px (1rem)
+- Scale: 12px (xs) → 14px (sm) → 16px (base) → 18px (lg) → 20px (xl) → 24px (2xl)
+- Line Height: 1.5 (body), 1.2 (headings)
+- Font Weights: 400 (normal), 500 (medium), 600 (semibold), 700 (bold)
+
+**Spacing Scale (Tailwind default):**
+- 0.5 = 2px
+- 1 = 4px
+- 2 = 8px
+- 3 = 12px
+- 4 = 16px (base unit)
+- 6 = 24px
+- 8 = 32px
+- 12 = 48px
+- 16 = 64px
+
+**Border Radius:**
+- sm: 6px (calc(8px - 2px))
+- md: 6px (calc(8px - 2px))
+- lg: 8px (base radius)
+- full: 9999px (circular)
+
+**Component Sizing:**
+- Touch targets: min 44x44px (iOS/Android standards)
+- Button height: sm=36px, default=40px, lg=48px
+- Input height: 40px
+- Card padding: 16px (p-4)
+- Page padding: 16px horizontal (px-4)
+
+### Default Viewports for Testing
+
+**Desktop:** 1366x768 (most common laptop resolution)
+**Tablet:** 1024x768 (iPad landscape)
+**Mobile:** 390x844 (iPhone 14 Pro - primary target)
+
+### Component Inventory
+
+**Core Components (shadcn/ui):**
+- `Button`: Primary actions, ghost variants for secondary
+- `Card`: Container for journal entries, insights
+- `Badge`: Tags, labels, metadata (type, mood, sentiment)
+- `Input`: Text fields with 40px height
+- `Textarea`: Multi-line content entry (min 200px height)
+- `Select`: Dropdowns for mood, conviction, filters
+- `Label`: Form field labels (text-sm font-medium)
+
+**Feature Components:**
+- `SearchFilters`: Collapsible advanced filter panel
+- `TickerEntry`: Ticker search with autocomplete
+- Entry cards: Hover shadow, touch-friendly tap areas
+- Floating Action Button: Fixed bottom-right, 56x56px circular
+
+### UI Acceptance Checklist
+
+Use this checklist when validating UI implementations with Playwright:
+
+#### Visual Fidelity
+- [ ] **Colors**: Primary actions use `--primary` (near-black), sentiment badges use correct green/red/gray
+- [ ] **Typography**: Body text is 16px, headings use font-semibold or font-bold
+- [ ] **Spacing**: Consistent padding (4/8/16/24px grid), no arbitrary values
+- [ ] **Borders**: 1px solid borders using `--border` color, 8px border-radius on cards
+- [ ] **Badges**: Entry types use correct colors (blue/green/purple/orange)
+
+#### Layout & Responsiveness
+- [ ] **Mobile (390px)**: No horizontal scroll, content fits viewport
+- [ ] **Touch Targets**: All buttons/links ≥44x44px (use `min-h-[44px]`)
+- [ ] **Stacking**: Elements stack properly on mobile (no overlap/clipping)
+- [ ] **Fixed Elements**: Fixed headers/footers don't obscure content
+- [ ] **Text Wrapping**: Long text wraps properly, no overflow
+
+#### Interactions
+- [ ] **Focus States**: Visible focus indicators on all interactive elements
+- [ ] **Hover States**: Desktop hover effects present (shadow, color change)
+- [ ] **Loading States**: Spinner or skeleton shown during async operations
+- [ ] **Error States**: Clear error messages with red destructive styling
+- [ ] **Success Feedback**: Visual confirmation after form submission (redirect or toast)
+
+#### Accessibility (WCAG 2.1 AA)
+- [ ] **Contrast**: Body text ≥4.5:1, large text ≥3:1 contrast ratio
+- [ ] **Alt Text**: All images and icons have descriptive alt text or aria-label
+- [ ] **Labels**: All form inputs have associated labels (htmlFor/id)
+- [ ] **Semantic HTML**: Proper heading hierarchy (h1 → h2 → h3)
+- [ ] **Keyboard Nav**: All interactive elements reachable via keyboard
+
+#### Performance & Console
+- [ ] **Console Errors**: Zero uncaught JavaScript errors
+- [ ] **React Warnings**: No hydration mismatches or key warnings
+- [ ] **Network**: No failed API requests (except expected 404s)
+- [ ] **Images**: No large unoptimized images (use Next.js Image)
+
+#### Mobile-Specific (iPhone 14 Pro - 390x844)
+- [ ] **Textarea**: Min height 120px, expands on focus, thumb-scrollable
+- [ ] **Dropdowns**: Don't overflow viewport, native select on mobile preferred
+- [ ] **Submit Button**: Fixed at bottom with 56px height, easy thumb reach
+- [ ] **Back Navigation**: Top-left corner, 44x44px touch target
+- [ ] **FAB Position**: Bottom-right, doesn't obscure content, 56x56px
+
+### Playwright Configuration
+
+**Default Settings:**
+```typescript
+{
+  browser: 'chromium',
+  headless: false,  // Show browser during design review
+  viewport: { width: 390, height: 844 },  // Default to mobile
+  slowMo: 500,  // Slow down for visual verification
+}
+```
+
+**Screenshot Settings:**
+```typescript
+{
+  fullPage: true,  // Capture entire scrollable page
+  animations: 'disabled',  // Consistent screenshots
+}
+```
+
 ## Development Commands
 
 ```bash
@@ -591,6 +751,167 @@ function processEntry(data: any) {  // Avoid this
   // Type safety lost
 }
 ```
+
+## Playwright Design Workflows
+
+The project includes **Playwright MCP integration** for automated UI testing and design validation. Use these workflows proactively during UI development to ensure quality and accessibility.
+
+### Quick Validation Commands
+
+**Mobile Check** - Fast mobile UI validation (most common):
+```bash
+/mobile-check
+```
+- Tests on iPhone 14 Pro viewport (390x844)
+- Validates touch targets, spacing, no horizontal scroll
+- Checks console for errors
+- Takes ~1 minute
+- **Use this after every UI change**
+
+**Console Error Fix** - Auto-detect and fix JavaScript errors:
+```bash
+/fix-console
+```
+- Scans page for console errors
+- Automatically fixes safe issues (unused vars, missing deps)
+- Reports issues needing user approval
+- Re-validates after fixes
+- **Run before committing UI changes**
+
+**Accessibility Audit** - WCAG 2.1 AA compliance check:
+```bash
+/accessibility
+```
+- Checks color contrast ratios
+- Validates alt text and labels
+- Tests keyboard navigation
+- Verifies semantic HTML
+- **Run before major feature releases**
+
+### Design Review Agent
+
+For comprehensive multi-viewport reviews:
+
+```bash
+# Full design review with auto-fix
+@agent design-review --target=/journal/new --apply-fixes=true
+
+# Multi-viewport comparison
+@agent design-review --target=/journal --viewports=mobile,tablet,desktop
+
+# Focus on specific aspect
+@agent design-review --target=/insights --focus=accessibility
+```
+
+**When to use:**
+- Before creating pull requests
+- After implementing new pages/components
+- When debugging visual issues
+- For comprehensive pre-release validation
+
+**What it provides:**
+- Screenshots at multiple viewports
+- Console log analysis
+- Structured report with severity-ranked issues
+- Specific code references (file:line) for fixes
+- Letter grade assessment (A/B/C/F)
+- Optional auto-fix application
+
+### Workflow Integration
+
+**During Development (Iterative Loop):**
+1. Make UI changes
+2. Run `/mobile-check` (30 seconds)
+3. Fix high-priority issues
+4. Run `/fix-console` (30 seconds)
+5. Repeat until clean
+
+**Before Committing:**
+1. Run `@agent design-review --target=[page]`
+2. Review structured report
+3. Fix all HIGH severity issues
+4. Address MEDIUM issues if time permits
+5. Commit with confidence
+
+**Before Pull Request:**
+1. Run `/accessibility` on all changed pages
+2. Ensure WCAG AA compliance
+3. Run design-review on 3 viewports
+4. Attach screenshots to PR description
+
+### Example: New Entry Form Validation
+
+```typescript
+// 1. After implementing form UI
+/mobile-check
+// Result: "Submit button too small (40px), need 56px"
+
+// 2. Fix the issue
+// Edit: Change h-10 to h-14 on submit button
+
+// 3. Re-validate
+/mobile-check
+// Result: "✅ All checks pass - Grade A"
+
+// 4. Check console
+/fix-console
+// Result: "✅ Zero console errors"
+
+// 5. Final accessibility check
+/accessibility
+// Result: "⚠️ Mood emojis missing aria-labels"
+
+// 6. Apply fix and validate again
+// Edit: Add aria-label attributes
+/accessibility
+// Result: "✅ WCAG AA compliant - Grade A"
+```
+
+### Performance Tips
+
+- **Mobile-first**: Always test mobile viewport first (primary user base)
+- **Parallel workflows**: Run console check while reviewing screenshots
+- **Cache hits**: Playwright caches browser state for faster subsequent runs
+- **Headed mode**: See visual browser for debugging (default in config)
+- **Screenshot evidence**: Always attach screenshots to bug reports
+
+### Measuring Success
+
+**Grade Scale:**
+- **A (90-100%)**: Production-ready, meets all standards
+- **B (80-89%)**: Good, minor polish needed
+- **C (70-79%)**: Functional but needs improvement
+- **F (<70%)**: Blocks usability, must fix before release
+
+**Target Standards:**
+- All pages should achieve **A-grade on mobile** before PR
+- Zero console errors required
+- WCAG AA compliance for all user-facing pages
+- Touch targets ≥44px on all interactive elements
+
+### Common Issues Caught by Playwright
+
+1. **Touch target violations**: Buttons <44px height
+2. **Horizontal scroll**: Fixed width elements exceeding viewport
+3. **Console errors**: React warnings, undefined variables
+4. **Contrast failures**: Text too light on backgrounds
+5. **Missing labels**: Icons without aria-labels
+6. **Clipping**: Fixed headers obscuring content
+7. **Overflow**: Text not wrapping on mobile
+
+### Anti-Patterns
+
+❌ **Don't** skip Playwright checks because "it looks fine to me"
+❌ **Don't** test only on desktop (mobile users are majority)
+❌ **Don't** ignore console warnings (they become bugs)
+❌ **Don't** commit without running `/fix-console`
+❌ **Don't** disable Playwright to "speed up" development
+
+✅ **Do** run `/mobile-check` after every UI change
+✅ **Do** use design-review agent before PRs
+✅ **Do** fix issues immediately (cheaper than later)
+✅ **Do** trust the acceptance checklist
+✅ **Do** attach screenshots to PR descriptions
 
 ## Context Management
 

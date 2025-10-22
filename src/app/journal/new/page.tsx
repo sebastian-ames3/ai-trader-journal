@@ -216,7 +216,7 @@ export default function NewEntryPage() {
             className="min-h-[200px] text-base resize-none focus:min-h-[300px] transition-all"
             autoCapitalize="sentences"
           />
-          <p className="text-xs text-gray-500 mt-2">
+          <p className="text-xs text-gray-600 mt-2">
             {content.length} characters
           </p>
         </div>
@@ -235,7 +235,7 @@ export default function NewEntryPage() {
                     : 'border-gray-200 bg-white hover:border-gray-300'
                 }`}
               >
-                <span className="text-xl">{m.emoji}</span>
+                <span className="text-xl" role="img" aria-label={m.label}>{m.emoji}</span>
                 <span>{m.label}</span>
               </button>
             ))}
