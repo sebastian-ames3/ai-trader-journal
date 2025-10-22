@@ -1,23 +1,124 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { EntryType, EntryMood, ConvictionLevel } from '@prisma/client';
+import { EntryType, EntryMood, ConvictionLevel, Prisma } from '@prisma/client';
 
 /**
  * GET /api/entries
- * List all journal entries (reverse chronological order)
+ * List journal entries with optional filters
+ *
+ * Query Parameters:
+ * - search: Full-text search on content
+ * - type: Entry type (TRADE_IDEA, TRADE, REFLECTION, OBSERVATION)
+ * - ticker: Ticker symbol
+ * - mood: Emotional state
+ * - conviction: Conviction level (LOW, MEDIUM, HIGH)
+ * - sentiment: AI-detected sentiment (positive, negative, neutral)
+ * - bias: Cognitive bias to filter by (supports multiple via comma-separated)
+ * - dateFrom: ISO date string (entries created after this date)
+ * - dateTo: ISO date string (entries created before this date)
+ * - limit: Max results (default: 50)
+ * - offset: Pagination offset (default: 0)
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+
+    // Parse filter parameters
+    const search = searchParams.get('search');
+    const type = searchParams.get('type');
+    const ticker = searchParams.get('ticker');
+    const mood = searchParams.get('mood');
+    const conviction = searchParams.get('conviction');
+    const sentiment = searchParams.get('sentiment');
+    const biasParam = searchParams.get('bias');
+    const dateFrom = searchParams.get('dateFrom');
+    const dateTo = searchParams.get('dateTo');
+    const limit = parseInt(searchParams.get('limit') || '50', 10);
+    const offset = parseInt(searchParams.get('offset') || '0', 10);
+
+    // Build where clause
+    const where: Prisma.EntryWhereInput = {};
+
+    // Full-text search on content
+    if (search) {
+      where.content = {
+        contains: search,
+        mode: 'insensitive'
+      };
+    }
+
+    // Entry type filter
+    if (type && Object.values(EntryType).includes(type as EntryType)) {
+      where.type = type;
+    }
+
+    // Ticker filter (case-insensitive exact match)
+    if (ticker) {
+      where.ticker = {
+        equals: ticker,
+        mode: 'insensitive'
+      };
+    }
+
+    // Mood filter
+    if (mood && Object.values(EntryMood).includes(mood as EntryMood)) {
+      where.mood = mood;
+    }
+
+    // Conviction filter
+    if (conviction && Object.values(ConvictionLevel).includes(conviction as ConvictionLevel)) {
+      where.conviction = conviction;
+    }
+
+    // Sentiment filter
+    if (sentiment && ['positive', 'negative', 'neutral'].includes(sentiment)) {
+      where.sentiment = sentiment;
+    }
+
+    // Bias filter (supports multiple biases comma-separated)
+    if (biasParam) {
+      const biases = biasParam.split(',').map(b => b.trim());
+      where.detectedBiases = {
+        hasSome: biases
+      };
+    }
+
+    // Date range filters
+    if (dateFrom || dateTo) {
+      where.createdAt = {};
+      if (dateFrom) {
+        where.createdAt.gte = new Date(dateFrom);
+      }
+      if (dateTo) {
+        where.createdAt.lte = new Date(dateTo);
+      }
+    }
+
+    // Fetch entries with filters and pagination
     const entries = await prisma.entry.findMany({
+      where,
       orderBy: {
         createdAt: 'desc'
       },
       include: {
         tags: true
-      }
+      },
+      take: limit,
+      skip: offset
     });
 
-    return NextResponse.json(entries);
+    // Get total count for pagination
+    const total = await prisma.entry.count({ where });
+
+    return NextResponse.json({
+      entries,
+      pagination: {
+        total,
+        limit,
+        offset,
+        hasMore: offset + entries.length < total
+      }
+    });
   } catch (error) {
     console.error('Error fetching entries:', error);
     return NextResponse.json(
