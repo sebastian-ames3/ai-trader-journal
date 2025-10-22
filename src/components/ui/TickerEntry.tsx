@@ -62,7 +62,7 @@ const TickerEntry: React.FC = () => {
   const response = await fetch(`/api/ticker?q=${query}`);
   if (!response.ok) throw new Error('Failed to fetch suggestions');
   const data = await response.json();
-  console.log('API response:', data);  
+  console.log('API response:', data);
   console.log('Results:', data.results);
   return data.results || [];  // Extract the results array here
 }, []);
@@ -125,16 +125,16 @@ const debouncedSearch = useMemo(
     setLoading(true);
     setError('');
     setShowSuggestions(false);
-    
+
     try {
       const data = await fetchTickerData(symbol);
       setTickerData(data);
-      
+
       // Update recent searches
       const updatedRecent = [symbol.toUpperCase(), ...recentSearches.filter(s => s !== symbol.toUpperCase())].slice(0, 5);
       setRecentSearches(updatedRecent);
       localStorage.setItem('recentTickerSearches', JSON.stringify(updatedRecent));
-      
+
     } catch (err) {
       setError((err as Error).message || 'Failed to fetch ticker data. Please try again.');
       setTickerData(null);
@@ -172,15 +172,13 @@ const debouncedSearch = useMemo(
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto p-4 sm:p-6">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-6">AI Trader Journal</h1>
-        
         {/* Ticker Search Section */}
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6">
           <h2 className="text-lg sm:text-xl font-semibold mb-4 flex items-center">
             <Search className="mr-2" size={20} />
             Ticker Entry
           </h2>
-          
+
           <div className="relative mb-4">
             <div className="flex gap-2">
               <div className="flex-1 relative">
@@ -194,7 +192,7 @@ const debouncedSearch = useMemo(
                   placeholder="Enter ticker (e.g., AAPL)"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                
+
                 {/* Autocomplete Suggestions */}
                   {showSuggestions && suggestions.length > 0 && (
                     <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg">
@@ -214,7 +212,7 @@ const debouncedSearch = useMemo(
                     </div>
                   )}
               </div>
-              
+
               <button
                 onClick={() => handleTickerSearch()}
                 disabled={loading}
@@ -321,7 +319,7 @@ const debouncedSearch = useMemo(
                   </div>
                 </div>
               </div>
-              
+
               <div>
                 <h3 className="font-semibold mb-3">Market Data</h3>
                 <div className="space-y-2">
@@ -372,7 +370,7 @@ const debouncedSearch = useMemo(
 
             {/* HV Display */}
             <HvCard ticker={tickerData?.symbol} />
-            
+
           {/* After the Historical Volatility section */}
             {tickerData && (
               <div className="mt-8">
@@ -380,8 +378,8 @@ const debouncedSearch = useMemo(
                   <TrendingUp className="h-5 w-5" />
                   Implied Volatility Entry
                 </h2>
-                <ManualIvForm 
-                  selectedTicker={tickerData.symbol} 
+                <ManualIvForm
+                  selectedTicker={tickerData.symbol}
                   onIvSaved={(data) => {
                     console.log('IV saved:', data);
                     // You can update your UI here if needed
@@ -389,7 +387,7 @@ const debouncedSearch = useMemo(
                 />
               </div>
             )}
-            
+
             {/* Update Time */}
             <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
               <span className="flex items-center">
