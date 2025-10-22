@@ -4,15 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-AI Trader Journal is a mobile-first options trading journal with intelligent IV/HV analysis. The application allows traders to:
-- Track options trades with comprehensive market context
-- Calculate and compare Historical Volatility (HV) vs Implied Volatility (IV)
-- Manually enter IV data and persist it to the database
-- Analyze whether options are overpriced or undervalued based on IV/HV ratios
-- Size positions based on account risk rather than arbitrary share counts
-- Journal trade ideas, reflections, and market observations
+AI Trader Journal is a mobile-first trading psychology journal with AI-powered behavioral analysis. The application allows traders to:
+- Journal trade ideas, reflections, and market observations with AI sentiment analysis
+- Detect cognitive biases and emotional patterns in trading decisions
+- Track weekly insights with personalized feedback on behavior patterns
+- Analyze emotional trends and conviction levels over time
+- (Phase 2) Track options trades with comprehensive market context and IV/HV analysis
 
-**Tech Stack:** Next.js 14 (App Router) • TypeScript • Tailwind CSS • Prisma • PostgreSQL • shadcn/ui
+**Current Focus:** MVP journal and psychology features (Phase 1)
+**Tech Stack:** Next.js 14 (App Router) • TypeScript • Tailwind CSS • Prisma • PostgreSQL (Supabase) • shadcn/ui • OpenAI GPT-4o-mini • date-fns
 
 ## Development Commands
 
@@ -26,9 +26,12 @@ npm run typecheck    # Run TypeScript compiler (no emit)
 npm run format       # Format code with Prettier
 
 # Testing
-npm run test         # Run Jest tests
-npm run test:watch   # Run tests in watch mode
-npm run test:coverage # Run tests with coverage report
+npm run test            # Run Jest tests
+npm run test:watch      # Run tests in watch mode
+npm run test:coverage   # Run tests with coverage report
+npm run test:api        # Integration tests for Entry API
+npm run test:ai         # Integration tests for AI text analysis
+npm run test:insights   # Integration tests for Weekly Insights
 
 # Database
 npm run db:push      # Push schema changes to database
@@ -69,18 +72,24 @@ The **Entry** model is a flexible journal entry system that supports multiple us
 - `REFLECTION`: Post-trade analysis and lessons learned
 - `OBSERVATION`: General market observations and notes
 
-**Core Fields (Phase 1):**
+**Core Fields:**
 - `content`: Main journal text (TEXT field, supports full-text search)
-- `mood`: Trader's emotional state (CONFIDENT, NERVOUS, EXCITED, UNCERTAIN, NEUTRAL)
+- `mood`: Trader's emotional state (CONFIDENT, NERVOUS, EXCITED, UNCERTAIN, NEUTRAL, FRUSTRATED, CALM, ANXIOUS, OPTIMISTIC, FEARFUL, GREEDY, PATIENT, IMPULSIVE, DISCIPLINED)
 - `conviction`: Confidence level in the idea (LOW, MEDIUM, HIGH)
 - `ticker`: Optional ticker symbol (entries don't require a ticker)
 - `tradeId`: Optional link to Trade record
 - `snapshotId`: Optional link to market conditions snapshot
 
+**AI Analysis Fields (Implemented):**
+- `sentiment`: AI-detected emotional tone (positive, negative, neutral)
+- `emotionalKeywords`: Array of emotion-related words extracted from text
+- `detectedBiases`: Array of cognitive biases identified (confirmation_bias, recency_bias, loss_aversion, overconfidence, fomo, revenge_trading, anchoring, herd_mentality, outcome_bias)
+- `convictionInferred`: AI-inferred conviction level based on language certainty (LOW, MEDIUM, HIGH)
+
 **Future Fields (Phase 2):**
 - `audioUrl`: For voice notes (Issue #19)
 - `imageUrls`: For screenshots (Issue #19)
-- AI analysis fields (Issue #20): `sentiment`, `emotionalKeywords`, `detectedBiases`, `aiTags`, `convictionInferred`
+- `aiTags`: Auto-generated tags (Phase 2)
 
 **Relationships:**
 - Entry can optionally link to Trade (many-to-one)
@@ -130,6 +139,91 @@ The application implements a sophisticated volatility analysis pipeline:
    - Links IV to specific trades via tradeId
    - Tracks source ("manual"), term days, and timestamp
 
+### AI Text Analysis (Issue #20 - Implemented)
+
+The application uses **OpenAI GPT-4o-mini** to analyze journal entry text and extract psychological insights:
+
+**Service:** `src/lib/aiAnalysis.ts`
+- `analyzeEntryText()`: Analyzes single entry for sentiment, emotions, biases, conviction
+- `batchAnalyzeEntries()`: Rate-limited batch processing (5 entries/batch, 1s delay)
+
+**API Endpoints:**
+- `POST /api/entries/[id]/analyze`: Analyze and update a single entry
+- `POST /api/entries/analyze-batch`: Batch analyze multiple entries
+  - Body: `{ entryIds: string[] }` - analyze specific entries
+  - Body: `{ analyzeAll: true }` - analyze all unanalyzed entries
+
+**Analysis Output:**
+```typescript
+{
+  sentiment: 'positive' | 'negative' | 'neutral',
+  emotionalKeywords: string[],  // ['confident', 'anxious', 'FOMO', etc.]
+  detectedBiases: string[],      // ['confirmation_bias', 'fomo', etc.]
+  convictionInferred: 'LOW' | 'MEDIUM' | 'HIGH' | null,
+  confidence: number              // 0-1 confidence score
+}
+```
+
+**Key Features:**
+- Lazy client initialization (handles environment variable loading)
+- JSON mode for structured responses
+- Low temperature (0.3) for consistent analysis
+- Automatic validation and normalization of AI responses
+- Safe fallbacks on parsing errors
+
+**Environment:**
+- Requires `OPENAI_API_KEY` in `.env`
+- Cost: ~$0.0007 per entry analysis
+
+**Future Enhancement (Issue #25):**
+- Perplexity AI for market context enrichment (Phase 2)
+- Will supplement OpenAI analysis with real-time market data and news context
+
+### Weekly Insights Dashboard (Issue #21 - Implemented)
+
+Provides traders with personalized feedback and pattern detection based on journal entries:
+
+**Service:** `src/lib/weeklyInsights.ts`
+- `generateWeeklyInsights(weekOffset)`: Aggregates and analyzes data for any week
+  - `weekOffset=0`: Current week
+  - `weekOffset=-1`: Last week
+  - Supports up to 52 weeks of history
+
+**API Endpoint:**
+- `GET /api/insights/weekly?week={offset}`: Get insights for specified week
+  - Validates offset range (0 to -52)
+  - Returns comprehensive insights object
+
+**Analytics Features:**
+1. **Basic Statistics**: Total entries, trade ideas, reflections, observations
+2. **Emotional Trends**:
+   - Dominant sentiment (positive/negative/neutral)
+   - Sentiment breakdown counts
+   - Top 5 emotional keywords with frequency
+   - Mood frequency distribution
+3. **Cognitive Patterns**:
+   - Detected biases with frequency
+   - Conviction distribution (high/medium/low)
+4. **Personalized Insights**: AI-generated feedback based on patterns:
+   - "Your mindset was predominantly positive this week (5 positive entries)"
+   - "Watch out for FOMO - detected 3 times this week"
+   - "Only 2 entries this week. More frequent journaling reveals better patterns"
+5. **Week-over-Week Comparison** (current week only):
+   - Entries change percentage
+   - Sentiment trend (improving/declining/stable)
+   - New biases detected this week
+
+**Dashboard UI:** `/insights`
+- Week selector (This Week, Last Week, 2 Weeks Ago)
+- Statistics cards
+- Emotional Trends visualization
+- Cognitive Patterns display
+- Personalized Insights list
+- Mobile-first responsive design
+
+**Dependencies:**
+- `date-fns`: Week calculations (startOfWeek, endOfWeek, subWeeks, format)
+
 ### Data Fetching & Mock System
 
 Currently uses mock data (`src/lib/data.ts`) for price fetching:
@@ -139,8 +233,29 @@ Currently uses mock data (`src/lib/data.ts`) for price fetching:
 
 ### API Routes
 
-- `GET /api/ticker?q={query}`: Search for ticker symbols (currently mock data)
+**Entry Management:**
+- `GET /api/entries`: List all entries with optional filtering
+- `POST /api/entries`: Create new entry
+- `GET /api/entries/[id]`: Get single entry
+- `PUT /api/entries/[id]`: Update entry
+- `DELETE /api/entries/[id]`: Delete entry
+
+**AI Analysis:**
+- `POST /api/entries/[id]/analyze`: Analyze single entry with AI
+- `POST /api/entries/analyze-batch`: Batch analyze entries
+  - Body: `{ entryIds?: string[], analyzeAll?: boolean }`
+
+**Weekly Insights:**
+- `GET /api/insights/weekly?week={offset}`: Get weekly insights
+  - `week=0`: Current week
+  - `week=-1`: Last week
+  - `week=-2`: 2 weeks ago (up to -52)
+
+**Ticker Data (Mock - Phase 2):**
+- `GET /api/ticker?q={query}`: Search for ticker symbols
 - `GET /api/ticker/[symbol]`: Get detailed ticker information
+
+**IV Persistence (Phase 2):**
 - `POST /api/iv/manual`: Persist manually entered IV data
 
 ### Component Architecture
@@ -174,20 +289,185 @@ Example: `import { calculateHV } from '@/lib/hv'`
 
 ## Important Notes
 
-1. **Database Provider**: Schema uses PostgreSQL (not SQLite). Ensure `DATABASE_URL` points to a valid PostgreSQL instance.
+1. **Database Provider**:
+   - Uses **Supabase PostgreSQL** with connection pooling
+   - `DATABASE_URL` must include `?pgbouncer=true` parameter for connection pooling (port 6543)
+   - Example: `postgresql://user:pass@db.xxx.supabase.co:6543/postgres?pgbouncer=true`
 
-2. **IV/HV Storage Convention**:
+2. **Development Environment - CRITICAL**:
+   - **WSL has networking issues with Supabase** - database connections fail from WSL bash
+   - **Must use Windows PowerShell** for all development and testing
+   - Run `npm run dev` from PowerShell, not WSL
+   - Run all test commands from PowerShell
+   - Git operations can be done from either environment
+
+3. **Testing Requirements**:
+   - All integration tests (`test:api`, `test:ai`, `test:insights`) require:
+     1. Dev server running on `localhost:3000`
+     2. Database connection (must run from PowerShell)
+     3. `OPENAI_API_KEY` in `.env` file (for AI tests)
+   - Tests use `dotenv` to load environment variables
+   - Tests perform real database operations and API calls
+
+4. **AI Analysis**:
+   - Requires `OPENAI_API_KEY` environment variable
+   - Uses GPT-4o-mini model (cost-effective)
+   - Lazy client initialization to handle env var loading
+   - ~$0.0007 per entry analysis
+
+5. **IV/HV Storage Convention** (Phase 2):
    - IV stored as decimal in database (0.285 for 28.5%)
    - Convert using `pctToDecimal()` and `decimalToPct()` from `src/lib/iv.ts`
 
-3. **HV Calculation Requirements**:
+6. **HV Calculation Requirements** (Phase 2):
    - Minimum 20 prices for HV20
    - Minimum 30 prices for HV30
    - All prices must be positive, finite numbers
    - Returns null if insufficient or invalid data
 
-4. **Branch Protection**: Main branch is protected. All changes must go through pull requests from feature branches (e.g., `feat/your-feature`).
+7. **Branch Protection**:
+   - Main branch is protected
+   - All changes must go through pull requests from feature branches (e.g., `feat/your-feature`)
+   - Use semantic branch names: `feat/`, `fix/`, `docs/`, etc.
 
-5. **Mock Data**: Current implementation uses mock data for ticker search and price fetching. This is intentional for MVP development and should be replaced with real API integration later.
+8. **Mock Data**:
+   - Current implementation uses mock data for ticker search and price fetching
+   - Intentional for MVP development (Phase 1 focus is journal/psychology)
+   - Will be replaced with real API integration in Phase 2
 
-6. **Database Migrations**: Migration files are stored in `prisma/migrations/`. Use `npx prisma migrate dev` for development and `npx prisma migrate deploy` for production. The `db:push` command is available for rapid prototyping but doesn't create migration history.
+9. **Database Migrations**:
+   - Migration files stored in `prisma/migrations/`
+   - Use `npx prisma migrate dev` for development
+   - Use `npx prisma migrate deploy` for production
+   - `db:push` available for rapid prototyping but doesn't create migration history
+
+10. **Environment Variables**:
+    - `DATABASE_URL`: Supabase PostgreSQL connection string with pgbouncer
+    - `OPENAI_API_KEY`: Required for AI text analysis
+    - `DEBUG=1`: Enable debug logging (optional)
+    - Store in `.env` file (never commit this file)
+
+## Implementation Status
+
+### ✅ Phase 1 - MVP Journal Features (Current Focus)
+
+**Completed:**
+- ✅ **Entry Schema & API** (Issue #23)
+  - Full CRUD operations for journal entries
+  - Entry types: TRADE_IDEA, TRADE, REFLECTION, OBSERVATION
+  - Mood and conviction tracking
+  - Comprehensive integration tests
+
+- ✅ **AI Text Analysis** (Issue #20)
+  - OpenAI GPT-4o-mini integration
+  - Sentiment analysis (positive/negative/neutral)
+  - Emotional keyword extraction
+  - Cognitive bias detection (9 bias types)
+  - Conviction inference from language patterns
+  - Batch analysis with rate limiting
+  - Comprehensive test suite (9 tests)
+
+- ✅ **Weekly Insights Dashboard** (Issue #21)
+  - Analytics service with week-based aggregation
+  - Emotional trend analysis
+  - Cognitive pattern detection
+  - Personalized insights generation
+  - Week-over-week comparison
+  - Responsive dashboard UI
+  - Comprehensive test suite (10 tests)
+
+**In Progress:**
+- None (ready for next feature)
+
+**Pending Phase 1:**
+- ⏳ Auto-tagging system (Issue #22)
+- ⏳ Voice notes & screenshots (Issue #19)
+- ⏳ Search & filters (Issue #24)
+
+### 🔮 Phase 2 - Financial Data Integration (Future)
+
+**Planned:**
+- Perplexity AI for market context enrichment (Issue #25)
+- Yahoo Finance integration for real-time data
+- Historical Volatility (HV) calculations
+- Implied Volatility (IV) tracking
+- Options trade tracking with Greeks
+- Trade outcome correlation with emotions
+- Financial performance metrics
+
+**Note:** Phase 2 features are on hold until MVP journal features are complete and validated with users.
+
+## Development Workflow
+
+1. **Create Feature Branch:**
+   ```bash
+   git checkout -b feat/your-feature-name
+   ```
+
+2. **Develop (in Windows PowerShell):**
+   ```powershell
+   npm run dev           # Start dev server
+   npm run test:api      # Run tests as you develop
+   npm run lint          # Check for linting issues
+   npm run typecheck     # Verify TypeScript types
+   ```
+
+3. **Commit Changes:**
+   ```bash
+   git add .
+   git commit -m "Add feature description
+
+   🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+   Co-Authored-By: Claude <noreply@anthropic.com>"
+   ```
+
+4. **Push and Create PR:**
+   ```bash
+   git push -u origin feat/your-feature-name
+   gh pr create --title "Feature Title" --body "Description..."
+   ```
+
+5. **Review and Merge:**
+   - Review changes in GitHub
+   - Merge PR to main
+   - Pull latest changes: `git checkout main && git pull`
+
+## Testing Strategy
+
+**Integration Tests:**
+- Located in `tests/` directory
+- Use real database and API calls
+- Require dev server running
+- Must run from Windows PowerShell
+
+**Test Coverage:**
+- Entry API: 11 tests covering CRUD operations, validation, error handling
+- AI Analysis: 9 tests covering sentiment, bias detection, API endpoints
+- Weekly Insights: 10 tests covering analytics, aggregation, personalization
+
+**Running Tests:**
+```powershell
+# Terminal 1: Start dev server
+npm run dev
+
+# Terminal 2: Run tests
+npm run test:api        # Entry API tests
+npm run test:ai         # AI analysis tests (requires OPENAI_API_KEY)
+npm run test:insights   # Weekly insights tests
+```
+
+## Known Issues
+
+1. **WSL Networking**: Database connections fail from WSL bash. Always use Windows PowerShell.
+
+2. **TypeScript/ESLint Errors** (Pre-existing):
+   - `src/lib/cache.ts`: Has `any` type and unused variable warnings
+   - `src/lib/yahooFinance.ts`: Has multiple TypeScript/ESLint issues
+   - These are Phase 2 files and will be addressed when implementing financial features
+
+3. **Build Warnings**:
+   - React Hooks exhaustive-deps warning in `src/app/journal/[id]/page.tsx`
+   - Unescaped entity in `src/app/journal/new/page.tsx`
+   - Empty interface in `src/components/ui/textarea.tsx`
+   - Non-critical, will be cleaned up in future refactoring
