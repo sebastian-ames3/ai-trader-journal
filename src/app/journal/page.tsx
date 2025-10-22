@@ -99,6 +99,39 @@ function JournalContent() {
     }
   };
 
+  // Check if any filters are active
+  const hasActiveFilters = () => {
+    return !!(
+      filters.search ||
+      filters.type ||
+      filters.ticker ||
+      filters.mood ||
+      filters.conviction ||
+      filters.sentiment ||
+      filters.biases.length > 0 ||
+      filters.tags.length > 0 ||
+      filters.dateFrom ||
+      filters.dateTo
+    );
+  };
+
+  const handleClearFilters = () => {
+    const clearedFilters: FilterState = {
+      search: '',
+      type: '',
+      ticker: '',
+      mood: '',
+      conviction: '',
+      sentiment: '',
+      biases: [],
+      tags: [],
+      dateFrom: '',
+      dateTo: '',
+    };
+    setFilters(clearedFilters);
+    router.push('/journal');
+  };
+
   const handleFiltersChange = (newFilters: FilterState) => {
     setFilters(newFilters);
   };
@@ -166,20 +199,34 @@ function JournalContent() {
           </p>
         )}
         {entries.length === 0 ? (
-          // Empty State
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">📝</div>
-            <h2 className="text-xl font-semibold mb-2">No entries yet</h2>
-            <p className="text-gray-600 mb-6">
-              Start journaling to track your trading psychology
-            </p>
-            <Link href="/journal/new">
-              <Button size="lg">
-                <Plus className="mr-2 h-5 w-5" />
-                Create First Entry
+          hasActiveFilters() ? (
+            // Empty State - No search results
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">🔍</div>
+              <h2 className="text-xl font-semibold mb-2">No entries found</h2>
+              <p className="text-gray-600 mb-6">
+                Try adjusting your filters or search terms
+              </p>
+              <Button size="lg" onClick={handleClearFilters} className="min-h-[48px]">
+                Clear All Filters
               </Button>
-            </Link>
-          </div>
+            </div>
+          ) : (
+            // Empty State - No entries at all
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">📝</div>
+              <h2 className="text-xl font-semibold mb-2">No entries yet</h2>
+              <p className="text-gray-600 mb-6">
+                Start journaling to track your trading psychology
+              </p>
+              <Link href="/journal/new">
+                <Button size="lg" className="min-h-[48px]">
+                  <Plus className="mr-2 h-5 w-5" />
+                  Create First Entry
+                </Button>
+              </Link>
+            </div>
+          )
         ) : (
           // Entry List
           <div className="space-y-4">

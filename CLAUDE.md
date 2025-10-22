@@ -268,10 +268,11 @@ Main branch protected. Use feature branches: `git checkout -b feat/your-feature`
 - Dashboard Homepage with Actionable Snapshot (Issue #32)
 - Floating Action Button for Quick Entry (Issue #33)
 - Journaling Streak Tracking & Celebration System (Issue #34)
+- Empty States & First-Time User Onboarding (Issue #38)
 
 ### 🎯 Phase 1 - MVP Polish (Pending - See GitHub Issues)
 
-**Medium:** Guided Entry Mode (#35), PWA/Offline (#36), Dark Mode (#37), Onboarding (#38), Performance (#39)
+**Medium:** Guided Entry Mode (#35), PWA/Offline (#36), Dark Mode (#37), Performance (#39)
 
 **Low:** Inline Quick Edit (#40)
 
