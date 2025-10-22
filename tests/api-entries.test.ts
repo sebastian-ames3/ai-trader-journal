@@ -149,17 +149,20 @@ async function runTests() {
     assert(response.status === 200, `Expected status 200, got ${response.status}`);
 
     const data = await response.json();
-    assert(Array.isArray(data), 'Response should be an array');
-    assert(data.length > 0, 'Should have at least one entry');
+    assert(data.entries, 'Response should have entries field');
+    assert(Array.isArray(data.entries), 'Entries should be an array');
+    assert(data.entries.length > 0, 'Should have at least one entry');
+    assert(data.pagination, 'Response should have pagination field');
+    assert(typeof data.pagination.total === 'number', 'Pagination should have total count');
 
     // Check that entries are sorted by createdAt desc
-    if (data.length > 1) {
-      const first = new Date(data[0].createdAt).getTime();
-      const second = new Date(data[1].createdAt).getTime();
+    if (data.entries.length > 1) {
+      const first = new Date(data.entries[0].createdAt).getTime();
+      const second = new Date(data.entries[1].createdAt).getTime();
       assert(first >= second, 'Entries should be sorted by createdAt descending');
     }
 
-    log(`Retrieved ${data.length} entries`);
+    log(`Retrieved ${data.entries.length} entries (total: ${data.pagination.total})`);
   });
 
   // Test 6: GET /api/entries/[id] - Get specific entry

@@ -410,6 +410,428 @@ TypeScript is configured with path alias `@/*` → `./src/*`
 
 Example: `import { calculateHV } from '@/lib/hv'`
 
+## Common Pitfalls & Warnings
+
+### Database Connections
+**❌ BAD:** Running tests from WSL bash
+```bash
+# This WILL FAIL - database connections timeout in WSL
+npm run test:all
+```
+
+**✅ GOOD:** Always use Windows PowerShell for dev server and tests
+```powershell
+# This works - PowerShell has proper network access to Supabase
+npm run dev
+npm run test:all
+```
+
+### Testing Workflow
+**❌ BAD:** Running integration tests without dev server
+```powershell
+npm run test:all  # Tests will fail - API endpoints not available
+```
+
+**✅ GOOD:** Start dev server first, then run tests
+```powershell
+# Terminal 1 (PowerShell)
+npm run dev
+
+# Terminal 2 (PowerShell)
+npm run test:all
+```
+
+### AI Analysis
+**❌ BAD:** Calling AI endpoints without API key
+```typescript
+// Will fail with authentication error
+const result = await analyzeEntryText(content);
+```
+
+**✅ GOOD:** Verify `.env` has OPENAI_API_KEY before AI operations
+```bash
+# Check .env file contains:
+OPENAI_API_KEY=sk-proj-...
+```
+
+### Environment Files
+**❌ BAD:** Committing `.env` file to git
+```bash
+git add .env  # NEVER DO THIS - contains secrets
+```
+
+**✅ GOOD:** Use `.env.example` as template, keep `.env` local
+```bash
+cp .env.example .env  # Create local copy
+# Edit .env with actual values
+# .env is already in .gitignore
+```
+
+### Prisma Schema Changes
+**❌ BAD:** Pushing schema changes without migration in production
+```bash
+npm run db:push  # No migration history, risky for production
+```
+
+**✅ GOOD:** Use migrations for production-ready changes
+```bash
+npx prisma migrate dev --name add_new_field
+npx prisma migrate deploy  # For production
+```
+
+## Code Style Guidelines
+
+### API Route Pattern
+**✅ GOOD:** Validate inputs first, single responsibility, clear error handling
+```typescript
+// src/app/api/entries/route.ts
+export async function GET(request: NextRequest) {
+  // 1. Parse and validate inputs
+  const { searchParams } = new URL(request.url);
+  const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
+
+  // 2. Build query
+  const entries = await prisma.entry.findMany({
+    where: buildWhereClause(searchParams),
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+  });
+
+  // 3. Return structured response
+  return NextResponse.json({ entries, pagination: { limit, total } });
+}
+```
+
+**❌ AVOID:** Mixing validation, business logic, and response formatting
+```typescript
+// Don't do everything in one block without structure
+export async function GET(request: NextRequest) {
+  const entries = await prisma.entry.findMany({
+    where: {
+      content: {
+        contains: new URL(request.url).searchParams.get('search') || undefined
+      }
+    }
+  });
+  return NextResponse.json(entries);
+}
+```
+
+### Component Organization
+**✅ GOOD:** Props interface, early returns, clear sections
+```typescript
+interface SearchFiltersProps {
+  onFilterChange: (filters: FilterState) => void;
+  initialFilters?: FilterState;
+}
+
+export function SearchFilters({ onFilterChange, initialFilters }: SearchFiltersProps) {
+  const [filters, setFilters] = useState<FilterState>(initialFilters || {});
+
+  // Early return for loading state
+  if (isLoading) return <Skeleton />;
+
+  // Event handlers
+  const handleSearchChange = (value: string) => {
+    setFilters(prev => ({ ...prev, search: value }));
+  };
+
+  // Render
+  return (
+    <div className="space-y-4">
+      {/* Component JSX */}
+    </div>
+  );
+}
+```
+
+### Error Handling
+**✅ GOOD:** Specific error messages, proper HTTP status codes
+```typescript
+if (!entryId || typeof entryId !== 'string') {
+  return NextResponse.json(
+    { error: 'Invalid entry ID format' },
+    { status: 400 }
+  );
+}
+
+try {
+  const entry = await prisma.entry.findUnique({ where: { id: entryId } });
+  if (!entry) {
+    return NextResponse.json(
+      { error: 'Entry not found' },
+      { status: 404 }
+    );
+  }
+} catch (error) {
+  console.error('Database error:', error);
+  return NextResponse.json(
+    { error: 'Internal server error' },
+    { status: 500 }
+  );
+}
+```
+
+### Type Safety
+**✅ GOOD:** Use proper TypeScript types, avoid `any`
+```typescript
+import { Entry, EntryType, Mood } from '@prisma/client';
+
+interface CreateEntryData {
+  content: string;
+  type: EntryType;
+  mood?: Mood;
+  ticker?: string;
+}
+```
+
+**❌ AVOID:** Using `any` or loose typing
+```typescript
+function processEntry(data: any) {  // Avoid this
+  // Type safety lost
+}
+```
+
+## Context Management
+
+### When to Use `/clear`
+Clear the conversation context in these situations:
+- After completing a major feature (3+ files changed, tests passing)
+- When switching between unrelated tasks (e.g., UI work → database migrations)
+- After 50+ message exchanges in a single session
+- When responses become less focused or reference outdated context
+- Before starting a new feature branch
+
+### File Reference Best Practices
+- **Use tab-completion** for exact file paths to avoid typos
+- **Reference specific line numbers** when discussing bugs or changes
+  - Example: "The issue is in `src/lib/aiAnalysis.ts:142`"
+- **Provide full error messages** - don't truncate stack traces
+- **Include relevant context** - show surrounding code when debugging
+
+### Effective Prompting
+**✅ GOOD:** Specific, actionable requests with context
+```
+"Add a new filter to the SearchFilters component for filtering by date range.
+The filter should use shadcn/ui DatePicker components and update the URL
+query parameters like the existing filters. Follow the pattern used for the
+mood filter."
+```
+
+**❌ AVOID:** Vague requests without context
+```
+"Add a date filter"
+```
+
+## Git Worktrees for Parallel Development
+
+This project has git worktrees configured for parallel Claude Code workflows:
+
+### Available Worktrees
+```bash
+# List all worktrees
+git worktree list
+
+# Current setup:
+# /mnt/c/.../ai-trader-journal         [main]           - Main development
+# /mnt/c/.../ai-trader-journal-dev1    [wip/parallel-dev-1] - Parallel feature work
+# /mnt/c/.../ai-trader-journal-dev2    [wip/parallel-dev-2] - Another parallel feature
+# /mnt/c/.../ai-trader-journal-review  [wip/review]     - Code review & verification
+```
+
+### Use Cases
+
+**Parallel Feature Development:**
+```bash
+# Terminal 1: Claude instance working on feature A
+cd /mnt/c/.../ai-trader-journal-dev1
+git checkout -b feat/new-export-feature
+# Develop feature A
+
+# Terminal 2: Claude instance working on feature B
+cd /mnt/c/.../ai-trader-journal-dev2
+git checkout -b feat/notification-system
+# Develop feature B simultaneously
+```
+
+**Implementation + Verification:**
+```bash
+# Terminal 1: Claude implementing feature
+cd /mnt/c/.../ai-trader-journal-dev1
+# Write code, run tests
+
+# Terminal 2: Different Claude instance reviewing
+cd /mnt/c/.../ai-trader-journal-review
+git fetch
+git checkout feat/new-export-feature
+# Review code, verify tests, check for issues
+```
+
+### Creating New Worktrees
+```bash
+# Create worktree for a new feature branch
+git worktree add -b feat/your-feature ../ai-trader-journal-feat main
+
+# Remove worktree when done
+git worktree remove ../ai-trader-journal-feat
+git branch -d feat/your-feature  # Delete branch if merged
+```
+
+### Worktree Best Practices
+- Each worktree can run its own dev server on different ports
+- Keep worktrees focused on specific tasks
+- Clean up merged branches with `git worktree prune`
+- Don't check out the same branch in multiple worktrees
+
+## Model Context Protocol (MCP) Integration
+
+This project uses MCP servers to enhance Claude Code's capabilities with specialized tools.
+
+### Available MCP Servers
+
+Configuration is stored in `.mcp.json` at the project root.
+
+#### 1. Playwright MCP - UI Testing & Visual Verification
+**Purpose:** Browser automation for testing and verifying UI implementations
+
+**Capabilities:**
+- Take screenshots of the running application
+- Interact with UI elements (click, type, fill forms)
+- Navigate between pages and test user workflows
+- Verify responsive design at different viewport sizes
+- Debug visual issues by seeing what users see
+- Test JavaScript functionality in the browser
+- Capture console logs and network requests
+
+**Common Use Cases:**
+```typescript
+// Example: Verify journal entry form
+1. Navigate to localhost:3000/journal/new
+2. Take screenshot to verify layout
+3. Fill form fields with test data
+4. Click submit button
+5. Verify entry appears in journal list
+6. Take screenshot of result
+```
+
+**When to Use:**
+- Implementing new UI components
+- Verifying mobile responsiveness
+- Testing user workflows end-to-end
+- Debugging visual rendering issues
+- Validating form behavior and validation
+
+#### 2. Git MCP - Enhanced Repository Operations
+**Purpose:** Advanced git operations beyond basic CLI commands
+
+**Capabilities:**
+- Search git history for specific changes
+- Analyze commit patterns and authorship
+- Run git blame to find when code was introduced
+- Query repository structure and branch relationships
+- Find all commits touching specific files
+- Analyze code evolution over time
+
+**Common Use Cases:**
+- "When was the Entry model last modified?"
+- "Who introduced the AI analysis feature?"
+- "Show all commits related to authentication"
+- "Find commits that modified API routes"
+
+**When to Use:**
+- Understanding code history and evolution
+- Finding when bugs were introduced
+- Analyzing feature development timeline
+- Code archaeology and debugging
+
+#### 3. PostgreSQL MCP - Direct Database Access
+**Purpose:** Query and inspect Supabase PostgreSQL database directly
+
+**Capabilities:**
+- Run SELECT queries to inspect data
+- Analyze table structure and relationships
+- Check indexes and query performance
+- Validate data integrity
+- Export data for analysis
+- Inspect schema without Prisma
+
+**Common Use Cases:**
+```sql
+-- Check how many entries have AI analysis
+SELECT
+  COUNT(*) as total,
+  COUNT(sentiment) as analyzed
+FROM "Entry";
+
+-- Find most common biases
+SELECT
+  bias,
+  COUNT(*) as frequency
+FROM "Entry",
+  unnest("detectedBiases") as bias
+GROUP BY bias
+ORDER BY frequency DESC;
+
+-- Analyze weekly entry volume
+SELECT
+  DATE_TRUNC('week', "createdAt") as week,
+  COUNT(*) as entries
+FROM "Entry"
+GROUP BY week
+ORDER BY week DESC;
+```
+
+**When to Use:**
+- Debugging data issues
+- Analyzing usage patterns
+- Validating migrations
+- Performance optimization
+- Data exploration and insights
+
+**Security Note:**
+- Requires `SUPABASE_PASSWORD` environment variable in `.env`
+- Uses connection pooling (pgbouncer) on port 6543
+- Read-only queries recommended for safety
+- Be cautious with UPDATE/DELETE operations
+
+### MCP Configuration
+
+**Environment Variables Required:**
+```bash
+# .env file
+SUPABASE_PASSWORD=your_supabase_password  # For postgres MCP
+```
+
+**Testing MCP Servers:**
+After adding `.mcp.json`, restart Claude Code to load the MCP servers. You can verify they're working by:
+- Playwright: Request a screenshot of the app
+- Git: Ask about commit history
+- PostgreSQL: Request a database query
+
+**Troubleshooting:**
+- If MCP servers fail to start, check `.env` file has required variables
+- Ensure `npx` is available and npm packages can be installed
+- For Playwright: May need to run `npx playwright install` once
+- For PostgreSQL: Verify `DATABASE_URL` is correct in `.env`
+
+### MCP Best Practices
+
+**When to Use MCP vs Direct Tools:**
+- **Use Playwright MCP** when you need to verify UI visually or test user interactions
+- **Use Git MCP** for complex history queries that would be tedious with `git log`
+- **Use PostgreSQL MCP** for ad-hoc queries and data exploration (prefer Prisma for app code)
+
+**Performance Considerations:**
+- Playwright can be slow for screenshots - use sparingly
+- PostgreSQL queries run against production-like environment - be mindful of query complexity
+- Git MCP caches repository data - much faster than repeated git commands
+
+**Safety Guidelines:**
+- Never commit MCP server credentials to git
+- Use environment variables for sensitive data
+- Prefer read-only database operations
+- Test Playwright workflows in development, not production
+
 ## Important Notes
 
 1. **Database Provider**:
@@ -591,6 +1013,7 @@ Example: `import { calculateHV } from '@/lib/hv'`
 npm run dev
 
 # Terminal 2: Run tests
+npm run test:all        # Run all integration tests (requires OPENAI_API_KEY)
 npm run test:api        # Entry API tests
 npm run test:ai         # AI analysis tests (requires OPENAI_API_KEY)
 npm run test:insights   # Weekly insights tests
