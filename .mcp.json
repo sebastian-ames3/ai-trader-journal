@@ -3,29 +3,31 @@
     "playwright": {
       "command": "npx",
       "args": [
-        "-y",
-        "@executeautomation/playwright-mcp-server"
+        "@playwright/mcp@latest",
+        "--headless"
       ],
-      "description": "Browser automation for UI testing, visual verification, and user workflow testing. Allows taking screenshots, interacting with the app UI, and verifying implementations."
+      "description": "Microsoft's official Playwright MCP server for browser automation using accessibility tree. Provides fast, deterministic UI testing and verification."
     },
     "git": {
       "command": "npx",
       "args": [
         "-y",
-        "@modelcontextprotocol/server-git",
-        "--repository",
-        "/mnt/c/Users/14102/Documents/Sebastian Ames/Projects/ai-trader-journal"
+        "@cyanheads/git-mcp-server"
       ],
-      "description": "Enhanced git operations including history search, log analysis, blame, and advanced repository queries."
+      "description": "Comprehensive Git operations including clone, commit, branch, diff, log, blame, merge, rebase, and worktree management with security sandboxing.",
+      "env": {
+        "GIT_BASE_DIR": "/mnt/c/Users/14102/Documents/Sebastian Ames/Projects/ai-trader-journal",
+        "VERBOSITY": "standard"
+      }
     },
     "postgres": {
       "command": "npx",
       "args": [
         "-y",
-        "@modelcontextprotocol/server-postgres",
+        "@zeddotdev/postgres-context-server@latest",
         "postgresql://postgres.wloixbepgqerpevmogwr:${SUPABASE_PASSWORD}@db.wloixbepgqerpevmogwr.supabase.co:6543/postgres?pgbouncer=true"
       ],
-      "description": "Direct PostgreSQL database access for queries, schema inspection, and data analysis. Uses Supabase connection with pgbouncer.",
+      "description": "Secure PostgreSQL MCP server with SQL injection vulnerability patched (Zed fork). Provides read-only database access for schema inspection and queries.",
       "env": {
         "SUPABASE_PASSWORD": "${SUPABASE_PASSWORD}"
       }
