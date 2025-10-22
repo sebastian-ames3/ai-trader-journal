@@ -16,6 +16,7 @@
     "test:ai": "npx tsx tests/ai-analysis.test.ts",
     "test:insights": "npx tsx tests/weekly-insights.test.ts",
     "test:search": "npx tsx tests/api-search-filters.test.ts",
+    "test:tags": "npx tsx tests/auto-tagging.test.ts",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",

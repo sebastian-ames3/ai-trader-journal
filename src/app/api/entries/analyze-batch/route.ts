@@ -77,7 +77,8 @@ export async function POST(request: NextRequest) {
           sentiment: analysis.sentiment,
           emotionalKeywords: analysis.emotionalKeywords,
           detectedBiases: analysis.detectedBiases,
-          convictionInferred: analysis.convictionInferred
+          convictionInferred: analysis.convictionInferred,
+          aiTags: analysis.aiTags
         }
       })
     );

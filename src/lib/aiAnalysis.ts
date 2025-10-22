@@ -32,6 +32,7 @@ export interface AnalysisResult {
   detectedBiases: string[];
   convictionInferred: ConvictionLevel | null;
   confidence: number; // 0-1 score of AI confidence in analysis
+  aiTags: string[]; // Auto-generated tags from taxonomy
 }
 
 /**
@@ -119,7 +120,8 @@ Respond with ONLY valid JSON in this exact format:
   "emotionalKeywords": ["keyword1", "keyword2", ...],
   "detectedBiases": ["bias1", "bias2", ...],
   "convictionInferred": "LOW" | "MEDIUM" | "HIGH" | null,
-  "confidence": 0.0 to 1.0
+  "confidence": 0.0 to 1.0,
+  "aiTags": ["tag1", "tag2", ...]
 }
 
 INSTRUCTIONS:
@@ -153,6 +155,40 @@ INSTRUCTIONS:
    - 0.5-0.8: Moderate emotional content
    - 0.0-0.5: Minimal emotional content or very analytical entry
 
+6. AI_TAGS: Extract 3-7 relevant tags from this taxonomy based on entry content:
+
+   TRADE TYPE/STRATEGY:
+   - long-call, long-put, options, spreads, covered-call, cash-secured-put
+   - vertical-spread, iron-condor, iron-butterfly, straddle, strangle
+   - wheel-strategy, earnings-play
+
+   MARKET VIEW:
+   - bullish, bearish, neutral, high-volatility, low-volatility
+   - trending, range-bound, uncertain-market
+
+   ENTRY CATALYST:
+   - technical-analysis, chart-pattern, support-resistance, moving-average
+   - fundamental-analysis, news-catalyst, earnings, sector-rotation
+   - market-correlation, indicator-signal
+
+   PSYCHOLOGICAL STATE:
+   - disciplined, patient, well-researched, emotional, rushed
+   - impulse-trade, overthinking, stressed, focused, distracted
+   - confident-execution, hesitant
+
+   RISK ASSESSMENT:
+   - defined-risk, undefined-risk, position-sized, stop-loss-planned
+   - profit-target-set, risk-reward-favorable, hedged, concentrated-position
+
+   OUTCOME CONTEXT:
+   - learning-experience, mistake-identified, good-process, bad-process, needs-review
+
+   Rules:
+   - Only use tags from the taxonomy above
+   - Select 3-7 most relevant tags
+   - Consider: strategy mentioned, market view, emotional state, process quality
+   - Prioritize tags that add searchable context
+
 Return ONLY the JSON object.`;
 }
 
@@ -175,7 +211,10 @@ function parseAnalysisResponse(responseText: string): AnalysisResult {
       convictionInferred: validateConviction(parsed.convictionInferred),
       confidence: typeof parsed.confidence === 'number'
         ? Math.max(0, Math.min(1, parsed.confidence))
-        : 0.5
+        : 0.5,
+      aiTags: Array.isArray(parsed.aiTags)
+        ? parsed.aiTags.slice(0, 7) // Limit to 7 tags
+        : []
     };
 
   } catch (error) {
@@ -188,7 +227,8 @@ function parseAnalysisResponse(responseText: string): AnalysisResult {
       emotionalKeywords: [],
       detectedBiases: [],
       convictionInferred: null,
-      confidence: 0
+      confidence: 0,
+      aiTags: []
     };
   }
 }
@@ -252,7 +292,8 @@ export async function batchAnalyzeEntries(
             emotionalKeywords: [],
             detectedBiases: [],
             convictionInferred: null,
-            confidence: 0
+            confidence: 0,
+            aiTags: []
           }
         };
       }
