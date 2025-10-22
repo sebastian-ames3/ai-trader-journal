@@ -168,9 +168,8 @@ export default function NewEntryPage() {
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <Button
             variant="ghost"
-            size="sm"
             onClick={() => router.back()}
-            className="hover:bg-gray-100"
+            className="hover:bg-gray-100 min-h-[44px] min-w-[44px]"
           >
             <ArrowLeft className="h-5 w-5 mr-1" />
             Back
