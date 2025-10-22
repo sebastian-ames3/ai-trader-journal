@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateWeeklyInsights } from '@/lib/weeklyInsights';
 
+// Force dynamic rendering (uses searchParams)
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/insights/weekly?week=0
  * Get weekly insights for a specific week

@@ -10,7 +10,18 @@
  */
 
 import { prisma } from './prisma';
+import { Entry } from '@prisma/client';
 import { startOfWeek, endOfWeek, subWeeks, format } from 'date-fns';
+
+// Type for entries with optional trade relation
+type EntryWithTrade = Entry & {
+  trade?: {
+    id: string;
+    status: string;
+    entryPrice: number | null;
+    exitPrice: number | null;
+  } | null;
+};
 
 export interface WeeklyInsights {
   weekStart: string;
@@ -133,7 +144,7 @@ export async function generateWeeklyInsights(
 /**
  * Analyzes emotional trends from entries
  */
-function analyzeEmotionalTrends(entries: any[]): WeeklyInsights['emotional'] {
+function analyzeEmotionalTrends(entries: EntryWithTrade[]): WeeklyInsights['emotional'] {
   // Count sentiment distribution
   const sentimentCounts = {
     positive: entries.filter(e => e.sentiment === 'positive').length,
@@ -188,7 +199,7 @@ function analyzeEmotionalTrends(entries: any[]): WeeklyInsights['emotional'] {
 /**
  * Analyzes cognitive patterns and biases
  */
-function analyzeCognitivePatterns(entries: any[]): WeeklyInsights['patterns'] {
+function analyzeCognitivePatterns(entries: EntryWithTrade[]): WeeklyInsights['patterns'] {
   // Aggregate detected biases
   const biasFrequency = new Map<string, number>();
   entries.forEach(entry => {
@@ -220,7 +231,7 @@ function analyzeCognitivePatterns(entries: any[]): WeeklyInsights['patterns'] {
  * Generates personalized insights based on patterns
  */
 function generatePersonalizedInsights(
-  entries: any[],
+  entries: EntryWithTrade[],
   emotional: WeeklyInsights['emotional'],
   patterns: WeeklyInsights['patterns']
 ): string[] {
@@ -279,7 +290,7 @@ function generatePersonalizedInsights(
  * Generates week-over-week comparison
  */
 async function generateWeekComparison(
-  currentEntries: any[],
+  currentEntries: EntryWithTrade[],
   currentWeekStart: Date
 ): Promise<WeeklyInsights['comparison']> {
 
