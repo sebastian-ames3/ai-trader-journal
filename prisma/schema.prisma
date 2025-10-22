@@ -179,5 +179,12 @@ model Settings {
   liquidityThreshold Float   @default(100)
   ivThreshold       Float    @default(80)
 
+  // Journaling streak tracking (Issue #34)
+  currentStreak     Int      @default(0)    // Consecutive days with ≥1 entry
+  longestStreak     Int      @default(0)    // All-time best streak
+  totalEntries      Int      @default(0)    // Total entry count
+  lastEntryDate     DateTime?              // Last entry date for streak calculation
+  lastGraceDate     DateTime?              // Last grace day used (for 1-day forgiveness)
+
   updatedAt         DateTime @updatedAt
 }

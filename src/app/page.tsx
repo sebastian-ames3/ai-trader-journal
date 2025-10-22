@@ -48,6 +48,7 @@ const moodEmojis: Record<string, string> = {
 export default function DashboardPage() {
   const [weeklySnapshot, setWeeklySnapshot] = useState<WeeklySnapshot | null>(null);
   const [recentEntries, setRecentEntries] = useState<RecentEntry[]>([]);
+  const [streakData, setStreakData] = useState<{ currentStreak: number; longestStreak: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasData, setHasData] = useState(false);
 
@@ -66,8 +67,13 @@ export default function DashboardPage() {
       const entriesResponse = await fetch('/api/entries?limit=3');
       const entriesData = await entriesResponse.json();
 
+      // Fetch streak data
+      const streakResponse = await fetch('/api/streak');
+      const streakDataResult = await streakResponse.json();
+
       setWeeklySnapshot(insightsData);
       setRecentEntries(entriesData.entries || []);
+      setStreakData(streakDataResult);
       setHasData(entriesData.pagination?.total > 0);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -243,6 +249,44 @@ export default function DashboardPage() {
                   )}
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Streak Card */}
+        {streakData && streakData.currentStreak > 0 && (
+          <Card className="border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-white">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                🔥 Journaling Streak
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Current Streak</p>
+                  <p className="text-4xl font-bold text-orange-600">
+                    {streakData.currentStreak}
+                    <span className="text-xl text-gray-600 ml-2">
+                      day{streakData.currentStreak !== 1 ? 's' : ''}
+                    </span>
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Best Streak</p>
+                  <p className="text-4xl font-bold text-gray-700">
+                    {streakData.longestStreak}
+                    <span className="text-xl text-gray-600 ml-2">
+                      day{streakData.longestStreak !== 1 ? 's' : ''}
+                    </span>
+                  </p>
+                </div>
+              </div>
+              {streakData.currentStreak >= 3 && (
+                <p className="mt-4 text-sm text-gray-700 bg-white/60 rounded-lg p-3">
+                  💪 Keep it up! Consistent journaling helps build better trading psychology
+                </p>
+              )}
             </CardContent>
           </Card>
         )}

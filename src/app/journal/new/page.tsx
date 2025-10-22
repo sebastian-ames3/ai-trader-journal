@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 
 type EntryType = 'TRADE_IDEA' | 'TRADE' | 'REFLECTION' | 'OBSERVATION';
 type EntryMood = 'CONFIDENT' | 'NERVOUS' | 'EXCITED' | 'UNCERTAIN' | 'NEUTRAL';
@@ -38,6 +39,7 @@ const convictionLevels: ConvictionLevel[] = ['LOW', 'MEDIUM', 'HIGH'];
 export default function NewEntryPage() {
   const router = useRouter();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { toast } = useToast();
 
   const [entryType, setEntryType] = useState<EntryType>('TRADE_IDEA');
   const [content, setContent] = useState('');
@@ -137,6 +139,17 @@ export default function NewEntryPage() {
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to create entry');
+      }
+
+      const data = await response.json();
+
+      // Show celebration toast if milestone reached
+      if (data.streak?.celebrationMessage) {
+        toast({
+          title: data.streak.celebrationMessage,
+          description: `Current streak: ${data.streak.currentStreak} days | Best: ${data.streak.longestStreak} days`,
+          duration: 5000,
+        });
       }
 
       // Clear draft

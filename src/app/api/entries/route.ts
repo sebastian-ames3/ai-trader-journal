@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { EntryType, EntryMood, ConvictionLevel, Prisma } from '@prisma/client';
+import { updateStreakAfterEntry, getCelebrationMessage } from '@/lib/streakTracking';
 
 /**
  * GET /api/entries
@@ -194,7 +195,27 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    return NextResponse.json(entry, { status: 201 });
+    // Update streak tracking
+    const streakData = await updateStreakAfterEntry();
+
+    // Prepare celebration message if milestone reached
+    let celebrationMessage: string | undefined;
+    if (streakData.isNewMilestone && streakData.milestoneType && streakData.milestoneValue) {
+      celebrationMessage = getCelebrationMessage(
+        streakData.milestoneType,
+        streakData.milestoneValue
+      );
+    }
+
+    return NextResponse.json({
+      entry,
+      streak: {
+        currentStreak: streakData.currentStreak,
+        longestStreak: streakData.longestStreak,
+        totalEntries: streakData.totalEntries,
+        celebrationMessage
+      }
+    }, { status: 201 });
   } catch (error) {
     console.error('Error creating entry:', error);
     return NextResponse.json(

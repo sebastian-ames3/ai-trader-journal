@@ -1,11 +1,32 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, BookOpen, BarChart3 } from 'lucide-react';
 
 export default function Navigation() {
   const pathname = usePathname();
+  const [streak, setStreak] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchStreak() {
+      try {
+        const response = await fetch('/api/streak');
+        if (response.ok) {
+          const data = await response.json();
+          setStreak(data.currentStreak);
+        }
+      } catch (error) {
+        console.error('Failed to fetch streak:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchStreak();
+  }, [pathname]); // Refetch when navigating
 
   const isActive = (path: string) => {
     if (path === '/') {
@@ -18,9 +39,17 @@ export default function Navigation() {
     <nav className="bg-white border-b sticky top-0 z-50">
       <div className="max-w-4xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          <Link href="/" className="text-xl font-bold">
-            AI Trader Journal
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link href="/" className="text-xl font-bold">
+              AI Trader Journal
+            </Link>
+
+            {!loading && streak >= 2 && (
+              <div className="flex items-center gap-1 px-3 py-1 bg-orange-50 text-orange-600 rounded-full text-sm font-medium">
+                🔥 {streak} day{streak !== 1 ? 's' : ''}
+              </div>
+            )}
+          </div>
 
           <div className="flex items-center gap-2">
             <Link
