@@ -6,6 +6,8 @@ import { Plus, TrendingUp, Brain, BookOpen, ArrowRight, Loader } from 'lucide-re
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import OnboardingTip from '@/components/OnboardingTip';
+import { useOnboardingTips } from '@/hooks/useOnboardingTips';
 
 interface WeeklySnapshot {
   weekStart: string;
@@ -51,6 +53,10 @@ export default function DashboardPage() {
   const [streakData, setStreakData] = useState<{ currentStreak: number; longestStreak: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasData, setHasData] = useState(false);
+  const [totalEntries, setTotalEntries] = useState(0);
+
+  // Onboarding tips based on entry count
+  const currentTip = useOnboardingTips(totalEntries);
 
   useEffect(() => {
     fetchDashboardData();
@@ -75,6 +81,7 @@ export default function DashboardPage() {
       setRecentEntries(entriesData.entries || []);
       setStreakData(streakDataResult);
       setHasData(entriesData.pagination?.total > 0);
+      setTotalEntries(entriesData.pagination?.total || 0);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -400,6 +407,15 @@ export default function DashboardPage() {
           <Plus className="h-6 w-6" />
         </Button>
       </Link>
+
+      {/* Onboarding Tips */}
+      {currentTip && (
+        <OnboardingTip
+          tipId={currentTip.id}
+          message={currentTip.message}
+          showDelay={currentTip.showAfter}
+        />
+      )}
     </div>
   );
 }

@@ -8,6 +8,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Empty States & First-Time User Onboarding** (Issue #38)
+  - Insights page empty state when < 3 entries this week
+    - Encouraging message with progress indicator
+    - "Create Entry" and "Go to Journal" CTAs
+    - Only shows on current week view
+  - Journal page differentiated empty states
+    - "No entries yet" state for first-time users
+    - "No entries found" state for search/filter results
+    - "Clear All Filters" button to reset search
+  - First-time tips system with dismissible tooltips
+    - Tip 1 (after 1st entry): Journal timing best practice
+    - Tip 2 (after 2nd entry): AI analysis explanation
+    - Tip 3 (after 5th entry): Weekly insights reminder
+    - Persists dismissal state to localStorage
+    - Smooth fade-in animation with blue-purple gradient
+    - 44x44px touch targets on dismiss button
+  - New components: `OnboardingTip.tsx`, `useOnboardingTips.ts` hook
+  - WCAG 2.1 AA compliant with proper ARIA labels and roles
+  - Mobile-first design with all touch targets ≥44px
 - **Dashboard Homepage with Actionable Snapshot** (Issue #32, commit 4dab91f)
   - At-a-glance view of streak, recent entries, and insights
   - Quick entry button for frictionless journaling
@@ -94,6 +113,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Moved options chain display, go/no-go precheck, and CSV import to Phase 2
 
 ### Fixed
+- **Prisma Import Error** (Issue #38)
+  - Fixed `src/lib/streakTracking.ts` default import error
+  - Changed to named import: `import { prisma } from './prisma'`
 - **Streak Tracking Error Handling** (commit ca6b4d7)
   - Added all required Settings fields (defaultRisk, accountSize, liquidityThreshold, ivThreshold) to upsert operations
   - Added try-catch error handling to prevent entry creation from failing if streak tracking errors occur

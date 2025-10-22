@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Loader, TrendingUp, TrendingDown, Minus, Brain, Target, AlertTriangle } from 'lucide-react';
+import Link from 'next/link';
+import { Loader, TrendingUp, TrendingDown, Minus, Brain, Target, AlertTriangle, Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
@@ -113,6 +115,9 @@ export default function WeeklyInsightsPage() {
 
   if (!insights) return null;
 
+  // Empty state for insufficient data (< 3 entries this week)
+  const showEmptyState = selectedWeek === 0 && insights.stats.totalEntries < 3;
+
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
       {/* Header */}
@@ -127,7 +132,7 @@ export default function WeeklyInsightsPage() {
           <div className="mt-4 flex gap-2">
             <button
               onClick={() => setSelectedWeek(0)}
-              className={`px-4 py-2 rounded-lg border ${
+              className={`px-4 py-2 rounded-lg border min-h-[44px] ${
                 selectedWeek === 0
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-white hover:bg-gray-50'
@@ -137,7 +142,7 @@ export default function WeeklyInsightsPage() {
             </button>
             <button
               onClick={() => setSelectedWeek(-1)}
-              className={`px-4 py-2 rounded-lg border ${
+              className={`px-4 py-2 rounded-lg border min-h-[44px] ${
                 selectedWeek === -1
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-white hover:bg-gray-50'
@@ -147,7 +152,7 @@ export default function WeeklyInsightsPage() {
             </button>
             <button
               onClick={() => setSelectedWeek(-2)}
-              className={`px-4 py-2 rounded-lg border ${
+              className={`px-4 py-2 rounded-lg border min-h-[44px] ${
                 selectedWeek === -2
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-white hover:bg-gray-50'
@@ -160,8 +165,46 @@ export default function WeeklyInsightsPage() {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {showEmptyState ? (
+          // Empty State - Not enough entries this week
+          <div className="max-w-2xl mx-auto text-center py-12">
+            <div className="text-8xl mb-6">📊</div>
+            <h2 className="text-2xl font-bold mb-3">Weekly Insights</h2>
+            <p className="text-lg text-gray-700 mb-2">
+              Log at least <span className="font-semibold text-primary">3 entries</span> this week
+            </p>
+            <p className="text-gray-600 mb-8">
+              to unlock personalized insights about your trading psychology
+            </p>
+
+            {insights.stats.totalEntries > 0 && (
+              <p className="text-sm text-gray-600 mb-6">
+                You have {insights.stats.totalEntries} {insights.stats.totalEntries === 1 ? 'entry' : 'entries'} so far.
+                Just {3 - insights.stats.totalEntries} more to go! 🎯
+              </p>
+            )}
+
+            <Link href="/journal/new">
+              <Button size="lg" className="min-h-[48px] px-8">
+                <Plus className="mr-2 h-5 w-5" />
+                Create Entry
+              </Button>
+            </Link>
+
+            {insights.stats.totalEntries > 0 && (
+              <div className="mt-8">
+                <Link href="/journal">
+                  <Button variant="outline" size="lg" className="min-h-[48px]">
+                    Go to Journal
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Statistics Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardHeader>
               <CardTitle className="text-sm font-medium text-gray-600">Total Entries</CardTitle>
@@ -319,6 +362,8 @@ export default function WeeklyInsightsPage() {
             </ul>
           </CardContent>
         </Card>
+          </>
+        )}
       </div>
     </div>
   );
