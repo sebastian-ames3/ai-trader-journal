@@ -40,6 +40,30 @@ export interface SearchResult {
   type?: string;
 }
 
+export interface OptionsContract {
+  strike: number;
+  lastPrice: number;
+  bid: number;
+  ask: number;
+  change: number;
+  percentChange: number;
+  volume: number;
+  openInterest: number;
+  impliedVolatility: number;
+  inTheMoney: boolean;
+  contractSymbol: string;
+  lastTradeDate: Date;
+}
+
+export interface OptionsChain {
+  ticker: string;
+  expirationDate: Date;
+  underlyingPrice: number;
+  calls: OptionsContract[];
+  puts: OptionsContract[];
+  fetchedAt: Date;
+}
+
 /**
  * Fetch historical daily closing prices from Yahoo Finance
  *
@@ -291,6 +315,193 @@ export async function validateTicker(ticker: string): Promise<boolean> {
   } catch (error) {
     logger.error('Error validating ticker', error, { ticker });
     return false;
+  }
+}
+
+/**
+ * Get available expiration dates for options on a ticker
+ *
+ * @param ticker Stock symbol (e.g., 'AAPL', 'SPY')
+ * @returns Array of expiration dates or null on error
+ */
+export async function getOptionsExpirations(ticker: string): Promise<Date[] | null> {
+  const cacheKey = `options_expirations_${ticker}`;
+
+  // Check cache
+  const cached = cache.get<Date[]>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  try {
+    logger.debug('Fetching options expirations from Yahoo Finance', { ticker });
+
+    // @ts-expect-error - yahoo-finance2 has complex type overloads that conflict
+    const result = await yahooFinance.options(ticker);
+
+    if (!result || !result.expirationDates || result.expirationDates.length === 0) {
+      logger.warn('No expiration dates found', { ticker });
+      return null;
+    }
+
+    // Convert timestamps to Date objects
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const expirations = (result.expirationDates as any[]).map((timestamp: number) => new Date(timestamp * 1000));
+
+    // Cache for 1 hour (expirations don't change frequently)
+    cache.set(cacheKey, expirations, CacheTTL.ONE_HOUR);
+
+    logger.info('Options expirations fetched successfully', {
+      ticker,
+      count: expirations.length,
+      nearest: expirations[0]?.toISOString().split('T')[0],
+    });
+
+    return expirations;
+  } catch (error) {
+    logger.error('Error fetching options expirations', error, { ticker });
+
+    // Try to return stale cached data
+    const staleData = cache.get<Date[]>(cacheKey);
+    if (staleData) {
+      logger.info('Returning stale cached expirations', { ticker });
+      return staleData;
+    }
+
+    return null;
+  }
+}
+
+/**
+ * Get options chain for a specific expiration date
+ *
+ * @param ticker Stock symbol
+ * @param expirationDate Expiration date (optional - defaults to nearest expiration)
+ * @returns Options chain data or null on error
+ */
+export async function getOptionsChain(
+  ticker: string,
+  expirationDate?: Date
+): Promise<OptionsChain | null> {
+  try {
+    // If no expiration provided, get the nearest one
+    let targetExpiration = expirationDate;
+    if (!targetExpiration) {
+      const expirations = await getOptionsExpirations(ticker);
+      if (!expirations || expirations.length === 0) {
+        logger.warn('No expirations available for options chain', { ticker });
+        return null;
+      }
+      targetExpiration = expirations[0]; // Use nearest expiration
+    }
+
+    const expirationStr = Math.floor(targetExpiration.getTime() / 1000).toString();
+    const cacheKey = `options_chain_${ticker}_${expirationStr}`;
+
+    // Check cache (5-minute TTL for options data)
+    const cached = cache.get<OptionsChain>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    logger.debug('Fetching options chain from Yahoo Finance', { ticker, expirationDate: targetExpiration });
+
+    // Fetch options data for specific expiration
+    // @ts-expect-error - yahoo-finance2 has complex type overloads that conflict
+    const result = await yahooFinance.options(ticker, { date: targetExpiration });
+
+    if (!result || (!result.calls && !result.puts)) {
+      logger.warn('No options chain data returned', { ticker, expirationDate: targetExpiration });
+      return null;
+    }
+
+    // Get current underlying price from quote
+    const quote = await getTickerInfo(ticker);
+    const underlyingPrice = quote?.regularMarketPrice || 0;
+
+    // Transform calls
+    interface YahooOption {
+      strike: number;
+      lastPrice: number;
+      bid: number;
+      ask: number;
+      change: number;
+      percentChange: number;
+      volume: number;
+      openInterest: number;
+      impliedVolatility: number;
+      inTheMoney: boolean;
+      contractSymbol: string;
+      lastTradeDate: Date;
+    }
+
+    const calls: OptionsContract[] = (result.calls as YahooOption[] || []).map((call) => ({
+      strike: call.strike,
+      lastPrice: call.lastPrice,
+      bid: call.bid,
+      ask: call.ask,
+      change: call.change,
+      percentChange: call.percentChange,
+      volume: call.volume,
+      openInterest: call.openInterest,
+      impliedVolatility: call.impliedVolatility,
+      inTheMoney: call.inTheMoney,
+      contractSymbol: call.contractSymbol,
+      lastTradeDate: new Date(call.lastTradeDate),
+    }));
+
+    // Transform puts
+    const puts: OptionsContract[] = (result.puts as YahooOption[] || []).map((put) => ({
+      strike: put.strike,
+      lastPrice: put.lastPrice,
+      bid: put.bid,
+      ask: put.ask,
+      change: put.change,
+      percentChange: put.percentChange,
+      volume: put.volume,
+      openInterest: put.openInterest,
+      impliedVolatility: put.impliedVolatility,
+      inTheMoney: put.inTheMoney,
+      contractSymbol: put.contractSymbol,
+      lastTradeDate: new Date(put.lastTradeDate),
+    }));
+
+    const chainData: OptionsChain = {
+      ticker,
+      expirationDate: targetExpiration,
+      underlyingPrice,
+      calls,
+      puts,
+      fetchedAt: new Date(),
+    };
+
+    // Cache for 5 minutes (options data changes frequently during market hours)
+    cache.set(cacheKey, chainData, 5 * 60 * 1000);
+
+    logger.info('Options chain fetched successfully', {
+      ticker,
+      expiration: targetExpiration.toISOString().split('T')[0],
+      callsCount: calls.length,
+      putsCount: puts.length,
+      underlyingPrice,
+    });
+
+    return chainData;
+  } catch (error) {
+    logger.error('Error fetching options chain', error, { ticker, expirationDate });
+
+    // Try to return stale cached data
+    if (expirationDate) {
+      const expirationStr = Math.floor(expirationDate.getTime() / 1000).toString();
+      const cacheKey = `options_chain_${ticker}_${expirationStr}`;
+      const staleData = cache.get<OptionsChain>(cacheKey);
+      if (staleData) {
+        logger.info('Returning stale cached options chain', { ticker });
+        return staleData;
+      }
+    }
+
+    return null;
   }
 }
 

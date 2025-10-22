@@ -265,28 +265,68 @@ Main branch protected. Use feature branches: `git checkout -b feat/your-feature`
 - Weekly Insights Dashboard (Issue #21)
 - Search & Filters (Issue #24)
 - Auto-Tagging System (Issue #22)
+- Dashboard Homepage with Actionable Snapshot (Issue #32)
+- Floating Action Button for Quick Entry (Issue #33)
+- Journaling Streak Tracking & Celebration System (Issue #34)
 
 ### 🎯 Phase 1 - MVP Polish (Pending - See GitHub Issues)
-
-**Critical:** Dashboard Homepage (#32), Floating Action Button (#33), Streak Tracking (#34)
 
 **Medium:** Guided Entry Mode (#35), PWA/Offline (#36), Dark Mode (#37), Onboarding (#38), Performance (#39)
 
 **Low:** Inline Quick Edit (#40)
 
-### 🔮 Phase 2 - Advanced UX & Financial Integration
+### 🔮 Phase 2 - Options Trading & Advanced Features
 
-See GitHub milestone for: Conversational AI Coach, Voice Notes, Linked Notes, Advanced Visualizations, Swipe Gestures, Push Notifications, Data Export, Financial Data (Yahoo Finance, HV/IV, Greeks)
+**Options Data Pipeline (Issues #50-55) - Infrastructure Ready**
+
+Issue #50 research completed - `yahoo-finance2` (Node.js) does NOT support options data. Two viable paths:
+
+**Recommended Path (MVP):** Python yfinance microservice
+- Cost: $0-10/month (free data + hosting)
+- Architecture: FastAPI Python service → yfinance → Yahoo Finance
+- Deployment: Railway/Render/Fly.io free tier
+- Dev Time: 5-10 hours
+- See `OPTIONS_DATA_PROVIDERS_RESEARCH.md` for full analysis
+
+**Production Path:** Polygon.io Options API
+- Cost: $99/month (Options Starter tier)
+- Official OPRA data from all 17 US exchanges
+- Real-time with SLA guarantees
+- Migration: 2-3 hours from yfinance
+
+**Infrastructure Completed:**
+- ✅ Prisma schema: expirationDate, strikePrice, optionType, entry/exit prices, P/L tracking
+- ✅ TypeScript interfaces: OptionsContract, OptionsChain
+- ✅ API route structure: `/api/options/[ticker]?action=expirations|chain`
+- ✅ 5-minute caching strategy
+
+**Pending Issues (depend on #50):**
+- Issue #51: Greeks Calculation (Black-Scholes: Delta, Gamma, Theta, Vega)
+- Issue #52: Position Risk Metrics (max loss/profit/breakeven, strategy auto-detection)
+- Issue #53: DTE Tracking & Expiration Management
+- Issue #54: IV vs HV Spread - Carry Indicator (volatility selling signals)
+- Issue #55: Current Position P/L (live mark-to-market)
+
+**Other Phase 2 Features:**
+- Conversational AI Coach (#41)
+- Voice Notes & Screenshots (#49)
+- Linked Notes & Knowledge Graph (#42)
+- Advanced Visualizations (#44)
+- Swipe Gestures (#46)
+- Push Notifications (#47)
+- Data Export & GDPR (#48)
 
 ### 🚀 Phase 3 - Power User Features
 
-Social/Mentor Sharing, Custom Dashboard Builder (see GitHub issues)
+Social/Mentor Sharing (#43), Custom Dashboard Builder (#45)
 
 ## Known Issues
 
 1. **WSL Networking:** Database connections fail from WSL. Use PowerShell.
 2. **Pre-existing TypeScript/ESLint:** `src/lib/cache.ts`, `src/lib/yahooFinance.ts` (Phase 2 files)
 3. **Build Warnings:** React hooks deps, unescaped entities, empty interfaces (non-critical)
+4. **Pending Database Migration:** Options chain fields added to schema but not yet migrated. Run in PowerShell: `npx prisma migrate dev --name add_options_chain_fields`
+5. **Options Data Provider:** `yahoo-finance2` (Node.js) lacks options support. Need to implement Python yfinance microservice or use paid provider (Polygon.io, Alpha Vantage)
 
 ## Quick Reference
 

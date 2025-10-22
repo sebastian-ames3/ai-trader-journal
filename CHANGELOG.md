@@ -8,6 +8,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Dashboard Homepage with Actionable Snapshot** (Issue #32, commit 4dab91f)
+  - At-a-glance view of streak, recent entries, and insights
+  - Quick entry button for frictionless journaling
+  - Mobile-first card-based layout
+  - Integration with streak tracking system
+- **Floating Action Button (FAB)** (Issue #33, commit 3806ca4)
+  - Global quick-add button for rapid entry creation
+  - 56x56px touch target, fixed bottom-right position
+  - One-tap access to new journal entry flow
+  - Follows mobile-first design principles
+- **Journaling Streak Tracking & Celebration System** (Issue #34, commits 5433768, ca6b4d7)
+  - Current streak counter with grace day logic (allows 1 missed day)
+  - Longest streak tracking for motivation
+  - Total entries counter
+  - Milestone celebrations at 3, 7, 14, 30, 60, 90, 180, 365 days
+  - Settings model integration for persistent tracking
+  - Error handling to prevent blocking entry creation
+- **Financial Analysis Feature Planning & Research** (Issues #50-55)
+  - Issue #50: Options Chain Integration - Infrastructure complete, data source research finished
+    - TypeScript interfaces: OptionsContract, OptionsChain
+    - Prisma schema updates: expirationDate, strikePrice, optionType, entry/exit prices, P/L tracking
+    - API route structure: `/api/options/[ticker]?action=expirations|chain`
+    - Caching strategy: 5-minute TTL for options data
+    - Provider research: Python yfinance (free) vs Polygon.io ($99/mo) vs Alpha Vantage ($100-250/mo)
+    - **Key finding:** `yahoo-finance2` (Node.js) does NOT support options data
+    - **Recommended path:** Python yfinance microservice for MVP ($0-10/mo), migrate to Polygon.io for production
+    - See `OPTIONS_DATA_PROVIDERS_RESEARCH.md` for full analysis
+  - Issue #51: Greeks Calculation (Black-Scholes: Delta, Gamma, Theta, Vega)
+  - Issue #52: Position Risk Metrics (max loss/profit/breakeven, strategy auto-detection)
+  - Issue #53: DTE Tracking & Expiration Management (color-coded alerts, theta visibility)
+  - Issue #54: IV vs HV Spread - Carry Indicator (SELL/BUY/NEUTRAL signals for vol sellers)
+  - Issue #55: Current Position P/L (live mark-to-market, daily updates)
 - **Real Yahoo Finance API Integration**
   - Replaced mock data system with `yahoo-finance2` npm package
   - Created `/src/lib/yahooFinance.ts` with real API integration
@@ -34,6 +66,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub issue creation script (`/scripts/update-github-issues.sh`)
 - GitHub issue reference document (`/GITHUB_ISSUES_TO_CREATE.md`)
 - CHANGELOG.md for tracking project changes
+- **Options Data Provider Research Document** (`OPTIONS_DATA_PROVIDERS_RESEARCH.md`)
+  - Comprehensive analysis of 7+ options data providers
+  - Pricing comparison matrix (free vs paid tiers)
+  - Technical implementation paths for yfinance microservice vs Polygon.io
+  - Recommendations by use case (MVP, production, brokerage integration)
+  - Decision framework for Issue #50 implementation
 
 ### Changed
 - **Data Layer Architecture**: Refactored to support real API integration
@@ -55,8 +93,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Supporting Features
 - Moved options chain display, go/no-go precheck, and CSV import to Phase 2
 
+### Fixed
+- **Streak Tracking Error Handling** (commit ca6b4d7)
+  - Added all required Settings fields (defaultRisk, accountSize, liquidityThreshold, ivThreshold) to upsert operations
+  - Added try-catch error handling to prevent entry creation from failing if streak tracking errors occur
+  - Return default values on error to ensure entry creation always succeeds
+  - Log errors for debugging without blocking the user flow
+- **Options Chain Integration Type Errors** (Issue #50)
+  - Fixed TypeScript type assertion for yahoo-finance2 expirations array
+  - Added proper type guards for options chain data transformation
+
 ### Deprecated
 - Mock data system (now used only as fallback when `USE_MOCK_DATA=true` or when Yahoo Finance API fails)
+
+### Closed Issues (Completed/Superseded)
+- **Issue #34:** Journaling Streak Tracking & Celebration - ✅ Completed (commits 5433768, ca6b4d7)
+- **Issue #4:** IV/HV Comparison Card - Superseded by Issue #54 (Carry Indicator with SELL/BUY signals)
+- **Issue #5:** Options Chain Display - Superseded by Issue #50 (Full options chain integration)
+- **Issue #6:** Risk-Based Position Sizing - Superseded by Issue #52 (Position risk metrics with strategy detection)
+- **Issue #7:** Trade Entry & Snapshot - Superseded by Issues #50-55 (Comprehensive options trading features)
 
 ### Technical Notes
 - Yahoo Finance free API has rate limits - aggressive caching implemented to minimize API calls

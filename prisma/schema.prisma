@@ -62,6 +62,22 @@ model Trade {
   rationale       String?
   marketRegime    String?
 
+  // Options-specific fields (Issue #50)
+  expirationDate  DateTime?  // Option expiration date
+  strikePrice     Float?     // Primary strike (or lowest strike for multi-leg)
+  optionType      String?    // 'CALL' or 'PUT' (null for multi-leg)
+
+  // Entry price tracking for P/L calculation (Issue #55)
+  entryPrices     Json?      // Array of {legId, price, timestamp} for each leg
+  currentPrices   Json?      // Current market prices (updated daily)
+  currentPL       Float?     // Cached unrealized P/L
+  currentPLPercent Float?    // Cached P/L percentage
+  lastPriceUpdate DateTime?  // When prices were last updated
+
+  // Exit price tracking
+  exitPrices      Json?      // Array of {legId, price, timestamp} for exit
+  realizedPL      Float?     // Final P/L when closed
+
   notes           Note[]
   tags            Tag[]     @relation("TradeTags")
   snapshot        Snapshot?
@@ -73,6 +89,7 @@ model Trade {
   @@index([ticker])
   @@index([entryDate(sort: Desc)])
   @@index([status])
+  @@index([expirationDate])
 }
 
 model Note {
