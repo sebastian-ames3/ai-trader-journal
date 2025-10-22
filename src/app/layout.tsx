@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster"
 import Navigation from "@/components/Navigation";
+import FloatingActionButton from "@/components/FloatingActionButton";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,6 +23,7 @@ export default function RootLayout({
         <Navigation />
         {children}
         <Toaster />
+        <FloatingActionButton />
       </body>
     </html>
   );
