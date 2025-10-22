@@ -21,6 +21,7 @@ export interface FilterState {
   conviction: string;
   sentiment: string;
   biases: string[];
+  tags: string[];
   dateFrom: string;
   dateTo: string;
 }
@@ -79,6 +80,36 @@ const BIASES = [
   { value: 'outcome_bias', label: 'Outcome Bias' },
 ];
 
+const AI_TAGS = [
+  // Trade Type/Strategy
+  { value: 'long-call', label: 'Long Call', category: 'Strategy' },
+  { value: 'long-put', label: 'Long Put', category: 'Strategy' },
+  { value: 'covered-call', label: 'Covered Call', category: 'Strategy' },
+  { value: 'cash-secured-put', label: 'Cash Secured Put', category: 'Strategy' },
+  { value: 'vertical-spread', label: 'Vertical Spread', category: 'Strategy' },
+  { value: 'iron-condor', label: 'Iron Condor', category: 'Strategy' },
+  { value: 'iron-butterfly', label: 'Iron Butterfly', category: 'Strategy' },
+  { value: 'wheel-strategy', label: 'Wheel Strategy', category: 'Strategy' },
+  // Market View
+  { value: 'bullish', label: 'Bullish', category: 'Market View' },
+  { value: 'bearish', label: 'Bearish', category: 'Market View' },
+  { value: 'high-volatility', label: 'High Volatility', category: 'Market View' },
+  { value: 'low-volatility', label: 'Low Volatility', category: 'Market View' },
+  // Psychological State
+  { value: 'disciplined', label: 'Disciplined', category: 'Psychology' },
+  { value: 'patient', label: 'Patient', category: 'Psychology' },
+  { value: 'well-researched', label: 'Well Researched', category: 'Psychology' },
+  { value: 'emotional', label: 'Emotional', category: 'Psychology' },
+  { value: 'impulse-trade', label: 'Impulse Trade', category: 'Psychology' },
+  { value: 'overthinking', label: 'Overthinking', category: 'Psychology' },
+  // Risk Assessment
+  { value: 'defined-risk', label: 'Defined Risk', category: 'Risk' },
+  { value: 'position-sized', label: 'Position Sized', category: 'Risk' },
+  // Entry Catalyst
+  { value: 'technical-analysis', label: 'Technical Analysis', category: 'Catalyst' },
+  { value: 'earnings', label: 'Earnings Play', category: 'Catalyst' },
+];
+
 export default function SearchFilters({
   filters,
   onFiltersChange,
@@ -99,6 +130,7 @@ export default function SearchFilters({
       conviction: '',
       sentiment: '',
       biases: [],
+      tags: [],
       dateFrom: '',
       dateTo: '',
     });
@@ -111,6 +143,13 @@ export default function SearchFilters({
     updateFilter('biases', newBiases);
   };
 
+  const toggleTag = (tag: string) => {
+    const newTags = filters.tags.includes(tag)
+      ? filters.tags.filter((t) => t !== tag)
+      : [...filters.tags, tag];
+    updateFilter('tags', newTags);
+  };
+
   const hasActiveFilters =
     filters.search ||
     filters.type ||
@@ -119,6 +158,7 @@ export default function SearchFilters({
     filters.conviction ||
     filters.sentiment ||
     filters.biases.length > 0 ||
+    filters.tags.length > 0 ||
     filters.dateFrom ||
     filters.dateTo;
 
@@ -155,6 +195,7 @@ export default function SearchFilters({
                   filters.conviction,
                   filters.sentiment,
                   ...filters.biases,
+                  ...filters.tags,
                   filters.dateFrom,
                   filters.dateTo,
                 ].filter(Boolean).length}
@@ -316,6 +357,30 @@ export default function SearchFilters({
                   >
                     {bias.label}
                     {filters.biases.includes(bias.value) && (
+                      <X className="ml-1 h-3 w-3" />
+                    )}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            {/* AI Tags - Multi-select chips */}
+            <div>
+              <label className="text-xs font-medium text-gray-700 mb-2 block">
+                AI Tags
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {AI_TAGS.map((tag) => (
+                  <Badge
+                    key={tag.value}
+                    variant={
+                      filters.tags.includes(tag.value) ? 'default' : 'outline'
+                    }
+                    className="cursor-pointer hover:bg-gray-100"
+                    onClick={() => toggleTag(tag.value)}
+                  >
+                    {tag.label}
+                    {filters.tags.includes(tag.value) && (
                       <X className="ml-1 h-3 w-3" />
                     )}
                   </Badge>

@@ -18,6 +18,7 @@ interface Entry {
   ticker: string | null;
   sentiment: string | null;
   detectedBiases: string[];
+  aiTags: string[];
   createdAt: string;
 }
 
@@ -56,6 +57,7 @@ function JournalContent() {
     conviction: searchParams.get('conviction') || '',
     sentiment: searchParams.get('sentiment') || '',
     biases: searchParams.get('bias')?.split(',').filter(Boolean) || [],
+    tags: searchParams.get('tag')?.split(',').filter(Boolean) || [],
     dateFrom: searchParams.get('dateFrom') || '',
     dateTo: searchParams.get('dateTo') || '',
   });
@@ -77,6 +79,7 @@ function JournalContent() {
       if (filters.conviction) params.set('conviction', filters.conviction);
       if (filters.sentiment) params.set('sentiment', filters.sentiment);
       if (filters.biases.length > 0) params.set('bias', filters.biases.join(','));
+      if (filters.tags.length > 0) params.set('tag', filters.tags.join(','));
       if (filters.dateFrom) params.set('dateFrom', filters.dateFrom);
       if (filters.dateTo) params.set('dateTo', filters.dateTo);
 
@@ -110,6 +113,7 @@ function JournalContent() {
     if (filters.conviction) params.set('conviction', filters.conviction);
     if (filters.sentiment) params.set('sentiment', filters.sentiment);
     if (filters.biases.length > 0) params.set('bias', filters.biases.join(','));
+    if (filters.tags.length > 0) params.set('tag', filters.tags.join(','));
     if (filters.dateFrom) params.set('dateFrom', filters.dateFrom);
     if (filters.dateTo) params.set('dateTo', filters.dateTo);
 
@@ -249,6 +253,26 @@ function JournalContent() {
                         {entry.detectedBiases?.length > 2 && (
                           <span className="text-xs text-gray-500">
                             +{entry.detectedBiases.length - 2} more
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* AI Tags */}
+                    {entry.aiTags?.length > 0 && (
+                      <div className="flex items-center gap-2 flex-wrap mb-2">
+                        {entry.aiTags.slice(0, 5).map((tag) => (
+                          <Badge
+                            key={tag}
+                            variant="outline"
+                            className="text-xs bg-blue-50 text-blue-700 border-blue-200"
+                          >
+                            {tag}
+                          </Badge>
+                        ))}
+                        {entry.aiTags.length > 5 && (
+                          <span className="text-xs text-gray-500">
+                            +{entry.aiTags.length - 5} more
                           </span>
                         )}
                       </div>

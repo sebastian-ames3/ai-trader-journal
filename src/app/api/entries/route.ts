@@ -14,6 +14,7 @@ import { EntryType, EntryMood, ConvictionLevel, Prisma } from '@prisma/client';
  * - conviction: Conviction level (LOW, MEDIUM, HIGH)
  * - sentiment: AI-detected sentiment (positive, negative, neutral)
  * - bias: Cognitive bias to filter by (supports multiple via comma-separated)
+ * - tag: AI-generated tag to filter by (supports multiple via comma-separated)
  * - dateFrom: ISO date string (entries created after this date)
  * - dateTo: ISO date string (entries created before this date)
  * - limit: Max results (default: 50)
@@ -31,6 +32,7 @@ export async function GET(request: NextRequest) {
     const conviction = searchParams.get('conviction');
     const sentiment = searchParams.get('sentiment');
     const biasParam = searchParams.get('bias');
+    const tagParam = searchParams.get('tag');
     const dateFrom = searchParams.get('dateFrom');
     const dateTo = searchParams.get('dateTo');
     const limit = parseInt(searchParams.get('limit') || '50', 10);
@@ -80,6 +82,14 @@ export async function GET(request: NextRequest) {
       const biases = biasParam.split(',').map(b => b.trim());
       where.detectedBiases = {
         hasSome: biases
+      };
+    }
+
+    // AI Tag filter (supports multiple tags comma-separated)
+    if (tagParam) {
+      const tags = tagParam.split(',').map(t => t.trim());
+      where.aiTags = {
+        hasSome: tags
       };
     }
 

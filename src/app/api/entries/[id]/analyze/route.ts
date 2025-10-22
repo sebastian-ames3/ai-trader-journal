@@ -37,7 +37,8 @@ export async function POST(
         sentiment: analysis.sentiment,
         emotionalKeywords: analysis.emotionalKeywords,
         detectedBiases: analysis.detectedBiases,
-        convictionInferred: analysis.convictionInferred
+        convictionInferred: analysis.convictionInferred,
+        aiTags: analysis.aiTags
       },
       include: {
         tags: true
