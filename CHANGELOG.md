@@ -73,17 +73,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Milestone celebrations at 3, 7, 14, 30, 60, 90, 180, 365 days
   - Settings model integration for persistent tracking
   - Error handling to prevent blocking entry creation
-- **Financial Analysis Feature Planning & Research** (Issues #50-55)
-  - Issue #50: Options Chain Integration - Infrastructure complete, data source research finished
-    - TypeScript interfaces: OptionsContract, OptionsChain
-    - Prisma schema updates: expirationDate, strikePrice, optionType, entry/exit prices, P/L tracking
-    - API route structure: `/api/options/[ticker]?action=expirations|chain`
-    - Caching strategy: 5-minute TTL for options data
-    - Provider research: Python yfinance (free) vs Polygon.io ($99/mo) vs Alpha Vantage ($100-250/mo)
-    - **Key finding:** `yahoo-finance2` (Node.js) does NOT support options data
-    - **Recommended path:** Python yfinance microservice for MVP ($0-10/mo), migrate to Polygon.io for production
-    - See `OPTIONS_DATA_PROVIDERS_RESEARCH.md` for full analysis
-  - Issue #51: Greeks Calculation (Black-Scholes: Delta, Gamma, Theta, Vega)
+- **Polygon.io Options Data Pipeline** (Issue #50, PR #60)
+  - Replaced non-working yahoo-finance2 options integration with Polygon.io OPRA data
+  - Installed `@polygon.io/client-js` SDK for official market data access
+  - Created `/src/lib/polygonClient.ts` with optimized API architecture:
+    - `getOptionsExpirations()` - Fetch expiration dates (1 API call, 1hr cache)
+    - `getOptionsChain()` - Fetch contract metadata without pricing (2 API calls, 5min cache)
+    - `getContractSnapshot()` - Fetch detailed pricing/Greeks for specific strikes (1 API call, 1min cache)
+  - API Endpoints:
+    - `GET /api/options/[ticker]` - List expirations for ticker
+    - `GET /api/options/[ticker]?action=chain&expiration=YYYY-MM-DD` - Get options chain (required expiration)
+    - `GET /api/options/[ticker]?action=chain&expiration=YYYY-MM-DD&minStrike=X&maxStrike=Y` - Filtered chain
+    - `GET /api/options/contract/[symbol]` - Individual contract details with Greeks (e.g., O:AAPL251121C00170000)
+  - **API Efficiency:** User-directed fetching (2-4 calls per trade entry) vs naive approach (40+ calls)
+  - **Free Tier Compatible:** 5 calls/minute = 1 trade entry per minute
+  - **Data Included:** Strike, bid/ask/last, volume, OI, IV, Greeks (Delta/Gamma/Theta/Vega), ITM status
+  - Real-time OPRA data from all 17 US options exchanges
+  - Strike range filtering support for efficient data fetching
+  - See `OPTIONS_DATA_PROVIDERS_RESEARCH.md` for provider comparison analysis
+- **Financial Analysis Feature Planning & Research** (Issues #51-55)
+  - Issue #51: Greeks Calculation (use Polygon's provided Greeks)
   - Issue #52: Position Risk Metrics (max loss/profit/breakeven, strategy auto-detection)
   - Issue #53: DTE Tracking & Expiration Management (color-coded alerts, theta visibility)
   - Issue #54: IV vs HV Spread - Carry Indicator (SELL/BUY/NEUTRAL signals for vol sellers)
@@ -142,6 +151,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Moved options chain display, go/no-go precheck, and CSV import to Phase 2
 
 ### Fixed
+- **Polygon.io SDK API Usage** (Issue #50 hotfix, commit 860ac0d)
+  - Fixed incorrect SDK method calls in `src/lib/polygonClient.ts`
+  - Corrected to use direct methods: `polygon.listOptionsContracts()`, `polygon.getSnapshots()`
+  - Added API key validation to prevent undefined errors
+  - Resolved TypeScript compilation errors
 - **Prisma Import Error** (Issue #38)
   - Fixed `src/lib/streakTracking.ts` default import error
   - Changed to named import: `import { prisma } from './prisma'`
@@ -158,6 +172,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Mock data system (now used only as fallback when `USE_MOCK_DATA=true` or when Yahoo Finance API fails)
 
 ### Closed Issues (Completed/Superseded)
+- **Issue #50:** Options Chain Integration & Data Pipeline - ✅ Completed (PR #60, commit 860ac0d)
 - **Issue #34:** Journaling Streak Tracking & Celebration - ✅ Completed (commits 5433768, ca6b4d7)
 - **Issue #4:** IV/HV Comparison Card - Superseded by Issue #54 (Carry Indicator with SELL/BUY signals)
 - **Issue #5:** Options Chain Display - Superseded by Issue #50 (Full options chain integration)
@@ -165,6 +180,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Issue #7:** Trade Entry & Snapshot - Superseded by Issues #50-55 (Comprehensive options trading features)
 
 ### Technical Notes
+- **Polygon.io Integration:**
+  - Free tier: 5 API calls/minute (sufficient for testing and MVP)
+  - Paid tier ($99/mo Options Starter): Unlimited calls with real-time data
+  - SDK uses direct method calls (not nested APIs like `.reference.optionsContracts()`)
+  - Requires `POLYGON_API_KEY` environment variable
+  - User-directed fetching architecture prevents rate limit issues (2-4 calls per trade vs 40+ naive approach)
 - Yahoo Finance free API has rate limits - aggressive caching implemented to minimize API calls
 - `yahoo-finance2` package uses Deno shims which require Node.js modules, so it must only be used server-side
 - TypeScript type conflicts in `yahoo-finance2` resolved with `@ts-expect-error` annotations and interface casting
