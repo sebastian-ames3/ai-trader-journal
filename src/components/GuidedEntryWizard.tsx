@@ -139,14 +139,14 @@ export function GuidedEntryWizard({
       {/* Progress Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-sm font-medium text-gray-600">
+          <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
             Step {currentStep} of {totalSteps}
           </p>
           <Button
             variant="ghost"
             size="sm"
             onClick={onSwitchToFreeForm}
-            className="text-sm text-gray-600 hover:text-gray-900"
+            className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
           >
             Switch to Free Form
           </Button>
@@ -154,7 +154,7 @@ export function GuidedEntryWizard({
 
         {/* Progress Bar */}
         <div
-          className="w-full h-2 bg-gray-200 rounded-full overflow-hidden"
+          className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden"
           role="progressbar"
           aria-valuenow={currentStep}
           aria-valuemin={1}
@@ -172,7 +172,7 @@ export function GuidedEntryWizard({
       <div className="flex-1">
         {currentStep === 1 && (
           <div className="space-y-4">
-            <h2 className="text-2xl font-semibold" role="heading" aria-level={2}>
+            <h2 className="text-2xl font-semibold dark:text-gray-100" role="heading" aria-level={2}>
               How are you feeling right now?
             </h2>
             <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap">
@@ -183,7 +183,7 @@ export function GuidedEntryWizard({
                   className={`px-6 py-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2 min-h-[88px] ${
                     initialData.mood === m.value
                       ? 'border-primary bg-primary text-primary-foreground font-medium'
-                      : 'border-gray-200 bg-white hover:border-gray-300'
+                      : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 dark:text-gray-200'
                   }`}
                 >
                   <span className="text-3xl" role="img" aria-label={m.label}>
@@ -198,7 +198,7 @@ export function GuidedEntryWizard({
 
         {currentStep === 2 && (
           <div className="space-y-4">
-            <h2 className="text-2xl font-semibold" role="heading" aria-level={2}>
+            <h2 className="text-2xl font-semibold dark:text-gray-100" role="heading" aria-level={2}>
               How confident are you?
             </h2>
             <div className="flex flex-col gap-3">
@@ -209,7 +209,7 @@ export function GuidedEntryWizard({
                   className={`px-6 py-4 rounded-lg border-2 transition-all font-medium min-h-[56px] text-lg ${
                     initialData.conviction === level
                       ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-gray-200 bg-white hover:border-gray-300'
+                      : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 dark:text-gray-200'
                   }`}
                 >
                   {level}
@@ -222,7 +222,7 @@ export function GuidedEntryWizard({
         {currentStep === 3 && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-semibold mb-4" role="heading" aria-level={2}>
+              <h2 className="text-2xl font-semibold mb-4 dark:text-gray-100" role="heading" aria-level={2}>
                 What type of entry is this?
               </h2>
               <div className="grid grid-cols-2 gap-2">
@@ -233,7 +233,7 @@ export function GuidedEntryWizard({
                     className={`px-4 py-3 rounded-lg border-2 transition-all min-h-[48px] ${
                       initialData.entryType === type.value
                         ? 'border-primary bg-primary text-primary-foreground font-medium'
-                        : 'border-gray-200 bg-white hover:border-gray-300'
+                        : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 dark:text-gray-200'
                     }`}
                   >
                     {type.label}
@@ -243,7 +243,7 @@ export function GuidedEntryWizard({
             </div>
 
             <div>
-              <Label htmlFor="guided-content" className="text-base font-medium mb-3 block">
+              <Label htmlFor="guided-content" className="text-base font-medium mb-3 block dark:text-gray-200">
                 {entryTypePrompts[initialData.entryType]}
               </Label>
               <Textarea
@@ -255,7 +255,7 @@ export function GuidedEntryWizard({
                 autoCapitalize="sentences"
                 autoFocus
               />
-              <p className="text-xs text-gray-600 mt-2">
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
                 {initialData.content.length} characters
               </p>
             </div>
@@ -264,10 +264,10 @@ export function GuidedEntryWizard({
 
         {currentStep === 4 && (
           <div className="space-y-4">
-            <h2 className="text-2xl font-semibold" role="heading" aria-level={2}>
+            <h2 className="text-2xl font-semibold dark:text-gray-100" role="heading" aria-level={2}>
               Any ticker symbol?
             </h2>
-            <p className="text-gray-600">This is optional - skip if not applicable.</p>
+            <p className="text-gray-600 dark:text-gray-400">This is optional - skip if not applicable.</p>
 
             {initialData.ticker ? (
               <div className="flex items-center gap-3">
@@ -278,7 +278,7 @@ export function GuidedEntryWizard({
                   variant="ghost"
                   size="sm"
                   onClick={clearTicker}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950"
                 >
                   Clear
                 </Button>
@@ -297,15 +297,15 @@ export function GuidedEntryWizard({
                 />
 
                 {showSuggestions && suggestions.length > 0 && (
-                  <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto">
+                  <div className="absolute z-20 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-auto">
                     {suggestions.map((suggestion) => (
                       <button
                         key={suggestion.symbol}
                         onClick={() => handleTickerSelect(suggestion.symbol)}
-                        className="w-full px-4 py-3 text-left hover:bg-gray-100 first:rounded-t-lg last:rounded-b-lg min-h-[44px]"
+                        className="w-full px-4 py-3 text-left hover:bg-gray-100 dark:hover:bg-gray-700 first:rounded-t-lg last:rounded-b-lg min-h-[44px]"
                       >
-                        <div className="font-medium">{suggestion.symbol}</div>
-                        <div className="text-sm text-gray-500">{suggestion.name}</div>
+                        <div className="font-medium dark:text-gray-200">{suggestion.symbol}</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">{suggestion.name}</div>
                       </button>
                     ))}
                   </div>
@@ -317,7 +317,7 @@ export function GuidedEntryWizard({
       </div>
 
       {/* Navigation */}
-      <div className="flex items-center justify-between mt-8 pt-6 border-t">
+      <div className="flex items-center justify-between mt-8 pt-6 border-t dark:border-gray-700">
         <Button
           variant="ghost"
           onClick={handleBack}

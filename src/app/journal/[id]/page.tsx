@@ -35,16 +35,16 @@ const moodLabels = {
 };
 
 const typeColors = {
-  TRADE_IDEA: 'bg-blue-100 text-blue-800 border-blue-200',
-  TRADE: 'bg-green-100 text-green-800 border-green-200',
-  REFLECTION: 'bg-purple-100 text-purple-800 border-purple-200',
-  OBSERVATION: 'bg-orange-100 text-orange-800 border-orange-200',
+  TRADE_IDEA: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800',
+  TRADE: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800',
+  REFLECTION: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800',
+  OBSERVATION: 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950 dark:text-orange-300 dark:border-orange-800',
 };
 
 const convictionColors = {
-  LOW: 'bg-gray-100 text-gray-700 border-gray-300',
-  MEDIUM: 'bg-yellow-100 text-yellow-800 border-yellow-300',
-  HIGH: 'bg-red-100 text-red-800 border-red-300',
+  LOW: 'bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700',
+  MEDIUM: 'bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-950 dark:text-yellow-300 dark:border-yellow-800',
+  HIGH: 'bg-red-100 text-red-800 border-red-300 dark:bg-red-950 dark:text-red-300 dark:border-red-800',
 };
 
 export default function EntryDetailPage() {
@@ -123,19 +123,19 @@ export default function EntryDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader className="animate-spin h-8 w-8 text-gray-400" />
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <Loader className="animate-spin h-8 w-8 text-gray-400 dark:text-gray-600" />
       </div>
     );
   }
 
   if (error || !entry) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="max-w-4xl mx-auto px-4 py-12 text-center">
           <div className="text-6xl mb-4">❌</div>
-          <h2 className="text-xl font-semibold mb-2">Error</h2>
-          <p className="text-gray-600 mb-6">{error || 'Entry not found'}</p>
+          <h2 className="text-xl font-semibold mb-2 dark:text-gray-100">Error</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">{error || 'Entry not found'}</p>
           <Button onClick={() => router.push('/journal')}>
             Back to Journal
           </Button>
@@ -145,15 +145,15 @@ export default function EntryDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
       {/* Header */}
-      <div className="bg-white border-b sticky top-0 z-10">
+      <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => router.back()}
-            className="hover:bg-gray-100"
+            className="hover:bg-gray-100 dark:hover:bg-gray-700"
           >
             <ArrowLeft className="h-5 w-5 mr-1" />
             Back
@@ -162,7 +162,7 @@ export default function EntryDetailPage() {
             variant="ghost"
             size="sm"
             onClick={() => router.push(`/journal/${entryId}/edit`)}
-            className="hover:bg-gray-100"
+            className="hover:bg-gray-100 dark:hover:bg-gray-700"
           >
             <Edit className="h-4 w-4 mr-1" />
             Edit
@@ -189,7 +189,7 @@ export default function EntryDetailPage() {
                 )}
               </div>
             </div>
-            <CardTitle className="text-sm text-gray-500 font-normal">
+            <CardTitle className="text-sm text-gray-500 dark:text-gray-400 font-normal">
               {formatDateTime(entry.createdAt)}
             </CardTitle>
           </CardHeader>
@@ -197,22 +197,22 @@ export default function EntryDetailPage() {
           <CardContent>
             {/* Main Content */}
             <div className="mb-6">
-              <p className="text-lg leading-relaxed whitespace-pre-wrap">
+              <p className="text-lg leading-relaxed whitespace-pre-wrap dark:text-gray-200">
                 {entry.content}
               </p>
             </div>
 
             {/* Metadata Section */}
-            <div className="border-t pt-6">
-              <h3 className="text-sm font-semibold text-gray-700 mb-4">Metadata</h3>
+            <div className="border-t dark:border-gray-700 pt-6">
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Metadata</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Mood */}
                 {entry.mood && (
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Mood</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Mood</p>
                     <div className="flex items-center gap-2">
                       <span className="text-3xl">{moodEmojis[entry.mood]}</span>
-                      <span className="font-medium">{moodLabels[entry.mood]}</span>
+                      <span className="font-medium dark:text-gray-200">{moodLabels[entry.mood]}</span>
                     </div>
                   </div>
                 )}
@@ -220,7 +220,7 @@ export default function EntryDetailPage() {
                 {/* Conviction */}
                 {entry.conviction && (
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Conviction</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Conviction</p>
                     <Badge
                       variant="outline"
                       className={`${convictionColors[entry.conviction]} text-base px-3 py-1`}
@@ -233,7 +233,7 @@ export default function EntryDetailPage() {
 
               {/* Updated timestamp if different from created */}
               {entry.updatedAt !== entry.createdAt && (
-                <p className="text-xs text-gray-500 mt-4">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
                   Last updated: {formatDateTime(entry.updatedAt)}
                 </p>
               )}

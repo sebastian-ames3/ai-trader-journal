@@ -68,16 +68,16 @@ export default function OnboardingTip({
       role="alert"
       aria-live="polite"
     >
-      <Card className="max-w-md mx-auto bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200 shadow-lg">
+      <Card className="max-w-md mx-auto bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 border-blue-200 dark:border-blue-800 shadow-lg">
         <div className="p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3 flex-1">
-              <Lightbulb className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <Lightbulb className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
-                <h3 className="font-semibold text-sm text-gray-900 mb-1">
+                <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 mb-1">
                   {title}
                 </h3>
-                <p className="text-sm text-gray-700 leading-relaxed">
+                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
                   {message}
                 </p>
               </div>
@@ -86,7 +86,7 @@ export default function OnboardingTip({
               variant="ghost"
               size="sm"
               onClick={handleDismiss}
-              className="min-h-[44px] min-w-[44px] p-0 flex-shrink-0 hover:bg-blue-100"
+              className="min-h-[44px] min-w-[44px] p-0 flex-shrink-0 hover:bg-blue-100 dark:hover:bg-blue-900"
               aria-label="Dismiss tip"
             >
               <X className="h-5 w-5" />
