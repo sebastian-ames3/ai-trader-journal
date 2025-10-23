@@ -17,7 +17,11 @@ import cache, { CacheTTL } from './cache';
  */
 
 // Initialize Polygon client
-const polygon = restClient(process.env.POLYGON_API_KEY);
+const apiKey = process.env.POLYGON_API_KEY;
+if (!apiKey) {
+  throw new Error('POLYGON_API_KEY environment variable is required');
+}
+const polygon = restClient(apiKey);
 
 export interface OptionsContract {
   strike: number;
@@ -76,10 +80,7 @@ export async function getOptionsExpirations(ticker: string): Promise<Date[] | nu
     logger.debug('Fetching options expirations from Polygon.io', { ticker });
 
     // Fetch options contracts to get unique expiration dates
-    const response = await polygon.reference.optionsContracts({
-      underlying_ticker: ticker.toUpperCase(),
-      limit: 1000, // Get up to 1000 contracts to ensure we capture all expirations
-    });
+    const response = await polygon.listOptionsContracts(ticker.toUpperCase(), undefined, undefined, undefined, undefined, undefined, false);
 
     if (!response.results || response.results.length === 0) {
       logger.warn('No options contracts found', { ticker });
@@ -162,21 +163,22 @@ export async function getOptionsChain(
     });
 
     // Fetch all contracts for this expiration
-    const response = await polygon.reference.optionsContracts({
-      underlying_ticker: ticker.toUpperCase(),
-      expiration_date: expirationStr,
-      limit: 1000,
-    });
+    const response = await polygon.listOptionsContracts(
+      ticker.toUpperCase(),
+      undefined,
+      undefined,
+      expirationStr
+    );
 
     if (!response.results || response.results.length === 0) {
       logger.warn('No options chain data returned', { ticker, expiration: expirationStr });
       return null;
     }
 
-    // Get current underlying price from snapshot
+    // Get current underlying price using stock snapshot
     let underlyingPrice = 0;
     try {
-      const snapshot = await polygon.stocks.universalSnapshot({ ticker: ticker.toUpperCase() });
+      const snapshot = await polygon.getSnapshots(ticker.toUpperCase(), undefined);
       underlyingPrice = snapshot.results?.[0]?.session?.close || 0;
     } catch (err) {
       logger.warn('Failed to fetch underlying price, using 0', { ticker, error: err });
@@ -296,25 +298,15 @@ export async function getContractSnapshot(
   try {
     logger.debug('Fetching contract snapshot from Polygon.io', { contractSymbol });
 
-    // Extract underlying ticker from contract symbol
-    // Format: O:AAPL251121C00170000 -> AAPL
-    const underlyingTicker = contractSymbol.split(':')[1]?.match(/^[A-Z]+/)?.[0];
-    if (!underlyingTicker) {
-      logger.error('Invalid contract symbol format', { contractSymbol });
-      return null;
-    }
+    // Use getSnapshots to get individual contract details
+    const snapshot = await polygon.getSnapshots(contractSymbol);
 
-    const snapshot = await polygon.options.snapshotOptionContract(
-      underlyingTicker,
-      contractSymbol
-    );
-
-    if (!snapshot.results) {
+    if (!snapshot.results || snapshot.results.length === 0) {
       logger.warn('No snapshot data returned', { contractSymbol });
       return null;
     }
 
-    const data = snapshot.results;
+    const data = snapshot.results[0];
 
     const contractData: OptionsContract = {
       strike: data.details?.strike_price || 0,
@@ -392,24 +384,8 @@ export async function getHistoricalIV(
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - 365);
 
-    const startStr = startDate.toISOString().split('T')[0];
-    const endStr = endDate.toISOString().split('T')[0];
-
-    // Get ATM options snapshots for the past year
-    // Note: This is a simplified approach. In production, you'd want to fetch
-    // daily snapshots and calculate weighted average IV across strikes
-    const response = await polygon.reference.optionsContracts({
-      underlying_ticker: ticker.toUpperCase(),
-      limit: 1000,
-    });
-
-    if (!response.results || response.results.length === 0) {
-      logger.warn('No historical IV data available', { ticker });
-      return null;
-    }
-
     // For MVP, we'll use current IV as a placeholder
-    // TODO: Implement proper historical IV fetching using aggregates
+    // TODO: Implement proper historical IV fetching using Polygon aggregates
     logger.warn('Historical IV fetching not fully implemented - using current IV', { ticker });
 
     return null;
