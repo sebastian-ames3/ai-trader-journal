@@ -6,6 +6,7 @@ import Navigation from "@/components/Navigation";
 import FloatingActionButton from "@/components/FloatingActionButton";
 import OfflineIndicator from "@/components/OfflineIndicator";
 import InstallPrompt from "@/components/InstallPrompt";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -33,14 +34,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <OfflineIndicator />
-        <Navigation />
-        {children}
-        <Toaster />
-        <FloatingActionButton />
-        <InstallPrompt />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <OfflineIndicator />
+          <Navigation />
+          {children}
+          <Toaster />
+          <FloatingActionButton />
+          <InstallPrompt />
+        </ThemeProvider>
       </body>
     </html>
   );

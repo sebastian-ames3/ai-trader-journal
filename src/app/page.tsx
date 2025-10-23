@@ -33,10 +33,10 @@ interface RecentEntry {
 }
 
 const typeColors = {
-  TRADE_IDEA: 'bg-blue-100 text-blue-800 border-blue-200',
-  TRADE: 'bg-green-100 text-green-800 border-green-200',
-  REFLECTION: 'bg-purple-100 text-purple-800 border-purple-200',
-  OBSERVATION: 'bg-orange-100 text-orange-800 border-orange-200',
+  TRADE_IDEA: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800',
+  TRADE: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800',
+  REFLECTION: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800',
+  OBSERVATION: 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950 dark:text-orange-300 dark:border-orange-800',
 };
 
 const moodEmojis: Record<string, string> = {
@@ -117,8 +117,8 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader className="animate-spin h-8 w-8 text-gray-400" />
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <Loader className="animate-spin h-8 w-8 text-gray-400 dark:text-gray-500" />
       </div>
     );
   }
@@ -126,17 +126,17 @@ export default function DashboardPage() {
   // Empty state for first-time users
   if (!hasData) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
         <div className="max-w-2xl mx-auto text-center">
           <div className="mb-8">
             <div className="text-8xl mb-6">📊</div>
             <h1 className="text-3xl font-bold mb-4">Welcome to AI Trader Journal</h1>
-            <p className="text-lg text-gray-600 mb-2">
+            <p className="text-lg text-gray-600 dark:text-gray-400 mb-2">
               Track your trading psychology, detect biases, and improve decision-making with AI-powered insights.
             </p>
           </div>
 
-          <div className="bg-white rounded-lg p-8 shadow-sm border mb-8">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-8 shadow-sm border mb-8">
             <h2 className="text-xl font-semibold mb-4">Get Started in 3 Steps</h2>
             <div className="space-y-4 text-left">
               <div className="flex items-start gap-4">
@@ -145,7 +145,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <h3 className="font-medium mb-1">Create Your First Entry</h3>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
                     Journal a trade idea, reflection, or market observation
                   </p>
                 </div>
@@ -156,7 +156,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <h3 className="font-medium mb-1">AI Analyzes Your Mindset</h3>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
                     Automatic sentiment analysis and bias detection
                   </p>
                 </div>
@@ -167,7 +167,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <h3 className="font-medium mb-1">Get Weekly Insights</h3>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
                     Personalized feedback on emotional patterns and cognitive biases
                   </p>
                 </div>
@@ -188,12 +188,12 @@ export default function DashboardPage() {
 
   // Dashboard with data
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
       {/* Header */}
-      <div className="bg-white border-b">
+      <div className="bg-white dark:bg-gray-800 border-b">
         <div className="max-w-6xl mx-auto px-4 py-6">
           <h1 className="text-2xl font-bold mb-1">Dashboard</h1>
-          <p className="text-gray-600">Your trading psychology at a glance</p>
+          <p className="text-gray-600 dark:text-gray-400">Your trading psychology at a glance</p>
         </div>
       </div>
 
@@ -208,7 +208,7 @@ export default function DashboardPage() {
                     <TrendingUp className="h-5 w-5 text-primary" />
                     This Week&apos;s Snapshot
                   </CardTitle>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                     {formatDate(weeklySnapshot.weekStart)} - {formatDate(weeklySnapshot.weekEnd)}
                   </p>
                 </div>
@@ -224,28 +224,28 @@ export default function DashboardPage() {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {/* Total Entries */}
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Entries</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Entries</p>
                   <p className="text-3xl font-bold">{weeklySnapshot.stats.totalEntries}</p>
                 </div>
 
                 {/* Trade Ideas */}
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Trade Ideas</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Trade Ideas</p>
                   <p className="text-3xl font-bold">{weeklySnapshot.stats.tradeIdeas}</p>
                 </div>
 
                 {/* Dominant Sentiment */}
                 <div className="col-span-2 md:col-span-1">
-                  <p className="text-sm text-gray-600 mb-2">Mindset</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Mindset</p>
                   {weeklySnapshot.emotional.dominantSentiment ? (
                     <Badge
                       variant="outline"
                       className={`text-base px-3 py-1 ${
                         weeklySnapshot.emotional.dominantSentiment === 'positive'
-                          ? 'bg-green-100 text-green-800 border-green-200'
+                          ? 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800'
                           : weeklySnapshot.emotional.dominantSentiment === 'negative'
-                          ? 'bg-red-100 text-red-800 border-red-200'
-                          : 'bg-gray-100 text-gray-800 border-gray-200'
+                          ? 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800'
+                          : 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700'
                       }`}
                     >
                       {weeklySnapshot.emotional.dominantSentiment.charAt(0).toUpperCase() +
@@ -262,7 +262,7 @@ export default function DashboardPage() {
 
         {/* Streak Card */}
         {streakData && streakData.currentStreak > 0 && (
-          <Card className="border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-white">
+          <Card className="border-2 border-orange-200 dark:border-orange-800 bg-gradient-to-br from-orange-50 to-white dark:from-orange-950 dark:to-gray-900">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 🔥 Journaling Streak
@@ -271,26 +271,26 @@ export default function DashboardPage() {
             <CardContent>
               <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Current Streak</p>
-                  <p className="text-4xl font-bold text-orange-600">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Current Streak</p>
+                  <p className="text-4xl font-bold text-orange-600 dark:text-orange-400">
                     {streakData.currentStreak}
-                    <span className="text-xl text-gray-600 ml-2">
+                    <span className="text-xl text-gray-600 dark:text-gray-400 ml-2">
                       day{streakData.currentStreak !== 1 ? 's' : ''}
                     </span>
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Best Streak</p>
-                  <p className="text-4xl font-bold text-gray-700">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Best Streak</p>
+                  <p className="text-4xl font-bold text-gray-700 dark:text-gray-300">
                     {streakData.longestStreak}
-                    <span className="text-xl text-gray-600 ml-2">
+                    <span className="text-xl text-gray-600 dark:text-gray-400 ml-2">
                       day{streakData.longestStreak !== 1 ? 's' : ''}
                     </span>
                   </p>
                 </div>
               </div>
               {streakData.currentStreak >= 3 && (
-                <p className="mt-4 text-sm text-gray-700 bg-white/60 rounded-lg p-3">
+                <p className="mt-4 text-sm text-gray-700 dark:text-gray-300 bg-white/60 dark:bg-gray-800/60 rounded-lg p-3">
                   💪 Keep it up! Consistent journaling helps build better trading psychology
                 </p>
               )}
@@ -312,7 +312,7 @@ export default function DashboardPage() {
                 {weeklySnapshot.insights.slice(0, 3).map((insight, index) => (
                   <li key={index} className="flex items-start">
                     <span className="text-primary mr-2 font-bold">•</span>
-                    <span className="text-gray-700">{insight}</span>
+                    <span className="text-gray-700 dark:text-gray-300">{insight}</span>
                   </li>
                 ))}
               </ul>
@@ -348,7 +348,7 @@ export default function DashboardPage() {
             <div className="space-y-3">
               {recentEntries.map((entry) => (
                 <Link key={entry.id} href={`/journal/${entry.id}`}>
-                  <div className="p-3 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
+                  <div className="p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2 flex-wrap">
                         <Badge
@@ -369,10 +369,10 @@ export default function DashboardPage() {
                         )}
                       </div>
                     </div>
-                    <p className="text-sm text-gray-700 line-clamp-2 mb-1">
+                    <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2 mb-1">
                       {entry.content}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                       {formatTimeAgo(entry.createdAt)}
                     </p>
                   </div>
@@ -383,9 +383,9 @@ export default function DashboardPage() {
         </Card>
 
         {/* Call to Action */}
-        <div className="bg-gradient-to-r from-primary/10 to-purple-100 rounded-lg p-6 text-center">
+        <div className="bg-gradient-to-r from-primary/10 to-purple-100 dark:from-primary/20 dark:to-purple-950 rounded-lg p-6 text-center">
           <h3 className="text-lg font-semibold mb-2">Keep the momentum going!</h3>
-          <p className="text-gray-700 mb-4">
+          <p className="text-gray-700 dark:text-gray-300 mb-4">
             Regular journaling helps identify patterns and improve decision-making
           </p>
           <Link href="/journal/new">

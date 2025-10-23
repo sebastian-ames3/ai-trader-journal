@@ -31,16 +31,16 @@ const moodEmojis = {
 };
 
 const typeColors = {
-  TRADE_IDEA: 'bg-blue-100 text-blue-800 border-blue-200',
-  TRADE: 'bg-green-100 text-green-800 border-green-200',
-  REFLECTION: 'bg-purple-100 text-purple-800 border-purple-200',
-  OBSERVATION: 'bg-orange-100 text-orange-800 border-orange-200',
+  TRADE_IDEA: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800',
+  TRADE: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800',
+  REFLECTION: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800',
+  OBSERVATION: 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950 dark:text-orange-300 dark:border-orange-800',
 };
 
 const convictionColors = {
-  LOW: 'bg-gray-100 text-gray-700 border-gray-300',
-  MEDIUM: 'bg-yellow-100 text-yellow-800 border-yellow-300',
-  HIGH: 'bg-red-100 text-red-800 border-red-300',
+  LOW: 'bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700',
+  MEDIUM: 'bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-950 dark:text-yellow-300 dark:border-yellow-800',
+  HIGH: 'bg-red-100 text-red-800 border-red-300 dark:bg-red-950 dark:text-red-300 dark:border-red-800',
 };
 
 function JournalContent() {
@@ -175,14 +175,14 @@ function JournalContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader className="animate-spin h-8 w-8 text-gray-400" />
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <Loader className="animate-spin h-8 w-8 text-gray-400 dark:text-gray-500" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
       {/* Search & Filters */}
       <SearchFilters
         filters={filters}
@@ -194,7 +194,7 @@ function JournalContent() {
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Results Count */}
         {!loading && totalCount > 0 && (
-          <p className="text-sm text-gray-600 mb-4">
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
             Showing {entries.length} of {totalCount} entries
           </p>
         )}
@@ -204,7 +204,7 @@ function JournalContent() {
             <div className="text-center py-12">
               <div className="text-6xl mb-4">🔍</div>
               <h2 className="text-xl font-semibold mb-2">No entries found</h2>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
                 Try adjusting your filters or search terms
               </p>
               <Button size="lg" onClick={handleClearFilters} className="min-h-[48px]">
@@ -216,7 +216,7 @@ function JournalContent() {
             <div className="text-center py-12">
               <div className="text-6xl mb-4">📝</div>
               <h2 className="text-xl font-semibold mb-2">No entries yet</h2>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
                 Start journaling to track your trading psychology
               </p>
               <Link href="/journal/new">
@@ -267,7 +267,7 @@ function JournalContent() {
                     </div>
 
                     {/* Content Preview */}
-                    <p className="text-gray-700 line-clamp-3 mb-2">
+                    <p className="text-gray-700 dark:text-gray-300 line-clamp-3 mb-2">
                       {entry.content}
                     </p>
 
@@ -279,10 +279,10 @@ function JournalContent() {
                             variant="outline"
                             className={`text-xs ${
                               entry.sentiment === 'positive'
-                                ? 'bg-green-50 text-green-700 border-green-200'
+                                ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800'
                                 : entry.sentiment === 'negative'
-                                ? 'bg-red-50 text-red-700 border-red-200'
-                                : 'bg-gray-50 text-gray-700 border-gray-200'
+                                ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800'
+                                : 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700'
                             }`}
                           >
                             {entry.sentiment}
@@ -292,13 +292,13 @@ function JournalContent() {
                           <Badge
                             key={bias}
                             variant="outline"
-                            className="text-xs bg-orange-50 text-orange-700 border-orange-200"
+                            className="text-xs bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950 dark:text-orange-300 dark:border-orange-800"
                           >
                             {bias.replace(/_/g, ' ')}
                           </Badge>
                         ))}
                         {entry.detectedBiases?.length > 2 && (
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
                             +{entry.detectedBiases.length - 2} more
                           </span>
                         )}
@@ -312,13 +312,13 @@ function JournalContent() {
                           <Badge
                             key={tag}
                             variant="outline"
-                            className="text-xs bg-blue-50 text-blue-700 border-blue-200"
+                            className="text-xs bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800"
                           >
                             {tag}
                           </Badge>
                         ))}
                         {entry.aiTags.length > 5 && (
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
                             +{entry.aiTags.length - 5} more
                           </span>
                         )}
@@ -326,7 +326,7 @@ function JournalContent() {
                     )}
 
                     {/* Timestamp */}
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                       {formatTimeAgo(entry.createdAt)}
                     </p>
                   </CardContent>
@@ -355,8 +355,8 @@ export default function JournalPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <Loader className="animate-spin h-8 w-8 text-gray-400" />
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+          <Loader className="animate-spin h-8 w-8 text-gray-400 dark:text-gray-500" />
         </div>
       }
     >

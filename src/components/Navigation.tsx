@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, BookOpen, BarChart3 } from 'lucide-react';
+import { ThemeToggle } from './ThemeToggle';
 
 export default function Navigation() {
   const pathname = usePathname();
@@ -36,7 +37,7 @@ export default function Navigation() {
   };
 
   return (
-    <nav className="bg-white border-b sticky top-0 z-50">
+    <nav className="bg-background border-b sticky top-0 z-50">
       <div className="max-w-4xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-4">
@@ -45,19 +46,20 @@ export default function Navigation() {
             </Link>
 
             {!loading && streak >= 2 && (
-              <div className="flex items-center gap-1 px-3 py-1 bg-orange-50 text-orange-600 rounded-full text-sm font-medium">
+              <div className="flex items-center gap-1 px-3 py-1 bg-orange-50 text-orange-600 dark:bg-orange-950 dark:text-orange-400 rounded-full text-sm font-medium">
                 🔥 {streak} day{streak !== 1 ? 's' : ''}
               </div>
             )}
           </div>
 
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             <Link
               href="/"
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors min-h-[44px] ${
                 isActive('/')
                   ? 'bg-primary text-primary-foreground'
-                  : 'hover:bg-gray-100'
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
             >
               <Home className="h-5 w-5" />
@@ -69,7 +71,7 @@ export default function Navigation() {
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors min-h-[44px] ${
                 isActive('/journal')
                   ? 'bg-primary text-primary-foreground'
-                  : 'hover:bg-gray-100'
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
             >
               <BookOpen className="h-5 w-5" />
@@ -81,7 +83,7 @@ export default function Navigation() {
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors min-h-[44px] ${
                 isActive('/insights')
                   ? 'bg-primary text-primary-foreground'
-                  : 'hover:bg-gray-100'
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
             >
               <BarChart3 className="h-5 w-5" />

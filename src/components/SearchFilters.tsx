@@ -163,12 +163,12 @@ export default function SearchFilters({
     filters.dateTo;
 
   return (
-    <div className="bg-white border-b sticky top-0 z-20 shadow-sm">
+    <div className="bg-white dark:bg-gray-800 border-b sticky top-0 z-20 shadow-sm">
       <div className="max-w-4xl mx-auto px-4 py-4 space-y-4">
         {/* Search Bar */}
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
             <Input
               type="text"
               placeholder="Search journal entries..."
@@ -182,7 +182,7 @@ export default function SearchFilters({
           <Button
             variant="outline"
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className={showAdvanced ? 'bg-gray-100' : ''}
+            className={showAdvanced ? 'bg-gray-100 dark:bg-gray-700' : ''}
           >
             <Filter className="h-4 w-4 mr-2" />
             Filters
@@ -210,7 +210,7 @@ export default function SearchFilters({
             {/* Row 1: Type, Ticker, Mood */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label className="text-xs font-medium text-gray-700 mb-1 block">
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">
                   Type
                 </label>
                 <Select
@@ -232,7 +232,7 @@ export default function SearchFilters({
               </div>
 
               <div>
-                <label className="text-xs font-medium text-gray-700 mb-1 block">
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">
                   Ticker
                 </label>
                 <Input
@@ -246,7 +246,7 @@ export default function SearchFilters({
               </div>
 
               <div>
-                <label className="text-xs font-medium text-gray-700 mb-1 block">
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">
                   Mood
                 </label>
                 <Select
@@ -271,7 +271,7 @@ export default function SearchFilters({
             {/* Row 2: Conviction, Sentiment, Date Range */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label className="text-xs font-medium text-gray-700 mb-1 block">
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">
                   Conviction
                 </label>
                 <Select
@@ -293,7 +293,7 @@ export default function SearchFilters({
               </div>
 
               <div>
-                <label className="text-xs font-medium text-gray-700 mb-1 block">
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">
                   Sentiment
                 </label>
                 <Select
@@ -315,7 +315,7 @@ export default function SearchFilters({
               </div>
 
               <div>
-                <label className="text-xs font-medium text-gray-700 mb-1 block">
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">
                   Date From
                 </label>
                 <Input
@@ -329,7 +329,7 @@ export default function SearchFilters({
             {/* Row 3: Date To & Biases */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label className="text-xs font-medium text-gray-700 mb-1 block">
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">
                   Date To
                 </label>
                 <Input
@@ -342,7 +342,7 @@ export default function SearchFilters({
 
             {/* Biases - Multi-select chips */}
             <div>
-              <label className="text-xs font-medium text-gray-700 mb-2 block">
+              <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 block">
                 Cognitive Biases
               </label>
               <div className="flex flex-wrap gap-2">
@@ -352,7 +352,7 @@ export default function SearchFilters({
                     variant={
                       filters.biases.includes(bias.value) ? 'default' : 'outline'
                     }
-                    className="cursor-pointer hover:bg-gray-100"
+                    className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
                     onClick={() => toggleBias(bias.value)}
                   >
                     {bias.label}
@@ -366,7 +366,7 @@ export default function SearchFilters({
 
             {/* AI Tags - Multi-select chips */}
             <div>
-              <label className="text-xs font-medium text-gray-700 mb-2 block">
+              <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 block">
                 AI Tags
               </label>
               <div className="flex flex-wrap gap-2">
@@ -376,7 +376,7 @@ export default function SearchFilters({
                     variant={
                       filters.tags.includes(tag.value) ? 'default' : 'outline'
                     }
-                    className="cursor-pointer hover:bg-gray-100"
+                    className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
                     onClick={() => toggleTag(tag.value)}
                   >
                     {tag.label}
