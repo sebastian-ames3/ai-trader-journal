@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { GuidedEntryWizard } from '@/components/GuidedEntryWizard';
 
 type EntryType = 'TRADE_IDEA' | 'TRADE' | 'REFLECTION' | 'OBSERVATION';
 type EntryMood = 'CONFIDENT' | 'NERVOUS' | 'EXCITED' | 'UNCERTAIN' | 'NEUTRAL';
@@ -36,11 +37,14 @@ const moods: { value: EntryMood; emoji: string; label: string }[] = [
 
 const convictionLevels: ConvictionLevel[] = ['LOW', 'MEDIUM', 'HIGH'];
 
+type EntryMode = 'FREE_FORM' | 'GUIDED';
+
 export default function NewEntryPage() {
   const router = useRouter();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
 
+  const [mode, setMode] = useState<EntryMode>('FREE_FORM');
   const [entryType, setEntryType] = useState<EntryType>('TRADE_IDEA');
   const [content, setContent] = useState('');
   const [mood, setMood] = useState<EntryMood>('NEUTRAL');
@@ -60,6 +64,7 @@ export default function NewEntryPage() {
   // Auto-save to localStorage
   useEffect(() => {
     const draft = {
+      mode,
       entryType,
       content,
       mood,
@@ -68,7 +73,7 @@ export default function NewEntryPage() {
       timestamp: new Date().toISOString(),
     };
     localStorage.setItem('journal-draft', JSON.stringify(draft));
-  }, [entryType, content, mood, conviction, selectedTicker]);
+  }, [mode, entryType, content, mood, conviction, selectedTicker]);
 
   // Load draft from localStorage
   useEffect(() => {
@@ -79,6 +84,7 @@ export default function NewEntryPage() {
         // Only load if it's less than 24 hours old
         const draftAge = Date.now() - new Date(draft.timestamp).getTime();
         if (draftAge < 24 * 60 * 60 * 1000) {
+          setMode(draft.mode || 'FREE_FORM');
           setEntryType(draft.entryType || 'TRADE_IDEA');
           setContent(draft.content || '');
           setMood(draft.mood || 'NEUTRAL');
@@ -194,6 +200,55 @@ export default function NewEntryPage() {
 
       {/* Form Content */}
       <div className="max-w-4xl mx-auto px-4 py-6 pb-24">
+        {/* Mode Toggle */}
+        <div className="mb-6">
+          <div className="inline-flex rounded-lg border border-gray-200 bg-gray-100 p-1">
+            <button
+              onClick={() => setMode('FREE_FORM')}
+              className={`px-6 py-2 rounded-md text-sm font-medium transition-all min-h-[44px] ${
+                mode === 'FREE_FORM'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Free Form
+            </button>
+            <button
+              onClick={() => setMode('GUIDED')}
+              className={`px-6 py-2 rounded-md text-sm font-medium transition-all min-h-[44px] ${
+                mode === 'GUIDED'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Guided Entry
+            </button>
+          </div>
+        </div>
+
+        {mode === 'GUIDED' ? (
+          <GuidedEntryWizard
+            initialData={{
+              entryType,
+              content,
+              mood,
+              conviction,
+              ticker: selectedTicker,
+            }}
+            onUpdate={(updates) => {
+              if (updates.entryType !== undefined) setEntryType(updates.entryType);
+              if (updates.content !== undefined) setContent(updates.content);
+              if (updates.mood !== undefined) setMood(updates.mood);
+              if (updates.conviction !== undefined) setConviction(updates.conviction);
+              if (updates.ticker !== undefined) setSelectedTicker(updates.ticker);
+            }}
+            onSubmit={handleSubmit}
+            onSwitchToFreeForm={() => setMode('FREE_FORM')}
+            submitting={submitting}
+          />
+        ) : (
+          <>
+
         {/* Entry Type Selector */}
         <div className="mb-6">
           <Label className="text-sm font-medium mb-3 block">Entry Type</Label>
@@ -330,9 +385,12 @@ export default function NewEntryPage() {
             {error}
           </div>
         )}
+          </>
+        )}
       </div>
 
-      {/* Fixed Submit Button */}
+      {/* Fixed Submit Button - Only show for Free Form mode */}
+      {mode === 'FREE_FORM' && (
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 shadow-lg">
         <div className="max-w-4xl mx-auto">
           <Button
@@ -352,6 +410,7 @@ export default function NewEntryPage() {
           </Button>
         </div>
       </div>
+      )}
     </div>
   );
 }
