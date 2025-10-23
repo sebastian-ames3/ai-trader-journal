@@ -1,20 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getOptionsExpirations, getOptionsChain } from '@/lib/yahooFinance';
+import { getOptionsExpirations, getOptionsChain } from '@/lib/polygonClient';
 import { logger } from '@/lib/logger';
 
 /**
  * GET /api/options/[ticker]
  *
- * Fetch options data for a specific ticker
+ * Fetch options data from Polygon.io for a specific ticker
+ * Uses official OPRA data with Greeks and real-time pricing
  *
  * Query params:
  * - action: 'expirations' | 'chain' (default: 'expirations')
- * - expiration: ISO date string (YYYY-MM-DD) for chain data (optional - uses nearest if not provided)
+ * - expiration: ISO date string (YYYY-MM-DD) - REQUIRED for chain action
+ * - minStrike: Minimum strike price (optional, for filtering)
+ * - maxStrike: Maximum strike price (optional, for filtering)
  *
  * Examples:
- * - GET /api/options/AAPL - Returns all expiration dates
- * - GET /api/options/AAPL?action=chain - Returns chain for nearest expiration
- * - GET /api/options/AAPL?action=chain&expiration=2025-12-19 - Returns chain for specific expiration
+ * - GET /api/options/AAPL
+ *   → Returns all expiration dates
+ *
+ * - GET /api/options/AAPL?action=chain&expiration=2025-11-21
+ *   → Returns chain for Nov 21, 2025 (contract list only, no pricing/Greeks)
+ *
+ * - GET /api/options/AAPL?action=chain&expiration=2025-11-21&minStrike=165&maxStrike=175
+ *   → Returns filtered chain (strikes 165-175 only)
+ *
+ * Note: Chain endpoint returns contract metadata only (no pricing/Greeks).
+ * Use /api/options/contract/[symbol] for detailed pricing and Greeks.
+ *
+ * Rate Limits (Free Tier): 5 calls/minute
+ * Rate Limits (Paid Tier): Unlimited
  */
 export async function GET(
   request: NextRequest,
@@ -55,19 +69,35 @@ export async function GET(
 
     // Handle chain request
     if (action === 'chain') {
-      let expirationDate: Date | undefined;
-
-      if (expirationParam) {
-        expirationDate = new Date(expirationParam);
-        if (isNaN(expirationDate.getTime())) {
-          return NextResponse.json(
-            { error: 'Invalid expiration date format. Use YYYY-MM-DD.' },
-            { status: 400 }
-          );
-        }
+      // Expiration is now REQUIRED for chain requests
+      if (!expirationParam) {
+        return NextResponse.json(
+          { error: 'Expiration date is required for chain requests. Use YYYY-MM-DD format.' },
+          { status: 400 }
+        );
       }
 
-      const chain = await getOptionsChain(ticker, expirationDate);
+      const expirationDate = new Date(expirationParam);
+      if (isNaN(expirationDate.getTime())) {
+        return NextResponse.json(
+          { error: 'Invalid expiration date format. Use YYYY-MM-DD.' },
+          { status: 400 }
+        );
+      }
+
+      // Optional strike range filtering
+      const minStrike = searchParams.get('minStrike');
+      const maxStrike = searchParams.get('maxStrike');
+      let strikeRange: { min: number; max: number } | undefined;
+
+      if (minStrike && maxStrike) {
+        strikeRange = {
+          min: parseFloat(minStrike),
+          max: parseFloat(maxStrike),
+        };
+      }
+
+      const chain = await getOptionsChain(ticker, expirationDate, strikeRange);
 
       if (!chain) {
         return NextResponse.json(
@@ -83,6 +113,7 @@ export async function GET(
         calls: chain.calls,
         puts: chain.puts,
         fetchedAt: chain.fetchedAt.toISOString(),
+        note: 'Pricing and Greeks are zeros - use /contract endpoint for detailed data',
       });
     }
 
