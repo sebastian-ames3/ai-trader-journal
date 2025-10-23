@@ -8,6 +8,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **PWA Manifest & Offline-First Support** (Issue #36)
+  - Progressive Web App manifest for installable app experience
+    - App name, icons, theme colors, standalone display mode
+    - iOS-specific metadata for Add to Home Screen
+    - App shortcuts for quick entry creation
+  - Service Worker with intelligent caching strategies
+    - Static assets: Cache-first (HTML, CSS, JS, images)
+    - API responses: Network-first with 10s timeout
+    - Entry data: Network-first with 5-minute cache fallback
+    - Font assets: Stale-while-revalidate strategy
+  - Offline entry creation with IndexedDB queue
+    - `offlineQueue.ts`: Dexie.js-based queue management
+    - Auto-sync when connection restored
+    - Retry logic with max 3 attempts per entry
+    - Background sync API integration
+  - Offline indicator component
+    - Real-time online/offline status monitoring
+    - Queued entries counter
+    - Sync progress feedback
+    - Toast notifications on sync complete/failure
+  - Add to Home Screen prompt
+    - Triggers after 3 visits or 1 week of use
+    - Native install prompt on Android/Chrome
+    - iOS-specific installation instructions
+    - Dismissible with localStorage persistence
+  - Custom hooks: `useOfflineEntry` for offline-aware entry creation
+  - Icon generation system with sharp (192x192, 512x512 PNG)
+  - PWA configuration in `next.config.mjs` with Workbox runtime caching
+  - Mobile-first with WCAG 2.1 AA compliance
 - **Empty States & First-Time User Onboarding** (Issue #38)
   - Insights page empty state when < 3 entries this week
     - Encouraging message with progress indicator
