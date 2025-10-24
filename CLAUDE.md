@@ -9,10 +9,83 @@ AI Trader Journal is a mobile-first trading psychology journal with AI-powered b
 - Detect cognitive biases and emotional patterns in trading decisions
 - Track weekly insights with personalized feedback on behavior patterns
 - Analyze emotional trends and conviction levels over time
-- (Phase 2) Track options trades with comprehensive market context and IV/HV analysis
+- (Phase 2) Track complex multi-leg options strategies with intelligent adjustment tracking and psychology insights
 
 **Current Focus:** MVP journal and psychology features (Phase 1)
 **Tech Stack:** Next.js 14 (App Router) • TypeScript • Tailwind CSS • Prisma • PostgreSQL (Supabase) • shadcn/ui • OpenAI GPT-4o-mini • date-fns
+
+## Product Strategy & Competitive Moat
+
+### Target User Profile
+
+**Professional options traders** who already have:
+- Professional execution platforms (ThinkorSwim, TastyTrade, Interactive Brokers)
+- Real-time market data feeds (12+ screens, live Greeks, IV Rank)
+- Advanced charting and analysis tools (TradingView, etc.)
+
+**What they lack:** A journal that understands how they actually trade options.
+
+### Competitive Positioning
+
+**We are NOT competing on:**
+- ❌ Real-time data quality (user has 12 screens for that)
+- ❌ Execution speed (they use professional brokers)
+- ❌ Market scanning/alerts (not our focus)
+
+**We ARE competing on:**
+- ✅ **Complex strategy intelligence** - Understanding iron condors that morphed into butterflies
+- ✅ **Adjustment tracking** - Position evolution timeline with psychology context
+- ✅ **Multi-leg P/L attribution** - Which leg made money and why
+- ✅ **Strategy-specific insights** - "You adjust iron condors defensively too early"
+- ✅ **Behavioral pattern recognition** - Options-specific psychology analysis
+
+### The Moat (Hard to Replicate)
+
+**Easy for competitors:**
+- Real-time data feeds (anyone can pay $99/month)
+- Basic P/L tracking (Robinhood does this)
+- Simple journaling (Notion template)
+
+**Hard for competitors (our advantages):**
+1. **Strategy Detection Engine** - Recognizing 100+ multi-leg structures and adjustments
+2. **Position Continuity** - Tracking positions as they evolve through adjustments
+3. **Options-Specific Psychology** - AI training on complex strategy decision patterns
+4. **Multi-Leg Attribution** - Breaking down P/L by leg, Greeks, IV crush, theta decay
+
+### Data Provider Strategy
+
+**Decision: yfinance Python microservice** (not Polygon.io $99/month)
+
+**Rationale:**
+- Target users already have real-time data feeds
+- App is used for **post-trade reflection**, not live trading
+- 15-20 min delayed data is sufficient for journaling context
+- Cost: $5-10/month (vs $99/month Polygon.io)
+- Focus budget on **strategy intelligence**, not data quality
+
+**What yfinance provides:**
+- ✅ Options chain snapshot data (expirations, strikes, IV per strike)
+- ✅ Bid/ask/last prices (15-20 min delayed)
+- ✅ Volume, open interest, Greeks (calculated via Black-Scholes)
+- ✅ Historical stock prices for HV calculations
+
+**What we DON'T need:**
+- ❌ Real-time streaming data (user has professional feeds)
+- ❌ Sub-second Greeks updates (not a live decision tool)
+- ❌ Trade flow / unusual activity (not journaling-relevant)
+
+**What we BUILD (where value lives):**
+- ✅ Strategy detection: "This is a calendar diagonal with bearish tilt"
+- ✅ Adjustment intelligence: "Iron condor → Iron butterfly (tightened for gamma)"
+- ✅ Multi-leg P/L breakdown: "+$420 from long call, -$140 from gamma risk"
+- ✅ Psychology insights: "You adjust winners early when uncertain (6 of 8 trades)"
+
+### Value Proposition
+
+> "The only journal that understands how you actually trade options"
+
+**Not:** Another data feed or execution platform
+**But:** Strategy intelligence + psychology insights for complex traders
 
 ## Design System & UI Standards
 
@@ -278,37 +351,57 @@ Main branch protected. Use feature branches: `git checkout -b feat/your-feature`
 
 ### 🔮 Phase 2 - Options Trading & Advanced Features
 
-**Options Data Pipeline (Issues #50-55) - Infrastructure Ready**
+**Strategic Direction:** Build the moat through complex strategy intelligence, not data quality.
 
-Issue #50 research completed - `yahoo-finance2` (Node.js) does NOT support options data. Two viable paths:
+#### Options Data Infrastructure - DECIDED: yfinance
 
-**Recommended Path (MVP):** Python yfinance microservice
-- Cost: $0-10/month (free data + hosting)
-- Architecture: FastAPI Python service → yfinance → Yahoo Finance
-- Deployment: Railway/Render/Fly.io free tier
-- Dev Time: 5-10 hours
-- See `OPTIONS_DATA_PROVIDERS_RESEARCH.md` for full analysis
+**Decision:** Python yfinance microservice (NOT Polygon.io $99/month)
 
-**Production Path:** Polygon.io Options API
-- Cost: $99/month (Options Starter tier)
-- Official OPRA data from all 17 US exchanges
-- Real-time with SLA guarantees
-- Migration: 2-3 hours from yfinance
+**Architecture:**
+```
+Next.js Frontend → FastAPI Python Service → yfinance → Yahoo Finance (free)
+```
 
-**Infrastructure Completed:**
-- ✅ Prisma schema: expirationDate, strikePrice, optionType, entry/exit prices, P/L tracking
+**Deployment:**
+- Railway.app / Render.com / Fly.io: $5-10/month
+- Handles: expirations, chains, pricing, Greeks (Black-Scholes calculated)
+- 15-20 min delayed data (sufficient for post-trade journaling)
+
+**Completed Infrastructure:**
+- ✅ Prisma schema with options fields (expirationDate, strikePrice, optionType, P/L tracking)
 - ✅ TypeScript interfaces: OptionsContract, OptionsChain
-- ✅ API route structure: `/api/options/[ticker]?action=expirations|chain`
-- ✅ 5-minute caching strategy
+- ✅ Polygon.io client (can migrate later if needed)
+- ✅ Research doc: `OPTIONS_DATA_PROVIDERS_RESEARCH.md`
 
-**Pending Issues (depend on #50):**
-- Issue #51: Greeks Calculation (Black-Scholes: Delta, Gamma, Theta, Vega)
-- Issue #52: Position Risk Metrics (max loss/profit/breakeven, strategy auto-detection)
+#### Priority 1: Strategy Intelligence (THE MOAT)
+
+**Multi-Leg Position Tracking (NEW - Critical)**
+- Issue TBD: Entry system for complex strategies (iron condors, butterflies, diagonals, ratios)
+- Issue TBD: Strategy detection engine (recognize 100+ structures)
+- Issue TBD: Position adjustment tracking (evolution timeline)
+- Issue TBD: "Why did you adjust?" psychology capture
+
+**Multi-Leg P/L Attribution (NEW - Critical)**
+- Issue TBD: Break down P/L by leg (which leg made/lost money)
+- Issue TBD: Factor attribution (stock move vs IV crush vs theta decay)
+- Issue TBD: Thesis validation ("Expected IV crush - CORRECT, Underestimated gamma risk")
+
+**Strategy-Specific Psychology Insights (NEW - Critical)**
+- Issue TBD: Pattern detection for iron condors, strangles, butterflies
+- Issue TBD: "You adjust asymmetrically" insights (call side vs put side behavior)
+- Issue TBD: "Early profit taking on low conviction" alerts
+- Issue TBD: Strategy-specific backtesting ("What if you hadn't adjusted?")
+
+#### Priority 2: Position Management Features
+
+- Issue #52: Position Risk Metrics (max loss/profit/breakeven) - **Reprioritized to HIGH**
 - Issue #53: DTE Tracking & Expiration Management
-- Issue #54: IV vs HV Spread - Carry Indicator (volatility selling signals)
-- Issue #55: Current Position P/L (live mark-to-market)
+- Issue #51: Greeks Calculation (use yfinance IV + Black-Scholes) - **Sufficient for MVP**
+- Issue #55: Current Position P/L (15-20 min delayed acceptable)
+- Issue #54: IV vs HV Spread - Carry Indicator - **Deprioritized** (user has this data)
 
-**Other Phase 2 Features:**
+#### Priority 3: UX Enhancements
+
 - Conversational AI Coach (#41)
 - Voice Notes & Screenshots (#49)
 - Linked Notes & Knowledge Graph (#42)
@@ -324,10 +417,10 @@ Social/Mentor Sharing (#43), Custom Dashboard Builder (#45)
 ## Known Issues
 
 1. **WSL Networking:** Database connections fail from WSL. Use PowerShell.
-2. **Pre-existing TypeScript/ESLint:** `src/lib/cache.ts`, `src/lib/yahooFinance.ts` (Phase 2 files)
+2. **Pre-existing TypeScript/ESLint:** `src/lib/cache.ts`, `src/lib/yahooFinance.ts`, `src/lib/polygonClient.ts` (Phase 2 files)
 3. **Build Warnings:** React hooks deps, unescaped entities, empty interfaces (non-critical)
 4. **Pending Database Migration:** Options chain fields added to schema but not yet migrated. Run in PowerShell: `npx prisma migrate dev --name add_options_chain_fields`
-5. **Options Data Provider:** `yahoo-finance2` (Node.js) lacks options support. Need to implement Python yfinance microservice or use paid provider (Polygon.io, Alpha Vantage)
+5. **Options Data Provider Decision:** DECIDED on yfinance Python microservice (not Polygon.io). Need to implement FastAPI service for Phase 2. Polygon.io client code exists but won't be used unless we migrate later.
 
 ## Quick Reference
 
