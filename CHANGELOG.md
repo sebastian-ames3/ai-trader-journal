@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Strategic Product Pivot - Competitive Moat Refined** (2025-10-24)
+  - **Target User:** Professional options traders with existing professional data feeds (ThinkorSwim, TastyTrade, 12+ screens)
+  - **Core Value Prop:** "The only journal that understands how you actually trade options"
+  - **Competitive Positioning:**
+    - NOT competing on real-time data quality (users already have this)
+    - NOT competing on execution speed (they use professional brokers)
+    - Competing on: Complex strategy intelligence, adjustment tracking, multi-leg P/L attribution
+  - **The Moat (Hard to Replicate):**
+    - Strategy Detection Engine: Recognizing 100+ multi-leg structures (iron condors → butterflies)
+    - Position Continuity: Tracking positions as they evolve through adjustments
+    - Options-Specific Psychology: AI training on complex strategy decision patterns
+    - Multi-Leg Attribution: P/L breakdown by leg, Greeks, IV crush, theta decay
+  - **Data Provider Decision: yfinance Python microservice** (NOT Polygon.io $99/month)
+    - Rationale: Users have real-time data; app is for post-trade reflection (15-20 min delay acceptable)
+    - Cost: $5-10/month vs $99/month Polygon.io
+    - Focus budget on strategy intelligence, not data quality
+  - **New Phase 2 Priorities:**
+    - Priority 1 (THE MOAT): Multi-leg position tracking, P/L attribution, strategy-specific psychology
+    - Priority 2: Position risk metrics, Greeks calculation, DTE tracking
+    - Priority 3: UX enhancements (voice notes, visualizations, etc.)
+  - **Issue Reprioritization:**
+    - Issue #52 (Position Risk Metrics): Elevated to HIGH priority
+    - Issue #54 (IV vs HV Spread): Deprioritized (users have this data)
+    - Issue #51 (Greeks): Black-Scholes sufficient (not market Greeks)
+    - New issues TBD: Multi-leg entry, strategy detection, adjustment tracking, P/L attribution
+  - Updated `CLAUDE.md` with Product Strategy & Competitive Moat section
+
 ### Added
 - **PWA Manifest & Offline-First Support** (Issue #36)
   - Progressive Web App manifest for installable app experience
