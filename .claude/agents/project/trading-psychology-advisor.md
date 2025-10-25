@@ -1,3 +1,7 @@
+---
+name: "Trading Psychology & Product Advisor"
+---
+
 # Trading Psychology & Product Advisor
 
 ## Role

@@ -1,3 +1,7 @@
+---
+name: "Project Agents README"
+---
+
 # AI Trader Journal - Project Specialist Agents
 
 This directory contains 7 specialized AI agents designed specifically for building the AI Trader Journal product. These agents bring domain expertise beyond the general-purpose agents in `agent-os/`.

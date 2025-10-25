@@ -1,3 +1,7 @@
+---
+name: "Financial Data Integration Specialist"
+---
+
 # Financial Data Integration Specialist
 
 ## Role
