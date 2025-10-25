@@ -182,7 +182,86 @@ npm run db:push      # Push schema (dev only)
 npm run db:studio    # Open Prisma Studio
 npx prisma migrate dev --name [name]     # Create migration
 npx prisma migrate deploy                # Apply migrations (production)
+
+# Options Data Service (Python)
+python options_service.py              # Start FastAPI service (port 8000)
+uvicorn options_service:app --reload   # Alternative with hot reload
 ```
+
+## Options Data Service
+
+**Python FastAPI microservice** providing options chain data via yfinance (free, 15-20 min delayed).
+
+### Architecture
+
+```
+Next.js → Python FastAPI → yfinance → Yahoo Finance
+```
+
+### Local Development
+
+**1. Install Python dependencies:**
+```bash
+pip install -r requirements.txt
+```
+
+**2. Start service (port 8000):**
+```bash
+uvicorn options_service:app --reload
+```
+
+**3. Configure Next.js:**
+Add to `.env.local`:
+```bash
+OPTIONS_SERVICE_URL=http://localhost:8000
+```
+
+**4. Test endpoints:**
+- Health: `http://localhost:8000/health`
+- Docs: `http://localhost:8000/docs`
+- Expirations: `http://localhost:8000/api/options/expirations?ticker=AAPL`
+- Chain: `http://localhost:8000/api/options/chain?ticker=AAPL&expiration=2025-11-21`
+
+### Production Deployment
+
+**Recommended:** Railway.app (~$5/month)
+
+See `OPTIONS_SERVICE_DEPLOYMENT.md` for full deployment guide.
+
+**Environment variable for Next.js production:**
+```bash
+OPTIONS_SERVICE_URL=https://your-service.railway.app
+```
+
+### API Endpoints
+
+**Next.js API Routes (proxy to Python service):**
+- `GET /api/options/health` - Service health check
+- `GET /api/options/expirations?ticker=AAPL` - Get expiration dates
+- `GET /api/options/chain?ticker=AAPL&expiration=2025-11-21` - Full options chain
+- `GET /api/options/chain?ticker=AAPL&expiration=2025-11-21&minStrike=170&maxStrike=180` - Filtered chain
+
+### Caching Strategy
+
+Intelligent market-aware caching:
+- Market hours (9:30 AM - 4:00 PM): 5 minutes
+- After hours: 1 hour
+- Weekends: 24 hours
+- Expirations: 1 hour (don't change often)
+
+### Cost Analysis
+
+- **Development:** $0/month (local)
+- **Production:** ~$5-10/month (Railway hosting)
+- **Data:** $0/month (yfinance is free)
+- **Savings vs Polygon.io:** $94/month ($1,128/year)
+
+### Migration to Polygon.io (Future)
+
+When ready for real-time data:
+1. Sign up for Polygon.io Options Starter ($99/month)
+2. Update Python service to use Polygon SDK (~2-3 hours)
+3. No frontend changes required (same API contract)
 
 ## Architecture & Key Concepts
 
