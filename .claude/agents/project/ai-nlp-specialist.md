@@ -1,3 +1,7 @@
+---
+name: "AI/NLP Integration Specialist"
+---
+
 # AI/NLP Integration Specialist
 
 ## Role
