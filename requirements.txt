@@ -6,7 +6,7 @@ fastapi==0.104.1
 uvicorn[standard]==0.24.0
 
 # Data Processing
-yfinance==0.2.32
+yfinance==0.2.66
 numpy==1.26.2
 pandas==2.1.3
 

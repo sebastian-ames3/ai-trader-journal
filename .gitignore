@@ -184,3 +184,18 @@ public/sw.js.map
 public/workbox-*.js.map
 public/worker-*.js.map
 public/fallback-*.js
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
