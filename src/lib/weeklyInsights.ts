@@ -7,10 +7,11 @@
  * - Pattern detection
  * - Personalized feedback
  * - Week-over-week comparisons
+ * - Behavioral patterns (Phase 2)
  */
 
 import { prisma } from './prisma';
-import { Entry } from '@prisma/client';
+import { Entry, PatternType, Trend } from '@prisma/client';
 import { startOfWeek, endOfWeek, subWeeks, format } from 'date-fns';
 
 // Type for entries with optional trade relation
@@ -66,6 +67,20 @@ export interface WeeklyInsights {
     entriesChange: number; // % change
     sentimentChange: 'improving' | 'declining' | 'stable';
     newBiases: string[];
+  };
+
+  // Behavioral patterns (Phase 2)
+  behavioralPatterns?: {
+    activePatterns: Array<{
+      id: string;
+      patternType: PatternType;
+      patternName: string;
+      description: string;
+      occurrences: number;
+      trend: Trend;
+      confidence: number;
+    }>;
+    patternBreakingMessage?: string;
   };
 }
 
@@ -130,6 +145,9 @@ export async function generateWeeklyInsights(
     comparison = await generateWeekComparison(entries, weekStart);
   }
 
+  // Get behavioral patterns (Phase 2)
+  const behavioralPatterns = await getBehavioralPatterns();
+
   return {
     weekStart: format(weekStart, 'yyyy-MM-dd'),
     weekEnd: format(weekEnd, 'yyyy-MM-dd'),
@@ -137,7 +155,8 @@ export async function generateWeeklyInsights(
     emotional,
     patterns,
     insights,
-    comparison
+    comparison,
+    behavioralPatterns
   };
 }
 
@@ -346,5 +365,73 @@ async function generateWeekComparison(
     entriesChange,
     sentimentChange,
     newBiases
+  };
+}
+
+/**
+ * Gets active behavioral patterns for weekly insights (Phase 2)
+ */
+async function getBehavioralPatterns(): Promise<WeeklyInsights['behavioralPatterns']> {
+  // Get active patterns
+  const activePatterns = await prisma.patternInsight.findMany({
+    where: {
+      isActive: true,
+      isDismissed: false,
+    },
+    orderBy: [
+      { confidence: 'desc' },
+      { occurrences: 'desc' }
+    ],
+    take: 5  // Top 5 patterns
+  });
+
+  if (activePatterns.length === 0) {
+    return undefined;
+  }
+
+  // Check for pattern-breaking behavior
+  let patternBreakingMessage: string | undefined;
+
+  // Check if there's a recent entry during a market downturn
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const todayEntry = await prisma.entry.findFirst({
+    where: {
+      createdAt: { gte: today }
+    }
+  });
+
+  const marketCondition = await prisma.marketCondition.findFirst({
+    where: {
+      date: { gte: today }
+    }
+  });
+
+  // Check for drawdown_silence pattern breaking
+  const hasDrawdownSilencePattern = activePatterns.some(
+    p => p.patternName === 'drawdown_silence'
+  );
+
+  if (
+    hasDrawdownSilencePattern &&
+    todayEntry &&
+    marketCondition &&
+    marketCondition.spyChange <= -2
+  ) {
+    patternBreakingMessage = `Market down ${Math.abs(marketCondition.spyChange).toFixed(1)}% today, but you journaled anyway! This is how habits change.`;
+  }
+
+  return {
+    activePatterns: activePatterns.map(p => ({
+      id: p.id,
+      patternType: p.patternType,
+      patternName: p.patternName,
+      description: p.description,
+      occurrences: p.occurrences,
+      trend: p.trend,
+      confidence: p.confidence
+    })),
+    patternBreakingMessage
   };
 }
