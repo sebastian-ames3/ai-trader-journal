@@ -9,83 +9,74 @@ AI Trader Journal is a mobile-first trading psychology journal with AI-powered b
 - Detect cognitive biases and emotional patterns in trading decisions
 - Track weekly insights with personalized feedback on behavior patterns
 - Analyze emotional trends and conviction levels over time
-- (Phase 2) Track complex multi-leg options strategies with intelligent adjustment tracking and psychology insights
+- (Phase 2) Frictionless capture via voice memos and screenshots
+- (Phase 2) Proactive engagement during market stress periods
+- (Phase 2) Long-term pattern recognition across trading behavior
 
-**Current Focus:** MVP journal and psychology features (Phase 1)
-**Tech Stack:** Next.js 14 (App Router) • TypeScript • Tailwind CSS • Prisma • PostgreSQL (Supabase) • shadcn/ui • OpenAI GPT-4o-mini • date-fns
+**Current Focus:** MVP journal and psychology features (Phase 1), planning Phase 2 engagement features
+**Tech Stack:** Next.js 14 (App Router) • TypeScript • Tailwind CSS • Prisma • PostgreSQL (Supabase) • shadcn/ui • OpenAI GPT-5 Family • date-fns • yfinance (Python)
 
-## Product Strategy & Competitive Moat
+## Product Strategy: Solving the Motivation Gap
+
+### The Core Problem
+
+Based on user research, traders stop journaling exactly when it would help most:
+- During market drawdowns
+- When emotionally disengaged
+- When their portfolio is underperforming
+
+This is the **"Motivation Gap"**: the inverse relationship between the value of journaling and the motivation to do it.
+
+### Solution: Multi-Pronged Approach
+
+1. **Reduce Friction** - Voice memos, screenshots, quick capture (no required fields)
+2. **Proactive Engagement** - Reach out during difficult market periods
+3. **Pattern Recognition** - Surface behavioral insights over time
+4. **Context Surfacing** - Auto-fetch relevant market data and history
 
 ### Target User Profile
 
-**Professional options traders** who already have:
-- Professional execution platforms (ThinkorSwim, TastyTrade, Interactive Brokers)
-- Real-time market data feeds (12+ screens, live Greeks, IV Rank)
-- Advanced charting and analysis tools (TradingView, etc.)
+**Options traders and active investors** who:
+- Have high-beta portfolios that feel pain during market corrections
+- Want to improve their trading psychology through self-awareness
+- Struggle to maintain journaling habits during drawdowns
+- Need frictionless capture (voice from bed, screenshots of charts)
 
-**What they lack:** A journal that understands how they actually trade options.
+**What they lack:** A journal that reaches out when it matters most and recognizes their patterns.
 
 ### Competitive Positioning
 
 **We are NOT competing on:**
-- ❌ Real-time data quality (user has 12 screens for that)
+- ❌ Real-time data quality (user has their own feeds)
 - ❌ Execution speed (they use professional brokers)
 - ❌ Market scanning/alerts (not our focus)
 
 **We ARE competing on:**
-- ✅ **Complex strategy intelligence** - Understanding iron condors that morphed into butterflies
-- ✅ **Adjustment tracking** - Position evolution timeline with psychology context
-- ✅ **Multi-leg P/L attribution** - Which leg made money and why
-- ✅ **Strategy-specific insights** - "You adjust iron condors defensively too early"
-- ✅ **Behavioral pattern recognition** - Options-specific psychology analysis
+- ✅ **Frictionless capture** - Voice memos, screenshots, quick text with auto-inference
+- ✅ **Proactive engagement** - Market-triggered check-ins during drawdowns
+- ✅ **Pattern recognition** - "You stop journaling during corrections"
+- ✅ **Historical context** - "From your past self" during similar market conditions
+- ✅ **Behavioral insights** - AI-powered bias detection and trend analysis
 
 ### The Moat (Hard to Replicate)
 
 **Easy for competitors:**
-- Real-time data feeds (anyone can pay $99/month)
 - Basic P/L tracking (Robinhood does this)
 - Simple journaling (Notion template)
+- Market data feeds (anyone can pay for these)
 
 **Hard for competitors (our advantages):**
-1. **Strategy Detection Engine** - Recognizing 100+ multi-leg structures and adjustments
-2. **Position Continuity** - Tracking positions as they evolve through adjustments
-3. **Options-Specific Psychology** - AI training on complex strategy decision patterns
-4. **Multi-Leg Attribution** - Breaking down P/L by leg, Greeks, IV crush, theta decay
-
-### Data Provider Strategy
-
-**Decision: yfinance Python microservice** (not Polygon.io $99/month)
-
-**Rationale:**
-- Target users already have real-time data feeds
-- App is used for **post-trade reflection**, not live trading
-- 15-20 min delayed data is sufficient for journaling context
-- Cost: $5-10/month (vs $99/month Polygon.io)
-- Focus budget on **strategy intelligence**, not data quality
-
-**What yfinance provides:**
-- ✅ Options chain snapshot data (expirations, strikes, IV per strike)
-- ✅ Bid/ask/last prices (15-20 min delayed)
-- ✅ Volume, open interest, Greeks (calculated via Black-Scholes)
-- ✅ Historical stock prices for HV calculations
-
-**What we DON'T need:**
-- ❌ Real-time streaming data (user has professional feeds)
-- ❌ Sub-second Greeks updates (not a live decision tool)
-- ❌ Trade flow / unusual activity (not journaling-relevant)
-
-**What we BUILD (where value lives):**
-- ✅ Strategy detection: "This is a calendar diagonal with bearish tilt"
-- ✅ Adjustment intelligence: "Iron condor → Iron butterfly (tightened for gamma)"
-- ✅ Multi-leg P/L breakdown: "+$420 from long call, -$140 from gamma risk"
-- ✅ Psychology insights: "You adjust winners early when uncertain (6 of 8 trades)"
+1. **Proactive Engagement Engine** - Reaching out during market stress, not just passive recording
+2. **Behavioral Pattern Database** - Learning user-specific patterns over months of data
+3. **Context-Aware Insights** - Surfacing relevant past entries at the right moment
+4. **Multi-Modal Capture** - Voice + screenshots + text with unified AI analysis
 
 ### Value Proposition
 
-> "The only journal that understands how you actually trade options"
+> "The journal that reaches out when you need it most and shows you patterns you can't see"
 
-**Not:** Another data feed or execution platform
-**But:** Strategy intelligence + psychology insights for complex traders
+**Not:** Another passive journaling app you abandon during drawdowns
+**But:** An active partner in trading psychology improvement
 
 ## Design System & UI Standards
 
@@ -278,6 +269,57 @@ PostgreSQL with Prisma ORM. Schema in `prisma/schema.prisma`:
 - **Relationships:** Optional link to Trade/Snapshot, many Tags (many-to-many)
 - **Indexes:** Date DESC, ticker, type, mood, conviction, trade
 
+## LLM Architecture: Single Provider (OpenAI GPT-5 Family)
+
+After extensive research comparing OpenAI, Claude, and Gemini, we chose a **single-provider architecture** using OpenAI's GPT-5 family.
+
+### Why Single Provider?
+
+| Multi-Provider | Single Provider (Chosen) |
+|----------------|-------------------------|
+| 3 SDKs to maintain | 1 SDK |
+| 3 different error patterns | Consistent handling |
+| 3 API keys for users | 1 API key |
+| Variable reliability | Excellent reliability |
+| ~$0.85/month | **~$0.50/month** |
+
+### Model Selection
+
+| Model | Cost (per 1M tokens) | Use For |
+|-------|---------------------|---------|
+| **GPT-5 Nano** | $0.05 / $0.40 | Entry analysis, quick inference, routine tasks |
+| **GPT-5 Mini** | $0.25 / $2.00 | Vision (screenshots), balanced tasks |
+| **GPT-5** | $1.25 / $10.00 | Weekly insights, pattern analysis, complex reasoning |
+| **Whisper** | $0.006/min | Voice transcription |
+| **text-embedding-3-small** | $0.02 | Semantic similarity for "From Your Past Self" |
+
+### Model Constants
+
+```typescript
+// src/lib/openai.ts
+export const MODELS = {
+  NANO: 'gpt-5-nano',      // Cheap, fast - routine tasks
+  MINI: 'gpt-5-mini',      // Vision, balanced
+  FLAGSHIP: 'gpt-5',       // Complex reasoning
+  WHISPER: 'whisper-1',
+  EMBEDDING: 'text-embedding-3-small'
+};
+```
+
+### Monthly Cost Estimate
+
+| Component | Cost |
+|-----------|------|
+| Whisper (50 voice memos) | $0.30 |
+| GPT-5 Nano (routine tasks) | $0.05 |
+| GPT-5 Mini (screenshots) | $0.02 |
+| GPT-5 (insights, patterns) | $0.18 |
+| Embeddings | $0.02 |
+| yfinance (market data) | $0.00 |
+| Cloudflare R2 (storage) | Free tier |
+| Vercel Cron | Free tier |
+| **Total** | **~$0.57/month** |
+
 ### AI Analysis (Issue #20)
 
 **Service:** `src/lib/aiAnalysis.ts`
@@ -290,7 +332,7 @@ PostgreSQL with Prisma ORM. Schema in `prisma/schema.prisma`:
 
 **Output:** sentiment, emotionalKeywords, detectedBiases, convictionInferred, confidence, aiTags (3-7 from taxonomy)
 
-**Config:** Requires `OPENAI_API_KEY`, GPT-4o-mini, ~$0.0007/entry
+**Config:** Requires `OPENAI_API_KEY`, GPT-5 Nano for routine analysis, ~$0.0007/entry
 
 ### Auto-Tagging (Issue #22)
 
@@ -368,8 +410,18 @@ npm run test:all
 
 Required in `.env` (never commit):
 - `DATABASE_URL`: Supabase PostgreSQL with `?pgbouncer=true` (port 6543)
-- `OPENAI_API_KEY`: For AI analysis
+- `OPENAI_API_KEY`: For AI analysis (GPT-5 family, Whisper, embeddings)
 - `DEBUG=1`: Optional debug logging
+
+**Phase 2 (when implementing):**
+- `R2_ENDPOINT`: Cloudflare R2 endpoint
+- `R2_ACCESS_KEY`: Cloudflare R2 access key
+- `R2_SECRET_KEY`: Cloudflare R2 secret key
+- `R2_BUCKET`: Cloudflare R2 bucket name
+- `R2_PUBLIC_URL`: Cloudflare R2 public URL
+- `VAPID_PUBLIC_KEY`: For push notifications
+- `VAPID_PRIVATE_KEY`: For push notifications
+- `OPTIONS_SERVICE_URL`: yfinance Python service URL
 
 ### Database Migrations
 
@@ -428,78 +480,124 @@ Main branch protected. Use feature branches: `git checkout -b feat/your-feature`
 
 **Low:** Inline Quick Edit (#40)
 
-### 🔮 Phase 2 - Options Trading & Advanced Features
+### 🔮 Phase 2 - Engagement & Capture Features
 
-**Strategic Direction:** Build the moat through complex strategy intelligence, not data quality.
+**Strategic Direction:** Solve the motivation gap through frictionless capture and proactive engagement.
 
-#### Options Data Infrastructure - DECIDED: yfinance
+**Full specifications:** See `specs/` folder for detailed PRDs and implementation tasks.
 
-**Decision:** Python yfinance microservice (NOT Polygon.io $99/month)
+#### Feature 1: Frictionless Capture (~$0.35/month)
 
-**Architecture:**
+Voice memos, screenshots, and quick capture with auto-inference.
+
+**MVP Scope:**
+- [ ] Voice recording + Whisper transcription
+- [ ] Quick capture with GPT-5 Nano auto-inference (mood, type, ticker)
+- [ ] Cloudflare R2 for media storage
+
+**Post-MVP:**
+- [ ] Screenshot analysis with GPT-5 Mini vision
+- [ ] Image capture for chart screenshots
+
+**Specs:** `specs/01-frictionless-capture.md`
+
+#### Feature 2: Proactive Engagement (~$0.04/month)
+
+Reach out during difficult market periods.
+
+**MVP Scope:**
+- [ ] Daily reflection notification (in-app banner)
+- [ ] Market condition monitoring (SPY ±2%, VIX >25)
+- [ ] Journal silence detection (7+ days)
+
+**Post-MVP:**
+- [ ] Push notifications (VAPID keys, web-push)
+- [ ] "From Your Past Self" - similar entries via embeddings (pgvector)
+- [ ] Trade idea follow-ups (7-day reminder)
+
+**Specs:** `specs/02-proactive-engagement.md`
+
+#### Feature 3: Pattern Recognition (~$0.12/month)
+
+Surface behavioral insights over time.
+
+**MVP Scope:**
+- [ ] Bias frequency analysis in weekly insights
+- [ ] Market condition correlation (behavior during drawdowns)
+
+**Post-MVP:**
+- [ ] Full GPT-5 pattern detection (90-day analysis)
+- [ ] Real-time pattern alerts during entry creation
+- [ ] Pattern breaking recognition ("You journaled during a correction!")
+- [ ] Monthly behavioral report page
+
+**Specs:** `specs/03-pattern-recognition.md`
+
+#### Feature 4: Context Surfacing (~$0.06/month)
+
+Auto-fetch relevant market data and history.
+
+**MVP Scope:**
+- [ ] Ticker detection with context panel
+- [ ] Basic ticker context (price, entry count)
+
+**Post-MVP:**
+- [ ] IV analysis from yfinance service
+- [ ] Historical entry context
+- [ ] GPT-5 insight generation for context
+
+**Specs:** `specs/04-context-surfacing.md`
+
+#### Recommended Implementation Order
+
 ```
-Next.js Frontend → FastAPI Python Service → yfinance → Yahoo Finance (free)
+Phase 2A: Foundation (MVP)
+├── Voice recording + Whisper transcription
+├── Quick capture with auto-inference (GPT-5 Nano)
+├── Daily reflection notifications (in-app)
+└── Basic ticker context
+
+Phase 2B: Engagement
+├── Screenshot analysis (GPT-5 Mini vision)
+├── Push notifications
+├── Market condition alerts
+└── "From Your Past Self" (embeddings)
+
+Phase 2C: Intelligence
+├── Full pattern recognition (GPT-5)
+├── Monthly behavioral reports
+├── Real-time pattern alerts
+└── Strategy-specific context
 ```
 
-**Deployment:**
-- Railway.app / Render.com / Fly.io: $5-10/month
-- Handles: expirations, chains, pricing, Greeks (Black-Scholes calculated)
-- 15-20 min delayed data (sufficient for post-trade journaling)
+#### Data Infrastructure
 
-**Completed Infrastructure:**
-- ✅ Prisma schema with options fields (expirationDate, strikePrice, optionType, P/L tracking)
-- ✅ TypeScript interfaces: OptionsContract, OptionsChain
-- ✅ Polygon.io client (can migrate later if needed)
-- ✅ Research doc: `OPTIONS_DATA_PROVIDERS_RESEARCH.md`
+**Market Data:** yfinance Python microservice (already implemented)
+- See `OPTIONS_SERVICE_DEPLOYMENT.md` for production deployment
 
-#### Priority 1: Strategy Intelligence (THE MOAT)
+**Media Storage:** Cloudflare R2
+- Free tier sufficient for MVP
+- Voice files + screenshots
 
-**Multi-Leg Position Tracking (NEW - Critical)**
-- Issue TBD: Entry system for complex strategies (iron condors, butterflies, diagonals, ratios)
-- Issue TBD: Strategy detection engine (recognize 100+ structures)
-- Issue TBD: Position adjustment tracking (evolution timeline)
-- Issue TBD: "Why did you adjust?" psychology capture
-
-**Multi-Leg P/L Attribution (NEW - Critical)**
-- Issue TBD: Break down P/L by leg (which leg made/lost money)
-- Issue TBD: Factor attribution (stock move vs IV crush vs theta decay)
-- Issue TBD: Thesis validation ("Expected IV crush - CORRECT, Underestimated gamma risk")
-
-**Strategy-Specific Psychology Insights (NEW - Critical)**
-- Issue TBD: Pattern detection for iron condors, strangles, butterflies
-- Issue TBD: "You adjust asymmetrically" insights (call side vs put side behavior)
-- Issue TBD: "Early profit taking on low conviction" alerts
-- Issue TBD: Strategy-specific backtesting ("What if you hadn't adjusted?")
-
-#### Priority 2: Position Management Features
-
-- Issue #52: Position Risk Metrics (max loss/profit/breakeven) - **Reprioritized to HIGH**
-- Issue #53: DTE Tracking & Expiration Management
-- Issue #51: Greeks Calculation (use yfinance IV + Black-Scholes) - **Sufficient for MVP**
-- Issue #55: Current Position P/L (15-20 min delayed acceptable)
-- Issue #54: IV vs HV Spread - Carry Indicator - **Deprioritized** (user has this data)
-
-#### Priority 3: UX Enhancements
-
-- Conversational AI Coach (#41)
-- Voice Notes & Screenshots (#49)
-- Linked Notes & Knowledge Graph (#42)
-- Advanced Visualizations (#44)
-- Swipe Gestures (#46)
-- Push Notifications (#47)
-- Data Export & GDPR (#48)
+**Embeddings:** pgvector (Supabase)
+- text-embedding-3-small for semantic similarity
+- "From Your Past Self" feature
 
 ### 🚀 Phase 3 - Power User Features
 
-Social/Mentor Sharing (#43), Custom Dashboard Builder (#45)
+- Complex strategy intelligence (iron condors, butterflies)
+- Multi-leg P/L attribution
+- Social/Mentor Sharing (#43)
+- Custom Dashboard Builder (#45)
+- Conversational AI Coach (#41)
 
 ## Known Issues
 
 1. **WSL Networking:** Database connections fail from WSL. Use PowerShell.
-2. **Pre-existing TypeScript/ESLint:** `src/lib/cache.ts`, `src/lib/yahooFinance.ts`, `src/lib/polygonClient.ts` (Phase 2 files)
+2. **Pre-existing TypeScript/ESLint:** `src/lib/cache.ts`, `src/lib/yahooFinance.ts`, `src/lib/polygonClient.ts` (legacy Phase 2 files)
 3. **Build Warnings:** React hooks deps, unescaped entities, empty interfaces (non-critical)
-4. **Pending Database Migration:** Options chain fields added to schema but not yet migrated. Run in PowerShell: `npx prisma migrate dev --name add_options_chain_fields`
-5. **Options Data Provider Decision:** DECIDED on yfinance Python microservice (not Polygon.io). Need to implement FastAPI service for Phase 2. Polygon.io client code exists but won't be used unless we migrate later.
+4. **yfinance Service:** Python FastAPI microservice implemented, needs Railway.app deployment for production
+5. **Phase 2 Dependencies:** Cloudflare R2, VAPID keys, pgvector extension not yet configured (see specs/TASKS.md)
 
 ## Quick Reference
 

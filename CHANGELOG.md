@@ -8,32 +8,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- **Strategic Product Pivot - Competitive Moat Refined** (2025-10-24)
-  - **Target User:** Professional options traders with existing professional data feeds (ThinkorSwim, TastyTrade, 12+ screens)
-  - **Core Value Prop:** "The only journal that understands how you actually trade options"
+- **Strategic Product Pivot - Motivation Gap Solution** (2025-12-05)
+  - **Core Problem:** Traders stop journaling exactly when it would help most (drawdowns, emotional disengagement)
+  - **New Value Prop:** "The journal that reaches out when you need it most and shows you patterns you can't see"
+  - **Solution - Multi-Pronged Approach:**
+    1. Reduce Friction: Voice memos, screenshots, quick capture (no required fields)
+    2. Proactive Engagement: Reach out during difficult market periods
+    3. Pattern Recognition: Surface behavioral insights over time
+    4. Context Surfacing: Auto-fetch relevant market data and history
   - **Competitive Positioning:**
-    - NOT competing on real-time data quality (users already have this)
-    - NOT competing on execution speed (they use professional brokers)
-    - Competing on: Complex strategy intelligence, adjustment tracking, multi-leg P/L attribution
+    - NOT competing on: real-time data quality, execution speed, market scanning
+    - Competing on: Frictionless capture, proactive engagement, pattern recognition, historical context
   - **The Moat (Hard to Replicate):**
-    - Strategy Detection Engine: Recognizing 100+ multi-leg structures (iron condors → butterflies)
-    - Position Continuity: Tracking positions as they evolve through adjustments
-    - Options-Specific Psychology: AI training on complex strategy decision patterns
-    - Multi-Leg Attribution: P/L breakdown by leg, Greeks, IV crush, theta decay
-  - **Data Provider Decision: yfinance Python microservice** (NOT Polygon.io $99/month)
-    - Rationale: Users have real-time data; app is for post-trade reflection (15-20 min delay acceptable)
-    - Cost: $5-10/month vs $99/month Polygon.io
-    - Focus budget on strategy intelligence, not data quality
-  - **New Phase 2 Priorities:**
-    - Priority 1 (THE MOAT): Multi-leg position tracking, P/L attribution, strategy-specific psychology
-    - Priority 2: Position risk metrics, Greeks calculation, DTE tracking
-    - Priority 3: UX enhancements (voice notes, visualizations, etc.)
-  - **Issue Reprioritization:**
-    - Issue #52 (Position Risk Metrics): Elevated to HIGH priority
-    - Issue #54 (IV vs HV Spread): Deprioritized (users have this data)
-    - Issue #51 (Greeks): Black-Scholes sufficient (not market Greeks)
-    - New issues TBD: Multi-leg entry, strategy detection, adjustment tracking, P/L attribution
-  - Updated `CLAUDE.md` with Product Strategy & Competitive Moat section
+    - Proactive Engagement Engine: Reaching out during market stress, not passive recording
+    - Behavioral Pattern Database: Learning user-specific patterns over months
+    - Context-Aware Insights: Surfacing relevant past entries at the right moment
+    - Multi-Modal Capture: Voice + screenshots + text with unified AI analysis
+  - **New Phase 2 Features (see specs/ folder):**
+    - Feature 1: Frictionless Capture (~$0.35/month) - Voice, screenshots, quick capture
+    - Feature 2: Proactive Engagement (~$0.04/month) - Market alerts, check-ins
+    - Feature 3: Pattern Recognition (~$0.12/month) - Behavioral patterns
+    - Feature 4: Context Surfacing (~$0.06/month) - Ticker context, history
+  - **LLM Architecture Decision: Single Provider (OpenAI GPT-5 Family)**
+    - Rationale: One SDK, one API key, one bill, better UX than multi-provider
+    - GPT-5 Nano ($0.05/$0.40): Entry analysis, quick inference
+    - GPT-5 Mini ($0.25/$2.00): Vision/screenshots
+    - GPT-5 ($1.25/$10.00): Weekly insights, pattern analysis
+    - Whisper ($0.006/min): Voice transcription
+    - text-embedding-3-small ($0.02): Semantic similarity
+    - **Total estimated cost: ~$0.57/month**
+  - Updated `CLAUDE.md` with new product direction
+  - Updated `README.md` with current features and roadmap
+  - Created Phase 2 PRDs in `specs/` folder
+  - Supersedes previous "complex strategy intelligence" pivot (2025-10-24)
+
+### Added
+- **Phase 2 Product Specifications** (specs/ folder)
+  - `specs/README.md` - Architecture decision overview
+  - `specs/01-frictionless-capture.md` - Voice memos, screenshots, quick capture
+  - `specs/02-proactive-engagement.md` - Market-triggered notifications
+  - `specs/03-pattern-recognition.md` - Behavioral pattern detection
+  - `specs/04-context-surfacing.md` - Ticker context, historical entries
+  - `specs/TASKS.md` - Complete implementation task list with code examples
+
+### Deprecated
+- Previous "complex strategy intelligence" moat approach (moved to Phase 3)
+- Multi-provider LLM architecture (replaced with single-provider OpenAI)
 
 ### Added
 - **PWA Manifest & Offline-First Support** (Issue #36)
