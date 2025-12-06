@@ -145,6 +145,9 @@ model Entry {
 
   tags        Tag[]      @relation("EntryTags")
 
+  // Ticker mentions (Phase 2 - Context Surfacing)
+  tickerMentions TickerMention[]
+
   // Media fields (Phase 2 - Frictionless Capture)
   audioUrl      String?        // Voice note URL (Cloudflare R2)
   audioDuration Int?           // Duration in seconds
@@ -352,4 +355,43 @@ model PatternInsight {
   @@index([patternName])
   @@index([isActive])
   @@index([lastUpdated(sort: Desc)])
+}
+
+// ============================================
+// Context Surfacing Models (Phase 2)
+// ============================================
+
+// Track ticker mentions in entries for quick lookup
+model TickerMention {
+  id        String   @id @default(cuid())
+  ticker    String   // Normalized ticker symbol (uppercase)
+  entryId   String
+  createdAt DateTime @default(now())
+
+  entry     Entry    @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@index([ticker])
+  @@index([entryId])
+  @@index([ticker, createdAt(sort: Desc)])
+}
+
+// Cache market snapshots for historical context
+model MarketSnapshot {
+  id        String   @id @default(cuid())
+  ticker    String
+  date      DateTime // Date of snapshot (day granularity)
+  price     Float
+  change    Float    // Percentage change
+  volume    Float?
+  iv        Float?   // Implied volatility
+  hv20      Float?   // 20-day historical volatility
+  ivRank    Float?   // IV rank (0-100)
+  high52w   Float?   // 52-week high
+  low52w    Float?   // 52-week low
+
+  createdAt DateTime @default(now())
+
+  @@unique([ticker, date])
+  @@index([ticker])
+  @@index([date(sort: Desc)])
 }
