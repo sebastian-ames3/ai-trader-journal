@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { EntryType, EntryMood, ConvictionLevel, Prisma } from '@prisma/client';
+import { EntryType, EntryMood, ConvictionLevel, CaptureMethod, Prisma } from '@prisma/client';
 import { updateStreakAfterEntry, getCelebrationMessage } from '@/lib/streakTracking';
 
 /**
@@ -179,7 +179,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create entry
+    // Validate captureMethod enum if provided
+    if (body.captureMethod && !Object.values(CaptureMethod).includes(body.captureMethod)) {
+      return NextResponse.json(
+        { error: 'Invalid capture method value' },
+        { status: 400 }
+      );
+    }
+
+    // Validate imageUrls is an array if provided
+    if (body.imageUrls && !Array.isArray(body.imageUrls)) {
+      return NextResponse.json(
+        { error: 'imageUrls must be an array' },
+        { status: 400 }
+      );
+    }
+
+    // Create entry with media fields
     const entry = await prisma.entry.create({
       data: {
         type: body.type,
@@ -188,7 +204,14 @@ export async function POST(request: NextRequest) {
         conviction: body.conviction || null,
         ticker: body.ticker || null,
         tradeId: body.tradeId || null,
-        snapshotId: body.snapshotId || null
+        snapshotId: body.snapshotId || null,
+        // Media fields (Phase 2 - Frictionless Capture)
+        audioUrl: body.audioUrl || null,
+        audioDuration: body.audioDuration ? parseInt(body.audioDuration, 10) : null,
+        transcription: body.transcription || null,
+        imageUrls: body.imageUrls || [],
+        imageAnalyses: body.imageAnalyses || null,
+        captureMethod: body.captureMethod || CaptureMethod.TEXT
       },
       include: {
         tags: true
