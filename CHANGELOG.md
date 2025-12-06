@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated `CLAUDE.md` with new product direction
   - Updated `README.md` with current features and roadmap
   - Created Phase 2 PRDs in `specs/` folder
+  - Supersedes previous "complex strategy intelligence" pivot (2025-10-24)
 
 ### Added
 - **Phase 2 Product Specifications** (specs/ folder)
@@ -53,17 +54,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Deprecated
 - Previous "complex strategy intelligence" moat approach (moved to Phase 3)
 - Multi-provider LLM architecture (replaced with single-provider OpenAI)
-
----
-
-### Changed (Previous - 2025-10-24)
-- **Strategic Product Pivot - Competitive Moat Refined** (superseded by 2025-12-05 pivot)
-  - ~~Target User: Professional options traders with existing data feeds~~
-  - ~~Core Value Prop: "The only journal that understands how you actually trade options"~~
-  - Note: Complex strategy intelligence moved to Phase 3, focus shifted to motivation gap
-  - **Data Provider Decision: yfinance Python microservice** (NOT Polygon.io $99/month) - RETAINED
-    - Rationale: Users have real-time data; app is for post-trade reflection (15-20 min delay acceptable)
-    - Cost: $5-10/month vs $99/month Polygon.io
 
 ### Added
 - **PWA Manifest & Offline-First Support** (Issue #36)
