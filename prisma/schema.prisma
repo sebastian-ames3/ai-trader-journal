@@ -32,6 +32,14 @@ enum ConvictionLevel {
   HIGH
 }
 
+// Capture method for journal entries (Phase 2 - Frictionless Capture)
+enum CaptureMethod {
+  TEXT            // Traditional typed entry
+  VOICE           // Voice memo with transcription
+  SCREENSHOT      // Image/screenshot with AI analysis
+  QUICK_CAPTURE   // Quick text with auto-inference
+}
+
 model Trade {
   id              String    @id @default(cuid())
   ticker          String
@@ -137,9 +145,13 @@ model Entry {
 
   tags        Tag[]      @relation("EntryTags")
 
-  // Media fields (Phase 2 - Issue #19)
-  audioUrl    String?    // Voice note URL
-  imageUrls   String[]   // Screenshot URLs
+  // Media fields (Phase 2 - Frictionless Capture)
+  audioUrl      String?        // Voice note URL (Cloudflare R2)
+  audioDuration Int?           // Duration in seconds
+  transcription String?   @db.Text  // Whisper transcription of voice note
+  imageUrls     String[]       // Screenshot URLs (Cloudflare R2)
+  imageAnalyses Json?          // GPT-4o vision analysis results
+  captureMethod CaptureMethod  @default(TEXT)  // How the entry was captured
 
   // AI analysis fields (Phase 2 - Issue #20)
   sentiment          String?    // AI-detected sentiment: positive/negative/neutral
