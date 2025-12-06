@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/market-check",
+      "schedule": "*/30 13-20 * * 1-5"
+    },
+    {
+      "path": "/api/cron/daily-reminder",
+      "schedule": "30 20 * * 1-5"
+    },
+    {
+      "path": "/api/cron/weekly-review",
+      "schedule": "0 22 * * 0"
+    }
+  ]
+}

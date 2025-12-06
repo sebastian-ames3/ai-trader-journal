@@ -217,3 +217,95 @@ model Settings {
 
   updatedAt         DateTime @updatedAt
 }
+
+// ============================================
+// Proactive Engagement Models (Phase 2)
+// ============================================
+
+// Notification type categories
+enum NotificationType {
+  MARKET_CONDITION    // Market down/up alerts
+  TICKER_MOVE         // User's mentioned tickers move
+  TIME_BASED          // Daily/weekly prompts
+  JOURNAL_NUDGE       // Silence detection
+  HISTORICAL_CONTEXT  // Similar past entry surfacing
+}
+
+// Market state classification
+enum MarketState {
+  UP        // SPY > +1%
+  DOWN      // SPY < -1%
+  FLAT      // -1% to +1%
+  VOLATILE  // VIX > 25 or |SPY| > 2%
+}
+
+// Push notification subscriptions
+model PushSubscription {
+  id        String   @id @default(cuid())
+  endpoint  String   @unique
+  keys      Json     // { p256dh: string, auth: string }
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([endpoint])
+}
+
+// User notification preferences
+model UserNotificationPrefs {
+  id                  String  @id @default("default")
+
+  // Market alerts
+  marketAlerts        Boolean @default(true)   // Big market moves
+  vixAlerts           Boolean @default(true)   // VIX spikes
+  tickerAlerts        Boolean @default(true)   // User's tickers move
+
+  // Time-based prompts
+  dailyReflection     Boolean @default(true)
+  dailyReflectionTime String  @default("16:30") // ET
+  weeklyReview        Boolean @default(true)
+  tradeIdeaFollowups  Boolean @default(true)
+
+  // Journal nudges
+  journalNudgeDays    Int     @default(7)      // Days of silence before nudge
+
+  // Quiet hours (no notifications)
+  quietHoursStart     String  @default("21:00")
+  quietHoursEnd       String  @default("07:00")
+
+  updatedAt           DateTime @updatedAt
+}
+
+// Notification log for tracking engagement
+model NotificationLog {
+  id         String           @id @default(cuid())
+  type       NotificationType
+  trigger    String           // "market_down_2pct", "vix_spike", etc.
+  title      String
+  body       String
+  data       Json?            // Additional context
+  sentAt     DateTime         @default(now())
+  engagedAt  DateTime?        // When user clicked/responded
+  dismissed  Boolean          @default(false)
+  snoozedTo  DateTime?        // If snoozed, when to remind again
+
+  @@index([type])
+  @@index([sentAt(sort: Desc)])
+}
+
+// Daily market conditions snapshot
+model MarketCondition {
+  id          String      @id @default(cuid())
+  date        DateTime    @unique
+  spyPrice    Float
+  spyChange   Float       // Daily percentage change
+  qqqPrice    Float?
+  qqqChange   Float?
+  vixLevel    Float
+  vixChange   Float?      // Daily change in VIX
+  marketState MarketState
+
+  createdAt   DateTime    @default(now())
+
+  @@index([date(sort: Desc)])
+  @@index([marketState])
+}
