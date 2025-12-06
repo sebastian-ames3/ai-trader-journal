@@ -309,3 +309,47 @@ model MarketCondition {
   @@index([date(sort: Desc)])
   @@index([marketState])
 }
+
+// ============================================
+// Pattern Recognition Models (Phase 2)
+// ============================================
+
+// Types of behavioral patterns
+enum PatternType {
+  TIMING           // Early exits, late entries, etc.
+  CONVICTION       // Conviction patterns over time
+  EMOTIONAL        // Emotional response patterns
+  MARKET_CONDITION // Behavior during specific market conditions
+  STRATEGY         // Strategy-related patterns
+  BIAS_FREQUENCY   // Recurring cognitive biases
+}
+
+// Pattern trend direction
+enum Trend {
+  INCREASING  // Pattern becoming more frequent
+  STABLE      // Pattern frequency unchanged
+  DECREASING  // Pattern becoming less frequent
+}
+
+// Detected behavioral patterns
+model PatternInsight {
+  id              String      @id @default(cuid())
+  patternType     PatternType
+  patternName     String      // "fomo_trading", "drawdown_silence", etc.
+  description     String      @db.Text
+  occurrences     Int         // Number of times pattern detected
+  trend           Trend       // Is pattern increasing/decreasing?
+  confidence      Float       // 0-1 confidence score
+  relatedEntryIds String[]    // IDs of entries that form this pattern
+  evidence        String[]    // Quotes/excerpts from entries
+  outcomeData     Json?       // { winRate, avgReturn, etc. }
+  firstDetected   DateTime    @default(now())
+  lastUpdated     DateTime    @default(now())
+  isActive        Boolean     @default(true)
+  isDismissed     Boolean     @default(false)
+
+  @@index([patternType])
+  @@index([patternName])
+  @@index([isActive])
+  @@index([lastUpdated(sort: Desc)])
+}
