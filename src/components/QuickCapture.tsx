@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/select';
 import VoiceRecorder from './VoiceRecorder';
 import AudioPlayer from './AudioPlayer';
+import ImageCapture, { ImageAnalysis } from './ImageCapture';
 import { cn } from '@/lib/utils';
 
 interface QuickCaptureProps {
@@ -65,6 +66,10 @@ export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
   const [audioDuration, setAudioDuration] = useState<number | null>(null);
   const [transcription, setTranscription] = useState<string | null>(null);
 
+  // Image state
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [imageAnalyses, setImageAnalyses] = useState<(ImageAnalysis | null)[]>([]);
+
   // Inferred metadata
   const [inferred, setInferred] = useState<InferredMetadata | null>(null);
   const [showDetails, setShowDetails] = useState(false);
@@ -79,6 +84,7 @@ export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
   const [submitState, setSubmitState] = useState<SubmitState>('idle');
   const [error, setError] = useState<string | null>(null);
   const [showVoice, setShowVoice] = useState(false);
+  const [showImage, setShowImage] = useState(false);
 
   // Reset form when closed
   useEffect(() => {
@@ -90,6 +96,8 @@ export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
         setAudioUrl(null);
         setAudioDuration(null);
         setTranscription(null);
+        setImageUrls([]);
+        setImageAnalyses([]);
         setInferred(null);
         setShowDetails(false);
         setEntryType(null);
@@ -99,6 +107,7 @@ export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
         setSubmitState('idle');
         setError(null);
         setShowVoice(false);
+        setShowImage(false);
       }, 300);
       return () => clearTimeout(timer);
     }
@@ -122,6 +131,38 @@ export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
     },
     []
   );
+
+  // Handle image capture complete
+  const handleImageCapture = useCallback(
+    (data: { imageUrl: string; analysis: ImageAnalysis | null }) => {
+      setImageUrls((prev) => [...prev, data.imageUrl]);
+      setImageAnalyses((prev) => [...prev, data.analysis]);
+
+      // If analysis extracted a ticker and we don't have one, use it
+      if (data.analysis?.ticker && !ticker && !inferred?.ticker) {
+        setTicker(data.analysis.ticker);
+      }
+
+      // Append analysis summary to content
+      if (data.analysis?.summary) {
+        setContent((prev) => {
+          if (prev.trim()) {
+            return `${prev}\n\n[Image: ${data.analysis!.summary}]`;
+          }
+          return `[Image: ${data.analysis!.summary}]`;
+        });
+      }
+
+      setShowImage(false);
+    },
+    [ticker, inferred?.ticker]
+  );
+
+  // Remove an image
+  const removeImage = useCallback((index: number) => {
+    setImageUrls((prev) => prev.filter((_, i) => i !== index));
+    setImageAnalyses((prev) => prev.filter((_, i) => i !== index));
+  }, []);
 
   // Auto-infer metadata when content changes
   const inferMetadata = useCallback(async (text: string) => {
@@ -200,6 +241,14 @@ export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
         }
       }
 
+      // Determine capture method
+      let captureMethod = 'QUICK_CAPTURE';
+      if (audioBlob) {
+        captureMethod = 'VOICE';
+      } else if (imageUrls.length > 0) {
+        captureMethod = 'SCREENSHOT';
+      }
+
       // Create the entry
       const entryData = {
         content: content.trim(),
@@ -210,7 +259,9 @@ export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
         audioUrl: uploadedAudioUrl,
         audioDuration: audioDuration || undefined,
         transcription: transcription || undefined,
-        captureMethod: audioBlob ? 'VOICE' : 'QUICK_CAPTURE',
+        imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
+        imageAnalyses: imageAnalyses.filter(Boolean).length > 0 ? imageAnalyses : undefined,
+        captureMethod,
       };
 
       const response = await fetch('/api/entries', {
@@ -321,13 +372,56 @@ export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
             <AudioPlayer src={audioUrl} duration={audioDuration || undefined} />
           )}
 
+          {/* Image capture */}
+          {showImage && (
+            <div className="flex justify-center py-4">
+              <ImageCapture
+                onImageCapture={handleImageCapture}
+                onError={(err) => setError(err)}
+                maxImages={5}
+              />
+            </div>
+          )}
+
+          {/* Image previews */}
+          {imageUrls.length > 0 && !showImage && (
+            <div className="flex flex-wrap gap-2">
+              {imageUrls.map((url, index) => (
+                <div key={url} className="relative group">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={url}
+                    alt={`Screenshot ${index + 1}`}
+                    className="w-20 h-20 object-cover rounded-lg border"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeImage(index)}
+                    className="absolute -top-2 -right-2 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label="Remove image"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                  {imageAnalyses[index] && (
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] px-1 py-0.5 rounded-b-lg truncate">
+                      {imageAnalyses[index]?.ticker || 'Analyzed'}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Action buttons */}
           <div className="flex items-center gap-2">
             <Button
               type="button"
               variant={showVoice ? 'default' : 'outline'}
               size="sm"
-              onClick={() => setShowVoice(!showVoice)}
+              onClick={() => {
+                setShowVoice(!showVoice);
+                setShowImage(false);
+              }}
               className="gap-2"
             >
               <Mic className="h-4 w-4" />
@@ -336,14 +430,17 @@ export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
 
             <Button
               type="button"
-              variant="outline"
+              variant={showImage ? 'default' : 'outline'}
               size="sm"
+              onClick={() => {
+                setShowImage(!showImage);
+                setShowVoice(false);
+              }}
               className="gap-2"
-              disabled
-              title="Coming soon"
+              disabled={imageUrls.length >= 5}
             >
               <Camera className="h-4 w-4" />
-              Photo
+              Photo {imageUrls.length > 0 && `(${imageUrls.length})`}
             </Button>
 
             <div className="flex-1" />
