@@ -13,7 +13,7 @@ AI Trader Journal is a mobile-first trading psychology journal with AI-powered b
 - (Phase 2) Proactive engagement during market stress periods
 - (Phase 2) Long-term pattern recognition across trading behavior
 
-**Current Focus:** MVP journal and psychology features (Phase 1), planning Phase 2 engagement features
+**Current Focus:** UX/UI design system overhaul (Phase 1B), Phase 2 feature polish, planning Phase 3 power user features
 **Tech Stack:** Next.js 14 (App Router) • TypeScript • Tailwind CSS • Prisma • PostgreSQL (Supabase) • shadcn/ui • OpenAI GPT-5 Family • date-fns • yfinance (Python)
 
 ## Product Strategy: Solving the Motivation Gap
@@ -463,7 +463,7 @@ Main branch protected. Use feature branches: `git checkout -b feat/your-feature`
 
 ## Implementation Status
 
-### ✅ Phase 1 - MVP Features (Completed)
+### ✅ Phase 1A - MVP Features (Completed)
 - Entry Schema & API (Issue #23)
 - AI Text Analysis (Issue #20)
 - Weekly Insights Dashboard (Issue #21)
@@ -473,123 +473,77 @@ Main branch protected. Use feature branches: `git checkout -b feat/your-feature`
 - Floating Action Button for Quick Entry (Issue #33)
 - Journaling Streak Tracking & Celebration System (Issue #34)
 - Empty States & First-Time User Onboarding (Issue #38)
+- Codebase cleanup for production readiness
 
-### 🎯 Phase 1 - MVP Polish (Pending - See GitHub Issues)
+### ✅ Phase 2 - Engagement & Capture Features (Core Implemented)
 
-**Medium:** Guided Entry Mode (#35), PWA/Offline (#36), Dark Mode (#37), Performance (#39)
+**Frictionless Capture System (PR #65):**
+- [x] Voice recording infrastructure
+- [x] Quick capture with auto-inference (GPT-5 Nano)
+- [x] Media storage foundation
 
-**Low:** Inline Quick Edit (#40)
+**Proactive Engagement System (PR #66):**
+- [x] Market condition monitoring (SPY, VIX triggers)
+- [x] Journal silence detection
+- [x] In-app notification banners
 
-### 🔮 Phase 2 - Engagement & Capture Features
+**Pattern Recognition Engine (PR #67):**
+- [x] Bias frequency analysis
+- [x] Market condition correlation
+- [x] Behavioral pattern detection
 
-**Strategic Direction:** Solve the motivation gap through frictionless capture and proactive engagement.
+**Context Surfacing System (PR #68):**
+- [x] Ticker detection with context panel
+- [x] Strategy insight integration
+- [x] Historical entry context
 
-**Full specifications:** See `specs/` folder for detailed PRDs and implementation tasks.
+**Full specifications:** See `specs/01-04*.md` for detailed PRDs.
 
-#### Feature 1: Frictionless Capture (~$0.35/month)
+### 🎯 Phase 1B - UX/UI Design System (Current Focus)
 
-Voice memos, screenshots, and quick capture with auto-inference.
+**PRD:** `specs/11-ux-ui-design-system.md`
 
-**MVP Scope:**
-- [ ] Voice recording + Whisper transcription
-- [ ] Quick capture with GPT-5 Nano auto-inference (mood, type, ticker)
-- [ ] Cloudflare R2 for media storage
+Modern mobile-first design overhaul inspired by Day One, Reflectly, and fintech apps:
+- [ ] Dark-first theme with amber accents (#0D0D0D, #F5A623)
+- [ ] Bottom navigation with center FAB
+- [ ] Glassmorphism cards (20px radius, soft shadows)
+- [ ] Micro-interactions and celebrations
+- [ ] Calendar week strip navigation
 
-**Post-MVP:**
-- [ ] Screenshot analysis with GPT-5 Mini vision
-- [ ] Image capture for chart screenshots
+**Also in Phase 1B (MVP Polish):**
+- [ ] Guided Entry Mode (Issue #35) - `specs/05-phase1-polish.md`
+- [ ] Performance Optimization (Issue #39)
+- [ ] Inline Quick Edit (Issue #40)
 
-**Specs:** `specs/01-frictionless-capture.md`
+### 🔮 Phase 3 - Power User Features (Planning)
 
-#### Feature 2: Proactive Engagement (~$0.04/month)
+**Thesis-Based Trade Management:** `specs/06-trade-management.md`
+- User groups trades under a "thesis" (trading idea)
+- Screenshot data extraction via GPT-4o-mini vision
+- Pattern learning from historical data
+- NO complex options analytics - smart journaling focus
 
-Reach out during difficult market periods.
+**AI Trading Coach:** `specs/07-ai-coach.md`
+- Conversational coach with context from entries
+- Pre-trade checks and historical comparison
+- Goal setting and progress tracking
 
-**MVP Scope:**
-- [ ] Daily reflection notification (in-app banner)
-- [ ] Market condition monitoring (SPY ±2%, VIX >25)
-- [ ] Journal silence detection (7+ days)
+**Social/Mentor Sharing:** `specs/08-social-sharing.md`
+- Shareable entry links with redaction
+- Mentor dashboard with commenting
+- Accountability partner features
 
-**Post-MVP:**
-- [ ] Push notifications (VAPID keys, web-push)
-- [ ] "From Your Past Self" - similar entries via embeddings (pgvector)
-- [ ] Trade idea follow-ups (7-day reminder)
+**Custom Dashboard:** `specs/09-custom-dashboard.md`
+- Drag-and-drop widget grid
+- Multiple layout templates
+- Personalized dashboard configurations
 
-**Specs:** `specs/02-proactive-engagement.md`
+### 🚀 Phase 4 - Mobile Deployment
 
-#### Feature 3: Pattern Recognition (~$0.12/month)
-
-Surface behavioral insights over time.
-
-**MVP Scope:**
-- [ ] Bias frequency analysis in weekly insights
-- [ ] Market condition correlation (behavior during drawdowns)
-
-**Post-MVP:**
-- [ ] Full GPT-5 pattern detection (90-day analysis)
-- [ ] Real-time pattern alerts during entry creation
-- [ ] Pattern breaking recognition ("You journaled during a correction!")
-- [ ] Monthly behavioral report page
-
-**Specs:** `specs/03-pattern-recognition.md`
-
-#### Feature 4: Context Surfacing (~$0.06/month)
-
-Auto-fetch relevant market data and history.
-
-**MVP Scope:**
-- [ ] Ticker detection with context panel
-- [ ] Basic ticker context (price, entry count)
-
-**Post-MVP:**
-- [ ] IV analysis from yfinance service
-- [ ] Historical entry context
-- [ ] GPT-5 insight generation for context
-
-**Specs:** `specs/04-context-surfacing.md`
-
-#### Recommended Implementation Order
-
-```
-Phase 2A: Foundation (MVP)
-├── Voice recording + Whisper transcription
-├── Quick capture with auto-inference (GPT-5 Nano)
-├── Daily reflection notifications (in-app)
-└── Basic ticker context
-
-Phase 2B: Engagement
-├── Screenshot analysis (GPT-5 Mini vision)
-├── Push notifications
-├── Market condition alerts
-└── "From Your Past Self" (embeddings)
-
-Phase 2C: Intelligence
-├── Full pattern recognition (GPT-5)
-├── Monthly behavioral reports
-├── Real-time pattern alerts
-└── Strategy-specific context
-```
-
-#### Data Infrastructure
-
-**Market Data:** yfinance Python microservice (already implemented)
-- See `OPTIONS_SERVICE_DEPLOYMENT.md` for production deployment
-
-**Media Storage:** Cloudflare R2
-- Free tier sufficient for MVP
-- Voice files + screenshots
-
-**Embeddings:** pgvector (Supabase)
-- text-embedding-3-small for semantic similarity
-- "From Your Past Self" feature
-
-### 🚀 Phase 3 - Power User Features
-
-- Complex strategy intelligence (iron condors, butterflies)
-- Multi-leg P/L attribution
-- Social/Mentor Sharing (#43)
-- Custom Dashboard Builder (#45)
-- Conversational AI Coach (#41)
+**PRD:** `specs/10-mobile-deployment.md`
+- PWA enhancement and optimization
+- Optional Capacitor migration
+- App Store submission (iOS/Android)
 
 ## Known Issues
 

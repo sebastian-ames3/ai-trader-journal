@@ -7,7 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Phase 2 Engagement & Capture Features** (2025-12-09, PRs #65-68)
+  - **Frictionless Capture System (PR #65):**
+    - Voice recording infrastructure with MediaRecorder API
+    - Quick capture mode with minimal UI (no required fields)
+    - Auto-inference using GPT-5 Nano (mood, type, ticker detection)
+    - Media storage foundation for voice memos and screenshots
+  - **Proactive Engagement System (PR #66):**
+    - Market condition monitoring (SPY ±2%, VIX >25 triggers)
+    - Journal silence detection (7+ days without entries)
+    - In-app notification banners for market alerts
+    - Trade idea follow-up reminders
+  - **Pattern Recognition Engine (PR #67):**
+    - Bias frequency analysis across entries
+    - Market condition correlation (behavior during drawdowns)
+    - Behavioral pattern detection and surfacing
+    - Pattern breaking recognition ("You journaled during a correction!")
+  - **Context Surfacing System (PR #68):**
+    - Automatic ticker detection from entry content
+    - Ticker context panel (price, historical entries)
+    - Strategy insight integration
+    - Historical entry context surfacing
+
+- **Phase 3 Product Specifications** (specs/ folder)
+  - `specs/05-phase1-polish.md` - Guided Entry Mode, PWA, Performance
+  - `specs/06-trade-management.md` - Thesis-based trade management (journal-first approach)
+  - `specs/07-ai-coach.md` - Conversational AI trading coach
+  - `specs/08-social-sharing.md` - Mentor/accountability sharing features
+  - `specs/09-custom-dashboard.md` - Drag-and-drop widget dashboard
+  - `specs/10-mobile-deployment.md` - PWA enhancement, Capacitor, App Store
+  - `specs/11-ux-ui-design-system.md` - Modern mobile-first UI overhaul
+
+- **UX/UI Design System Planning** (Phase 1B)
+  - Design inspiration from Day One, Reflectly, 5 Minute Journal
+  - Dark-first theme with amber accents (#0D0D0D, #F5A623)
+  - Bottom navigation with center FAB pattern
+  - Glassmorphism cards (20px radius, soft shadows)
+  - Micro-interactions and celebration animations
+  - Calendar week strip navigation
+
 ### Changed
+- **Codebase Cleanup for Production Readiness** (2025-12-09, commit 9f7b1f3)
+  - Removed unused code and legacy files
+  - Improved code organization
+  - Production build optimizations
+
+- **Architecture Decision: Journal-First Trade Management**
+  - Removed over-engineered options analytics (Black-Scholes, Greeks engine, P/L curves)
+  - Added thesis-based trade grouping (user defines relationships)
+  - Screenshot data extraction via GPT-4o-mini vision
+  - Pattern learning from user's own historical data
+  - AI reminders of past lessons when entering similar trades
+
 - **Strategic Product Pivot - Motivation Gap Solution** (2025-12-05)
   - **Core Problem:** Traders stop journaling exactly when it would help most (drawdowns, emotional disengagement)
   - **New Value Prop:** "The journal that reaches out when you need it most and shows you patterns you can't see"
