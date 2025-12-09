@@ -9,11 +9,11 @@ AI Trader Journal is a mobile-first trading psychology journal with AI-powered b
 - Detect cognitive biases and emotional patterns in trading decisions
 - Track weekly insights with personalized feedback on behavior patterns
 - Analyze emotional trends and conviction levels over time
-- (Phase 2) Frictionless capture via voice memos and screenshots
-- (Phase 2) Proactive engagement during market stress periods
-- (Phase 2) Long-term pattern recognition across trading behavior
+- Frictionless capture via voice memos and screenshots
+- Proactive engagement during market stress periods
+- Long-term pattern recognition across trading behavior
 
-**Current Focus:** UX/UI design system overhaul (Phase 1B), Phase 2 feature polish, planning Phase 3 power user features
+**Current Focus:** Phase 3 - UX/UI Design System overhaul (modern mobile-first redesign)
 **Tech Stack:** Next.js 14 (App Router) • TypeScript • Tailwind CSS • Prisma • PostgreSQL (Supabase) • shadcn/ui • Claude (Anthropic) + OpenAI Whisper • date-fns • yfinance (Python)
 
 ## Product Strategy: Solving the Motivation Gap
@@ -460,7 +460,7 @@ Main branch protected. Use feature branches: `git checkout -b feat/your-feature`
 
 ## Implementation Status
 
-### ✅ Phase 1A - MVP Features (Completed)
+### ✅ Phase 1 - MVP Features (Completed)
 - Entry Schema & API (Issue #23)
 - AI Text Analysis (Issue #20)
 - Weekly Insights Dashboard (Issue #21)
@@ -472,7 +472,7 @@ Main branch protected. Use feature branches: `git checkout -b feat/your-feature`
 - Empty States & First-Time User Onboarding (Issue #38)
 - Codebase cleanup for production readiness
 
-### ✅ Phase 2 - Engagement & Capture Features (Core Implemented)
+### ✅ Phase 2 - Engagement & Capture Features (Completed)
 
 **Frictionless Capture System (PR #65):**
 - [x] Voice recording infrastructure
@@ -494,29 +494,35 @@ Main branch protected. Use feature branches: `git checkout -b feat/your-feature`
 - [x] Strategy insight integration
 - [x] Historical entry context
 
+**Claude LLM Migration (PR #73):**
+- [x] Migrated from OpenAI GPT-4o to Claude (Haiku/Sonnet/Opus)
+- [x] Tiered model selection for cost optimization
+- [x] Kept OpenAI Whisper for audio transcription
+
 **Full specifications:** See `specs/01-04*.md` for detailed PRDs.
 
-### 🎯 Phase 1B - UX/UI Design System (Current Focus)
+### 🎯 Phase 3 - UX/UI Design System (Current Focus)
 
 **PRD:** `specs/11-ux-ui-design-system.md`
 
 Modern mobile-first design overhaul inspired by Day One, Reflectly, and fintech apps:
-- [ ] Dark-first theme with amber accents (#0D0D0D, #F5A623)
-- [ ] Bottom navigation with center FAB
-- [ ] Glassmorphism cards (20px radius, soft shadows)
-- [ ] Micro-interactions and celebrations
-- [ ] Calendar week strip navigation
+- [ ] Foundation: Color system, glassmorphism, tailwind tokens
+- [ ] Navigation: Bottom nav with center FAB for mobile
+- [ ] Core Components: Modern cards, mood selector, entry cards
+- [ ] Dashboard Redesign: New layout, glass header, streak card
+- [ ] Forms & Inputs: Entry form, conviction slider
+- [ ] Polish: Micro-interactions, animations, skeletons
 
-**Also in Phase 1B (MVP Polish):**
-- [ ] Guided Entry Mode (Issue #35) - `specs/05-phase1-polish.md`
+**Additional Polish Items:**
+- [ ] Guided Entry Mode (Issue #35)
 - [ ] Performance Optimization (Issue #39)
 - [ ] Inline Quick Edit (Issue #40)
 
-### 🔮 Phase 3 - Power User Features (Planning)
+### 🔮 Phase 4 - Power User Features (Planning)
 
 **Thesis-Based Trade Management:** `specs/06-trade-management.md`
 - User groups trades under a "thesis" (trading idea)
-- Screenshot data extraction via GPT-4o-mini vision
+- Screenshot data extraction via Claude vision
 - Pattern learning from historical data
 - NO complex options analytics - smart journaling focus
 
@@ -535,7 +541,7 @@ Modern mobile-first design overhaul inspired by Day One, Reflectly, and fintech 
 - Multiple layout templates
 - Personalized dashboard configurations
 
-### 🚀 Phase 4 - Mobile Deployment
+### 🚀 Phase 5 - Mobile Deployment
 
 **PRD:** `specs/10-mobile-deployment.md`
 - PWA enhancement and optimization

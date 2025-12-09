@@ -333,7 +333,7 @@ export default function DashboardPage() {
                 Recent Entries
               </h2>
               <Link href="/journal">
-                <Button variant="ghost" size="sm" className="text-amber-600 dark:text-amber-400">
+                <Button variant="ghost" size="sm" className="text-amber-600 dark:text-amber-400 min-h-[44px]">
                   View All
                   <ArrowRight className="ml-1 h-4 w-4" />
                 </Button>
