@@ -1,6 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { EntryType, EntryMood, ConvictionLevel } from '@prisma/client';
+import { analyzeEntryText } from '@/lib/aiAnalysis';
+import { isClaudeConfigured } from '@/lib/claude';
+
+/**
+ * Calculate similarity between two strings using word-based Jaccard index
+ */
+function calculateSimilarity(str1: string, str2: string): number {
+  // Handle empty strings
+  if (str1.length === 0 && str2.length === 0) return 1.0;
+  if (str1.length === 0 || str2.length === 0) return 0.0;
+
+  // Simple word-based similarity (Jaccard index)
+  const words1 = str1.toLowerCase().split(/\s+/);
+  const words2 = str2.toLowerCase().split(/\s+/);
+
+  const set1 = new Set(words1);
+  const set2 = new Set(words2);
+
+  const intersection = Array.from(set1).filter(x => set2.has(x));
+  const unionSize = set1.size + set2.size - intersection.length;
+
+  return intersection.length / unionSize;
+}
+
+/**
+ * Determine if content change is significant enough to warrant re-analysis
+ */
+function isSignificantChange(oldContent: string, newContent: string): boolean {
+  // If content length changed by more than 50 characters
+  if (Math.abs(newContent.length - oldContent.length) > 50) {
+    return true;
+  }
+
+  // If similarity is less than 80%
+  const similarity = calculateSimilarity(oldContent, newContent);
+  if (similarity < 0.8) {
+    return true;
+  }
+
+  return false;
+}
 
 /**
  * GET /api/entries/[id]
@@ -86,6 +127,29 @@ export async function PUT(
       );
     }
 
+    // Check if content changed significantly and re-run AI analysis
+    let aiAnalysisData = {};
+    const contentChanged = body.content && existingEntry.content !== body.content;
+
+    if (contentChanged && isSignificantChange(existingEntry.content, body.content)) {
+      // Re-run AI analysis for significant content changes
+      if (isClaudeConfigured()) {
+        try {
+          const analysis = await analyzeEntryText(body.content, body.mood, body.conviction);
+          aiAnalysisData = {
+            sentiment: analysis.sentiment,
+            emotionalKeywords: analysis.emotionalKeywords,
+            detectedBiases: analysis.detectedBiases,
+            convictionInferred: analysis.convictionInferred,
+            aiTags: analysis.aiTags,
+          };
+        } catch (error) {
+          // Log but don't fail the update if AI analysis fails
+          console.error('AI re-analysis failed:', error);
+        }
+      }
+    }
+
     // Update entry
     const entry = await prisma.entry.update({
       where: {
@@ -96,7 +160,8 @@ export async function PUT(
         content: body.content,
         mood: body.mood || null,
         conviction: body.conviction || null,
-        ticker: body.ticker || null
+        ticker: body.ticker || null,
+        ...aiAnalysisData,
       },
       include: {
         tags: true

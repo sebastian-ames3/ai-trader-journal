@@ -1,13 +1,16 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense, useCallback } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import SearchFilters, { FilterState } from '@/components/SearchFilters';
-import { EntryCard, EntryCardList, EntryCardSkeleton } from '@/components/ui/entry-card';
+import { EntryCardList, EntryCardSkeleton } from '@/components/ui/entry-card';
+import { SwipeableEntryCard } from '@/components/SwipeableEntryCard';
+import { InlineEditModal } from '@/components/InlineEditModal';
 import { CalendarWeekStrip } from '@/components/ui/calendar-week-strip';
+import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
 interface Entry {
@@ -27,11 +30,17 @@ interface Entry {
 function JournalContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { toast } = useToast();
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [entryCounts] = useState<Record<string, number>>({});
+
+  // Inline edit state
+  const [editingEntry, setEditingEntry] = useState<Entry | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
   const [filters, setFilters] = useState<FilterState>({
     search: searchParams.get('search') || '',
     type: searchParams.get('type') || '',
@@ -164,6 +173,69 @@ function JournalContent() {
     router.push(`/journal?${params.toString()}`);
   };
 
+  // Handle opening the edit modal
+  const handleEditEntry = useCallback((entry: Entry) => {
+    setEditingEntry(entry);
+    setIsEditModalOpen(true);
+  }, []);
+
+  // Handle closing the edit modal
+  const handleCloseEditModal = useCallback(() => {
+    setIsEditModalOpen(false);
+    setTimeout(() => setEditingEntry(null), 300); // Clear after animation
+  }, []);
+
+  // Handle saving edits with optimistic update
+  const handleSaveEntry = useCallback(async (
+    entryId: string,
+    updates: { content: string; mood: string | null; conviction: string | null }
+  ) => {
+    // Optimistic update - cast mood and conviction to Entry types
+    const originalEntries = [...entries];
+    const typedUpdates = {
+      ...updates,
+      mood: updates.mood as Entry['mood'],
+      conviction: updates.conviction as Entry['conviction'],
+    };
+    setEntries(prev =>
+      prev.map(e =>
+        e.id === entryId
+          ? { ...e, ...typedUpdates }
+          : e
+      )
+    );
+
+    try {
+      const response = await fetch(`/api/entries/${entryId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update entry');
+      }
+
+      const updatedEntry = await response.json();
+
+      // Update with server response (may include AI re-analysis)
+      setEntries(prev =>
+        prev.map(e => (e.id === entryId ? { ...e, ...updatedEntry } : e))
+      );
+
+      toast({
+        title: 'Entry updated',
+        description: 'Your changes have been saved.',
+        duration: 3000,
+      });
+    } catch (error) {
+      // Rollback on error
+      setEntries(originalEntries);
+      throw error; // Re-throw to let modal handle it
+    }
+  }, [entries, toast]);
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-20">
       {/* Calendar Week Strip */}
@@ -231,10 +303,10 @@ function JournalContent() {
             </div>
           )
         ) : (
-          // Entry List using EntryCard
+          // Entry List using SwipeableEntryCard (supports desktop hover edit + mobile swipe)
           <EntryCardList>
             {entries.map((entry) => (
-              <EntryCard
+              <SwipeableEntryCard
                 key={entry.id}
                 id={entry.id}
                 content={entry.content}
@@ -243,11 +315,20 @@ function JournalContent() {
                 mood={entry.mood}
                 conviction={entry.conviction}
                 createdAt={entry.createdAt}
+                onEdit={() => handleEditEntry(entry)}
               />
             ))}
           </EntryCardList>
         )}
       </div>
+
+      {/* Inline Edit Modal */}
+      <InlineEditModal
+        entry={editingEntry}
+        isOpen={isEditModalOpen}
+        onClose={handleCloseEditModal}
+        onSave={handleSaveEntry}
+      />
     </div>
   );
 }
