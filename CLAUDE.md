@@ -14,7 +14,7 @@ AI Trader Journal is a mobile-first trading psychology journal with AI-powered b
 - (Phase 2) Long-term pattern recognition across trading behavior
 
 **Current Focus:** UX/UI design system overhaul (Phase 1B), Phase 2 feature polish, planning Phase 3 power user features
-**Tech Stack:** Next.js 14 (App Router) • TypeScript • Tailwind CSS • Prisma • PostgreSQL (Supabase) • shadcn/ui • OpenAI GPT-5 Family • date-fns • yfinance (Python)
+**Tech Stack:** Next.js 14 (App Router) • TypeScript • Tailwind CSS • Prisma • PostgreSQL (Supabase) • shadcn/ui • Claude (Anthropic) + OpenAI Whisper • date-fns • yfinance (Python)
 
 ## Product Strategy: Solving the Motivation Gap
 
@@ -269,41 +269,38 @@ PostgreSQL with Prisma ORM. Schema in `prisma/schema.prisma`:
 - **Relationships:** Optional link to Trade/Snapshot, many Tags (many-to-many)
 - **Indexes:** Date DESC, ticker, type, mood, conviction, trade
 
-## LLM Architecture: Single Provider (OpenAI GPT-5 Family)
+## LLM Architecture: Claude (Anthropic) + OpenAI Whisper
 
-After extensive research comparing OpenAI, Claude, and Gemini, we chose a **single-provider architecture** using OpenAI's GPT-5 family.
+We use **Claude models** for all text and vision analysis, with **OpenAI Whisper** for audio transcription (Claude doesn't offer transcription).
 
-### Why Single Provider?
+### Why Claude?
 
-| Multi-Provider | Single Provider (Chosen) |
-|----------------|-------------------------|
-| 3 SDKs to maintain | 1 SDK |
-| 3 different error patterns | Consistent handling |
-| 3 API keys for users | 1 API key |
-| Variable reliability | Excellent reliability |
-| ~$0.85/month | **~$0.50/month** |
+| Feature | Claude Advantage |
+|---------|-----------------|
+| Reasoning quality | Superior for trading psychology analysis |
+| Vision capabilities | Excellent chart/screenshot understanding |
+| Tiered pricing | Haiku (cheap) → Sonnet (balanced) → Opus (deep) |
+| Consistency | Single SDK, predictable behavior |
+| Cost efficiency | ~25% cheaper than equivalent OpenAI models |
 
-### Model Selection
+### Model Tiering Strategy
 
-| Model | Cost (per 1M tokens) | Use For |
-|-------|---------------------|---------|
-| **GPT-5 Nano** | $0.05 / $0.40 | Entry analysis, quick inference, routine tasks |
-| **GPT-5 Mini** | $0.25 / $2.00 | Vision (screenshots), balanced tasks |
-| **GPT-5** | $1.25 / $10.00 | Weekly insights, pattern analysis, complex reasoning |
-| **Whisper** | $0.006/min | Voice transcription |
-| **text-embedding-3-small** | $0.02 | Semantic similarity for "From Your Past Self" |
+| Model | Model ID | Cost (per 1M tokens) | Use For |
+|-------|----------|---------------------|---------|
+| **Claude Haiku 3.5** | `claude-3-5-haiku-latest` | $0.25 / $1.25 | Quick inference, ticker validation, routine tasks |
+| **Claude Sonnet 4** | `claude-sonnet-4-20250514` | $3 / $15 | Entry analysis, vision, insights |
+| **Claude Opus 4.5** | `claude-opus-4-5-20251101` | $15 / $75 | Deep pattern analysis, monthly reports |
+| **OpenAI Whisper** | `whisper-1` | $0.006/min | Voice transcription (only OpenAI feature used) |
 
 ### Model Constants
 
 ```typescript
-// src/lib/openai.ts
-export const MODELS = {
-  NANO: 'gpt-5-nano',      // Cheap, fast - routine tasks
-  MINI: 'gpt-5-mini',      // Vision, balanced
-  FLAGSHIP: 'gpt-5',       // Complex reasoning
-  WHISPER: 'whisper-1',
-  EMBEDDING: 'text-embedding-3-small'
-};
+// src/lib/claude.ts
+export const CLAUDE_MODELS = {
+  FAST: 'claude-3-5-haiku-latest',      // Quick, cheap - routine tasks
+  BALANCED: 'claude-sonnet-4-20250514', // Vision, analysis
+  DEEP: 'claude-opus-4-5-20251101',     // Complex reasoning
+} as const;
 ```
 
 ### Monthly Cost Estimate
@@ -311,14 +308,13 @@ export const MODELS = {
 | Component | Cost |
 |-----------|------|
 | Whisper (50 voice memos) | $0.30 |
-| GPT-5 Nano (routine tasks) | $0.05 |
-| GPT-5 Mini (screenshots) | $0.02 |
-| GPT-5 (insights, patterns) | $0.18 |
-| Embeddings | $0.02 |
+| Claude Haiku (routine tasks) | $0.05 |
+| Claude Sonnet (analysis, vision) | $0.15 |
+| Claude Opus (deep analysis) | $0.10 |
 | yfinance (market data) | $0.00 |
 | Cloudflare R2 (storage) | Free tier |
 | Vercel Cron | Free tier |
-| **Total** | **~$0.57/month** |
+| **Total** | **~$0.60/month** |
 
 ### AI Analysis (Issue #20)
 
@@ -332,7 +328,7 @@ export const MODELS = {
 
 **Output:** sentiment, emotionalKeywords, detectedBiases, convictionInferred, confidence, aiTags (3-7 from taxonomy)
 
-**Config:** Requires `OPENAI_API_KEY`, GPT-5 Nano for routine analysis, ~$0.0007/entry
+**Config:** Requires `ANTHROPIC_API_KEY`, Claude Haiku for routine analysis, ~$0.0005/entry
 
 ### Auto-Tagging (Issue #22)
 
@@ -410,7 +406,8 @@ npm run test:all
 
 Required in `.env` (never commit):
 - `DATABASE_URL`: Supabase PostgreSQL with `?pgbouncer=true` (port 6543)
-- `OPENAI_API_KEY`: For AI analysis (GPT-5 family, Whisper, embeddings)
+- `ANTHROPIC_API_KEY`: For Claude AI analysis (Haiku, Sonnet, Opus)
+- `OPENAI_API_KEY`: For Whisper audio transcription only
 - `DEBUG=1`: Optional debug logging
 
 **Phase 2 (when implementing):**
@@ -479,7 +476,7 @@ Main branch protected. Use feature branches: `git checkout -b feat/your-feature`
 
 **Frictionless Capture System (PR #65):**
 - [x] Voice recording infrastructure
-- [x] Quick capture with auto-inference (GPT-5 Nano)
+- [x] Quick capture with auto-inference (Claude Haiku)
 - [x] Media storage foundation
 
 **Proactive Engagement System (PR #66):**

@@ -2,7 +2,7 @@
  * Auto-Inference API Route
  *
  * POST /api/infer
- * Automatically infers entry metadata from content using GPT-4o-mini.
+ * Automatically infers entry metadata from content using Claude Haiku.
  * Used for Quick Capture mode where users don't need to fill in fields.
  *
  * Request: { content: string }
@@ -16,19 +16,14 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
-
-// Lazy-initialize OpenAI client
-let openaiClient: OpenAI | null = null;
-
-function getOpenAIClient(): OpenAI {
-  if (!openaiClient) {
-    openaiClient = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY || '',
-    });
-  }
-  return openaiClient;
-}
+import Anthropic from '@anthropic-ai/sdk';
+import {
+  getClaude,
+  CLAUDE_MODELS,
+  parseJsonResponse,
+  isClaudeConfigured,
+  handleClaudeError,
+} from '@/lib/claude';
 
 // Response type
 export interface InferenceResult {
@@ -82,10 +77,10 @@ Entry:`;
 
 export async function POST(request: NextRequest) {
   try {
-    // Check for OpenAI API key
-    if (!process.env.OPENAI_API_KEY) {
+    // Check for Anthropic API key
+    if (!isClaudeConfigured()) {
       return NextResponse.json(
-        { error: 'OpenAI API key not configured' },
+        { error: 'Anthropic API key not configured' },
         { status: 503 }
       );
     }
@@ -104,30 +99,38 @@ export async function POST(request: NextRequest) {
     // Limit content length to prevent abuse
     const truncatedContent = content.slice(0, 2000);
 
-    // Get OpenAI client
-    const openai = getOpenAIClient();
+    // Get Claude client
+    const claude = getClaude();
 
-    // Call GPT-4o-mini for inference
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+    // Call Claude Haiku for inference
+    const response = await claude.messages.create({
+      model: CLAUDE_MODELS.FAST, // Haiku for fast, cheap inference
+      max_tokens: 200,
       messages: [
-        {
-          role: 'system',
-          content: 'You are a trading journal assistant. Analyze entries and return metadata in JSON format only.',
-        },
         {
           role: 'user',
           content: `${INFERENCE_PROMPT}\n"${truncatedContent}"`,
         },
       ],
-      response_format: { type: 'json_object' },
-      temperature: 0.3,
-      max_tokens: 200,
+      system:
+        'You are a trading journal assistant. Analyze entries and return metadata in JSON format only. No markdown formatting.',
     });
 
-    // Parse the response
-    const responseText = completion.choices[0]?.message?.content || '{}';
-    const parsed = JSON.parse(responseText);
+    // Parse the JSON response
+    const parsed = parseJsonResponse<{
+      entryType?: string;
+      mood?: string;
+      conviction?: string;
+      ticker?: string;
+      sentiment?: string;
+    }>(response);
+
+    if (!parsed) {
+      return NextResponse.json(
+        { error: 'Failed to parse AI response' },
+        { status: 500 }
+      );
+    }
 
     // Validate and normalize the response
     const result: InferenceResult = {
@@ -142,28 +145,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Inference error:', error);
 
-    // Handle JSON parse errors
-    if (error instanceof SyntaxError) {
-      return NextResponse.json(
-        { error: 'Failed to parse AI response' },
-        { status: 500 }
-      );
-    }
-
-    // Handle OpenAI errors
-    if (error instanceof OpenAI.APIError) {
-      if (error.status === 401) {
-        return NextResponse.json(
-          { error: 'Invalid OpenAI API key' },
-          { status: 401 }
-        );
-      }
-      if (error.status === 429) {
-        return NextResponse.json(
-          { error: 'Rate limit exceeded. Please try again later.' },
-          { status: 429 }
-        );
-      }
+    // Handle Anthropic API errors
+    if (error instanceof Anthropic.APIError) {
+      const { status, message } = handleClaudeError(error);
+      return NextResponse.json({ error: message }, { status });
     }
 
     return NextResponse.json(

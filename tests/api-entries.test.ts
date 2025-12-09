@@ -95,14 +95,15 @@ async function runTests() {
     assert(response.status === 201, `Expected status 201, got ${response.status}`);
 
     const data = await response.json();
-    assert(data.id, 'Response should include entry ID');
-    assert(data.type === 'TRADE_IDEA', 'Entry type should match');
-    assert(data.content === 'Test entry for integration tests', 'Content should match');
-    assert(data.mood === 'CONFIDENT', 'Mood should match');
-    assert(data.conviction === 'HIGH', 'Conviction should match');
-    assert(data.ticker === 'TEST', 'Ticker should match');
+    const entry = data.entry;
+    assert(entry?.id, 'Response should include entry ID');
+    assert(entry.type === 'TRADE_IDEA', 'Entry type should match');
+    assert(entry.content === 'Test entry for integration tests', 'Content should match');
+    assert(entry.mood === 'CONFIDENT', 'Mood should match');
+    assert(entry.conviction === 'HIGH', 'Conviction should match');
+    assert(entry.ticker === 'TEST', 'Ticker should match');
 
-    createdEntryId = data.id;
+    createdEntryId = entry.id;
     log(`Created entry with ID: ${createdEntryId}`);
   });
 

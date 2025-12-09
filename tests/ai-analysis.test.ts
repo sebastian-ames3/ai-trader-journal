@@ -3,7 +3,7 @@
  * Run with: npx tsx tests/ai-analysis.test.ts
  *
  * Prerequisites:
- * - OPENAI_API_KEY must be set in .env
+ * - ANTHROPIC_API_KEY must be set in .env (Claude for AI analysis)
  * - Database must be running and accessible
  * - Dev server must be running on localhost:3000
  */
@@ -64,9 +64,9 @@ async function runTests() {
 
   let testEntryId: string;
 
-  // Test 1: OpenAI API Key Check
-  await test('OpenAI API Key Configuration', async () => {
-    assert(!!process.env.OPENAI_API_KEY, 'OPENAI_API_KEY must be set in .env');
+  // Test 1: Anthropic API Key Check
+  await test('Anthropic API Key Configuration', async () => {
+    assert(!!process.env.ANTHROPIC_API_KEY, 'ANTHROPIC_API_KEY must be set in .env');
     log('API key is configured');
   });
 
@@ -161,8 +161,8 @@ async function runTests() {
     });
 
     assert(createResponse.ok, 'Failed to create test entry');
-    const entry = await createResponse.json();
-    testEntryId = entry.id;
+    const createData = await createResponse.json();
+    testEntryId = createData.entry.id;
 
     // Now analyze it
     const analyzeResponse = await fetch(`${API_BASE}/${testEntryId}/analyze`, {
@@ -212,7 +212,7 @@ async function runTests() {
     ]);
 
     const entryData = await Promise.all(entries.map(r => r.json()));
-    const entryIds = entryData.map(e => e.id);
+    const entryIds = entryData.map(e => e.entry.id);
 
     // Batch analyze
     const batchResponse = await fetch(`${API_BASE}/analyze-batch`, {

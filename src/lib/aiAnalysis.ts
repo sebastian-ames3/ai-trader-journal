@@ -1,30 +1,21 @@
 /**
  * AI Text Analysis Service
  *
- * Uses OpenAI GPT-4 to analyze journal entry text and extract:
+ * Uses Claude Haiku for fast, efficient analysis of journal entry text:
  * - Sentiment (positive/negative/neutral)
  * - Emotional keywords
  * - Cognitive biases
  * - Inferred conviction level
- *
- * Phase 1: Basic sentiment and emotion analysis
- * Phase 2: Auto-tagging and strategy detection
+ * - Auto-generated tags
  */
 
-import OpenAI from 'openai';
 import { ConvictionLevel } from '@prisma/client';
-
-// Lazy-initialize OpenAI client to allow env vars to be loaded first
-let openaiClient: OpenAI | null = null;
-
-function getOpenAIClient(): OpenAI {
-  if (!openaiClient) {
-    openaiClient = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY || '',
-    });
-  }
-  return openaiClient;
-}
+import {
+  getClaude,
+  CLAUDE_MODELS,
+  parseJsonResponse,
+  isClaudeConfigured,
+} from '@/lib/claude';
 
 export interface AnalysisResult {
   sentiment: 'positive' | 'negative' | 'neutral';
@@ -36,7 +27,7 @@ export interface AnalysisResult {
 }
 
 /**
- * Analyzes journal entry text using OpenAI GPT-4
+ * Analyzes journal entry text using Claude Haiku
  * @param content - The journal entry text to analyze
  * @param userMood - Optional user-selected mood for comparison
  * @param userConviction - Optional user-selected conviction for comparison
@@ -46,58 +37,59 @@ export async function analyzeEntryText(
   userMood?: string,
   userConviction?: string
 ): Promise<AnalysisResult> {
-
   // Validate inputs
   if (!content || content.trim().length === 0) {
     throw new Error('Content cannot be empty');
   }
 
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OPENAI_API_KEY environment variable is not set');
+  if (!isClaudeConfigured()) {
+    throw new Error('ANTHROPIC_API_KEY environment variable is not set');
   }
 
   // Build the analysis prompt
   const prompt = buildAnalysisPrompt(content, userMood, userConviction);
 
   try {
-    // Get OpenAI client (lazy initialization)
-    const openai = getOpenAIClient();
+    const claude = getClaude();
 
-    // Call OpenAI API with JSON mode
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+    const response = await claude.messages.create({
+      model: CLAUDE_MODELS.FAST, // Haiku for fast, cheap analysis
+      max_tokens: 500,
       messages: [
         {
-          role: 'system',
-          content: 'You are a trading psychology analyst. Extract psychological insights from trading journal entries. Always respond with valid JSON only.'
-        },
-        {
           role: 'user',
-          content: prompt
-        }
+          content: prompt,
+        },
       ],
-      response_format: { type: 'json_object' },
-      temperature: 0.3, // Lower temperature for more consistent analysis
-      max_tokens: 500
+      system:
+        'You are a trading psychology analyst. Extract psychological insights from trading journal entries. Always respond with valid JSON only, no markdown formatting.',
     });
 
-    // Parse the response
-    const responseText = completion.choices[0]?.message?.content || '{}';
-    return parseAnalysisResponse(responseText);
-
+    // Parse the JSON response
+    const parsed = parseJsonResponse<RawAnalysisResponse>(response);
+    return parseAnalysisResponse(parsed);
   } catch (error) {
-    console.error('Error calling OpenAI API:', error);
-    // Log more details for debugging
+    console.error('Error calling Claude API:', error);
     if (error instanceof Error) {
       console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
     }
-    throw new Error(`Failed to analyze entry text: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Failed to analyze entry text: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 }
 
+interface RawAnalysisResponse {
+  sentiment?: string;
+  emotionalKeywords?: string[];
+  detectedBiases?: string[];
+  convictionInferred?: string;
+  confidence?: number;
+  aiTags?: string[];
+}
+
 /**
- * Builds the analysis prompt for OpenAI
+ * Builds the analysis prompt for Claude
  */
 function buildAnalysisPrompt(
   content: string,
@@ -189,38 +181,14 @@ INSTRUCTIONS:
    - Consider: strategy mentioned, market view, emotional state, process quality
    - Prioritize tags that add searchable context
 
-Return ONLY the JSON object.`;
+Return ONLY the JSON object, no markdown formatting.`;
 }
 
 /**
- * Parses OpenAI's JSON response into AnalysisResult
+ * Parses Claude's JSON response into AnalysisResult
  */
-function parseAnalysisResponse(responseText: string): AnalysisResult {
-  try {
-    const parsed = JSON.parse(responseText);
-
-    // Validate and normalize the response
-    return {
-      sentiment: validateSentiment(parsed.sentiment),
-      emotionalKeywords: Array.isArray(parsed.emotionalKeywords)
-        ? parsed.emotionalKeywords.slice(0, 10) // Limit to 10 keywords
-        : [],
-      detectedBiases: Array.isArray(parsed.detectedBiases)
-        ? parsed.detectedBiases.slice(0, 5) // Limit to 5 biases
-        : [],
-      convictionInferred: validateConviction(parsed.convictionInferred),
-      confidence: typeof parsed.confidence === 'number'
-        ? Math.max(0, Math.min(1, parsed.confidence))
-        : 0.5,
-      aiTags: Array.isArray(parsed.aiTags)
-        ? parsed.aiTags.slice(0, 7) // Limit to 7 tags
-        : []
-    };
-
-  } catch (error) {
-    console.error('Error parsing AI response:', error);
-    console.error('Response text:', responseText);
-
+function parseAnalysisResponse(parsed: RawAnalysisResponse | null): AnalysisResult {
+  if (!parsed) {
     // Return safe defaults on parse error
     return {
       sentiment: 'neutral',
@@ -228,9 +196,25 @@ function parseAnalysisResponse(responseText: string): AnalysisResult {
       detectedBiases: [],
       convictionInferred: null,
       confidence: 0,
-      aiTags: []
+      aiTags: [],
     };
   }
+
+  return {
+    sentiment: validateSentiment(parsed.sentiment),
+    emotionalKeywords: Array.isArray(parsed.emotionalKeywords)
+      ? parsed.emotionalKeywords.slice(0, 10)
+      : [],
+    detectedBiases: Array.isArray(parsed.detectedBiases)
+      ? parsed.detectedBiases.slice(0, 5)
+      : [],
+    convictionInferred: validateConviction(parsed.convictionInferred),
+    confidence:
+      typeof parsed.confidence === 'number'
+        ? Math.max(0, Math.min(1, parsed.confidence))
+        : 0.5,
+    aiTags: Array.isArray(parsed.aiTags) ? parsed.aiTags.slice(0, 7) : [],
+  };
 }
 
 /**
@@ -263,10 +247,9 @@ export async function batchAnalyzeEntries(
     id: string;
     content: string;
     mood?: string;
-    conviction?: string
+    conviction?: string;
   }>
 ): Promise<Array<{ id: string; analysis: AnalysisResult }>> {
-
   const results: Array<{ id: string; analysis: AnalysisResult }> = [];
 
   // Process in batches of 5 with 1 second delay between batches
@@ -293,8 +276,8 @@ export async function batchAnalyzeEntries(
             detectedBiases: [],
             convictionInferred: null,
             confidence: 0,
-            aiTags: []
-          }
+            aiTags: [],
+          },
         };
       }
     });
@@ -304,7 +287,7 @@ export async function batchAnalyzeEntries(
 
     // Wait 1 second before next batch (except on last batch)
     if (i + 5 < entries.length) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
   }
 

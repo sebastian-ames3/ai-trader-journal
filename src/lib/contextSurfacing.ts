@@ -3,22 +3,20 @@
  *
  * Detects tickers and strategies in entries, fetches relevant market data,
  * and surfaces user's historical entries and insights.
+ *
+ * Uses Claude models:
+ * - Haiku for fast ticker validation
+ * - Sonnet for insight generation
  */
 
-import OpenAI from 'openai';
 import { prisma } from '@/lib/prisma';
-
-// Lazy-load OpenAI client to avoid build-time errors
-let openaiClient: OpenAI | null = null;
-
-function getOpenAI(): OpenAI {
-  if (!openaiClient) {
-    openaiClient = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
-  }
-  return openaiClient;
-}
+import {
+  getClaude,
+  CLAUDE_MODELS,
+  parseJsonResponse,
+  extractTextContent,
+  isClaudeConfigured,
+} from '@/lib/claude';
 
 // Common false positives for ticker detection
 const FALSE_POSITIVE_TICKERS = [
@@ -109,10 +107,17 @@ export async function detectTickers(content: string): Promise<string[]> {
     return [];
   }
 
-  // Use GPT to validate if these are actual tickers
+  // Use Claude Haiku to validate if these are actual tickers
+  if (!isClaudeConfigured()) {
+    return filtered.slice(0, 5);
+  }
+
   try {
-    const response = await getOpenAI().chat.completions.create({
-      model: 'gpt-4o-mini',
+    const claude = getClaude();
+
+    const response = await claude.messages.create({
+      model: CLAUDE_MODELS.FAST, // Haiku for fast validation
+      max_tokens: 100,
       messages: [
         {
           role: 'user',
@@ -123,13 +128,11 @@ Context: "${content.substring(0, 300)}"
 Return format: { "tickers": ["AAPL", "MSFT"] }`,
         },
       ],
-      response_format: { type: 'json_object' },
-      max_tokens: 100,
-      temperature: 0,
+      system: 'You are a financial assistant. Respond with valid JSON only, no markdown.',
     });
 
-    const result = JSON.parse(response.choices[0]?.message?.content || '{}');
-    return result.tickers || [];
+    const result = parseJsonResponse<{ tickers: string[] }>(response);
+    return result?.tickers || [];
   } catch (error) {
     console.error('Ticker validation error:', error);
     // Fall back to filtered list
@@ -343,15 +346,17 @@ export async function generateTickerInsight(
     return null;
   }
 
+  if (!isClaudeConfigured()) {
+    return null;
+  }
+
   try {
-    const response = await getOpenAI().chat.completions.create({
-      model: 'gpt-4o', // Use flagship for nuanced insights
+    const claude = getClaude();
+
+    const response = await claude.messages.create({
+      model: CLAUDE_MODELS.BALANCED, // Sonnet for nuanced insights
+      max_tokens: 100,
       messages: [
-        {
-          role: 'system',
-          content: `Generate a brief, actionable insight for a trader journaling about a stock.
-Be specific and reference their history. Max 2 sentences. Be empathetic but direct.`,
-        },
         {
           role: 'user',
           content: `Ticker: ${ticker}
@@ -371,11 +376,11 @@ ${history.recentEntries
   .join('\n')}`,
         },
       ],
-      max_tokens: 100,
-      temperature: 0.7,
+      system: `Generate a brief, actionable insight for a trader journaling about a stock.
+Be specific and reference their history. Max 2 sentences. Be empathetic but direct.`,
     });
 
-    return response.choices[0]?.message?.content || null;
+    return extractTextContent(response) || null;
   } catch (error) {
     console.error('Failed to generate ticker insight:', error);
     return null;

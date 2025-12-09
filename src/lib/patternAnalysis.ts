@@ -2,24 +2,21 @@
  * Pattern Recognition Engine
  *
  * Analyzes journal entries over time to identify recurring behavioral patterns.
- * Uses GPT-5 for complex pattern analysis and GPT-5 Nano for real-time alerts.
+ *
+ * Uses Claude models:
+ * - Opus for complex pattern detection (deep analysis)
+ * - Haiku for real-time similarity checks and quick insights
  */
 
-import OpenAI from 'openai';
 import { prisma } from '@/lib/prisma';
 import { PatternType, Trend } from '@prisma/client';
-
-// Lazy-load OpenAI client to avoid build-time errors
-let openaiClient: OpenAI | null = null;
-
-function getOpenAI(): OpenAI {
-  if (!openaiClient) {
-    openaiClient = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
-  }
-  return openaiClient;
-}
+import {
+  getClaude,
+  CLAUDE_MODELS,
+  parseJsonResponse,
+  extractTextContent,
+  isClaudeConfigured,
+} from '@/lib/claude';
 
 // Types for pattern analysis
 export interface PatternDetectionResult {
@@ -103,8 +100,8 @@ export async function analyzePatterns(): Promise<PatternDetectionResult[]> {
     orderBy: { date: 'desc' },
   });
 
-  // Run GPT analysis
-  const patterns = await detectPatternsWithGPT(entries, marketConditions);
+  // Run Claude analysis
+  const patterns = await detectPatternsWithClaude(entries, marketConditions);
 
   // Filter patterns with sufficient occurrences
   const validPatterns = patterns.filter(
@@ -120,9 +117,9 @@ export async function analyzePatterns(): Promise<PatternDetectionResult[]> {
 }
 
 /**
- * Use GPT to detect patterns in entries
+ * Use Claude Opus to detect patterns in entries
  */
-async function detectPatternsWithGPT(
+async function detectPatternsWithClaude(
   entries: Array<{
     id: string;
     type: string;
@@ -142,8 +139,13 @@ async function detectPatternsWithGPT(
     marketState: string;
   }>
 ): Promise<PatternDetectionResult[]> {
+  if (!isClaudeConfigured()) {
+    console.warn('ANTHROPIC_API_KEY not configured, skipping pattern detection');
+    return [];
+  }
+
   // Build market condition map by date
-  const marketByDate = new Map<string, typeof marketConditions[0]>();
+  const marketByDate = new Map<string, (typeof marketConditions)[0]>();
   for (const mc of marketConditions) {
     const dateKey = mc.date.toISOString().split('T')[0];
     marketByDate.set(dateKey, mc);
@@ -171,31 +173,16 @@ async function detectPatternsWithGPT(
     };
   });
 
-  const response = await getOpenAI().chat.completions.create({
-    model: 'gpt-4o', // GPT-5 equivalent for complex analysis
-    messages: [
-      {
-        role: 'system',
-        content: `You are analyzing a trader's journal entries to identify behavioral patterns.
+  try {
+    const claude = getClaude();
 
-Look for these specific pattern categories:
-1. TIMING - Early profit taking, late loss cutting, FOMO entries, panic exits, revenge trading
-2. CONVICTION - Low conviction leading to early exits, conviction decay over time
-3. EMOTIONAL - Anxious during drawdowns, euphoric during rallies, frustrated leading to revenge trades
-4. MARKET_CONDITION - Different behavior during corrections vs rallies, volatility response
-5. BIAS_FREQUENCY - Recurring cognitive biases (loss aversion, confirmation bias, anchoring, etc.)
-
-For each pattern:
-- Provide specific evidence from entries
-- Calculate confidence (0-1) based on consistency
-- Note if pattern is INCREASING, STABLE, or DECREASING
-- Include outcome data if trades are present
-
-Return JSON with array of patterns.`,
-      },
-      {
-        role: 'user',
-        content: `Analyze these ${entries.length} journal entries for behavioral patterns:
+    const response = await claude.messages.create({
+      model: CLAUDE_MODELS.DEEP, // Opus for complex pattern analysis
+      max_tokens: 4000,
+      messages: [
+        {
+          role: 'user',
+          content: `Analyze these ${entries.length} journal entries for behavioral patterns:
 
 ${JSON.stringify(entrySummaries, null, 2)}
 
@@ -215,28 +202,40 @@ Return JSON in this exact format:
     }
   ]
 }`,
-      },
-    ],
-    response_format: { type: 'json_object' },
-    max_tokens: 3000,
-    temperature: 0.3,
-  });
+        },
+      ],
+      system: `You are analyzing a trader's journal entries to identify behavioral patterns.
 
-  const content = response.choices[0]?.message?.content;
-  if (!content) {
-    console.error('No content in GPT response');
-    return [];
-  }
+Look for these specific pattern categories:
+1. TIMING - Early profit taking, late loss cutting, FOMO entries, panic exits, revenge trading
+2. CONVICTION - Low conviction leading to early exits, conviction decay over time
+3. EMOTIONAL - Anxious during drawdowns, euphoric during rallies, frustrated leading to revenge trades
+4. MARKET_CONDITION - Different behavior during corrections vs rallies, volatility response
+5. BIAS_FREQUENCY - Recurring cognitive biases (loss aversion, confirmation bias, anchoring, etc.)
 
-  try {
-    const result = JSON.parse(content);
-    return (result.patterns || []).map((p: PatternDetectionResult) => ({
+For each pattern:
+- Provide specific evidence from entries
+- Calculate confidence (0-1) based on consistency
+- Note if pattern is INCREASING, STABLE, or DECREASING
+- Include outcome data if trades are present
+
+Respond with valid JSON only, no markdown formatting.`,
+    });
+
+    const result = parseJsonResponse<{ patterns: PatternDetectionResult[] }>(response);
+
+    if (!result?.patterns) {
+      console.error('No patterns in Claude response');
+      return [];
+    }
+
+    return result.patterns.map((p) => ({
       ...p,
       patternType: p.patternType as PatternType,
       trend: p.trend as Trend,
     }));
   } catch (error) {
-    console.error('Failed to parse GPT pattern response:', error);
+    console.error('Failed to detect patterns with Claude:', error);
     return [];
   }
 }
@@ -297,6 +296,10 @@ export async function checkForPatternMatch(
     return null;
   }
 
+  if (!isClaudeConfigured()) {
+    return null;
+  }
+
   // Find entries with negative outcomes or sentiment
   const negativeEntries = await prisma.entry.findMany({
     where: {
@@ -320,20 +323,17 @@ export async function checkForPatternMatch(
     return null;
   }
 
-  // Use GPT-4o-mini for fast similarity check
-  const response = await getOpenAI().chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [
-      {
-        role: 'system',
-        content: `You help traders recognize when they might be repeating past mistakes.
-Compare the current draft to past entries that had negative outcomes.
-If there are concerning similarities, provide a brief, empathetic alert.
-Return JSON with "alert" (string or null) and "matchingEntryIds" (array of IDs).`,
-      },
-      {
-        role: 'user',
-        content: `Current draft: "${draftContent}"
+  try {
+    const claude = getClaude();
+
+    // Use Haiku for fast similarity check
+    const response = await claude.messages.create({
+      model: CLAUDE_MODELS.FAST, // Haiku for fast checks
+      max_tokens: 500,
+      messages: [
+        {
+          role: 'user',
+          content: `Current draft: "${draftContent}"
 
 Past entries with negative outcomes:
 ${negativeEntries
@@ -344,21 +344,21 @@ ${negativeEntries
   .join('\n')}
 
 Return JSON: { "alert": "Your message here" or null, "matchingEntryIds": ["id1", "id2"] }`,
-      },
-    ],
-    response_format: { type: 'json_object' },
-    max_tokens: 500,
-    temperature: 0.5,
-  });
+        },
+      ],
+      system: `You help traders recognize when they might be repeating past mistakes.
+Compare the current draft to past entries that had negative outcomes.
+If there are concerning similarities, provide a brief, empathetic alert.
+Return JSON with "alert" (string or null) and "matchingEntryIds" (array of IDs).
+Respond with valid JSON only, no markdown.`,
+    });
 
-  const content = response.choices[0]?.message?.content;
-  if (!content) {
-    return null;
-  }
+    const result = parseJsonResponse<{
+      alert: string | null;
+      matchingEntryIds: string[];
+    }>(response);
 
-  try {
-    const result = JSON.parse(content);
-    if (!result.alert || !result.matchingEntryIds?.length) {
+    if (!result?.alert || !result?.matchingEntryIds?.length) {
       return null;
     }
 
@@ -376,7 +376,8 @@ Return JSON: { "alert": "Your message here" or null, "matchingEntryIds": ["id1",
       })),
       patternType: 'HISTORICAL_MATCH',
     };
-  } catch {
+  } catch (error) {
+    console.error('Pattern match check failed:', error);
     return null;
   }
 }
@@ -519,7 +520,7 @@ export async function generateMonthlyReport(
     take: 5,
   });
 
-  // Generate key insight with GPT
+  // Generate key insight with Claude Haiku
   const keyInsight = await generateKeyInsight(entries, biasDistribution, patterns);
 
   const monthName = startDate.toLocaleDateString('en-US', {
@@ -580,27 +581,37 @@ async function generateKeyInsight(
     return 'Keep journaling to unlock behavioral insights.';
   }
 
+  if (!isClaudeConfigured()) {
+    return 'Keep journaling to unlock behavioral insights.';
+  }
+
   const topBias =
     Object.entries(biasDistribution).sort(([, a], [, b]) => b - a)[0]?.[0] || 'none';
 
-  const response = await getOpenAI().chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [
-      {
-        role: 'user',
-        content: `Generate one key behavioral insight (1-2 sentences) for a trader based on:
+  try {
+    const claude = getClaude();
+
+    const response = await claude.messages.create({
+      model: CLAUDE_MODELS.FAST, // Haiku for quick insight
+      max_tokens: 100,
+      messages: [
+        {
+          role: 'user',
+          content: `Generate one key behavioral insight (1-2 sentences) for a trader based on:
 - ${entries.length} journal entries this month
 - Most common bias: ${topBias} (${biasDistribution[topBias] || 0} occurrences)
 - Detected patterns: ${patterns.map((p) => p.patternName).join(', ') || 'none yet'}
 
 Be specific, actionable, and empathetic. Don't be generic.`,
-      },
-    ],
-    max_tokens: 100,
-    temperature: 0.7,
-  });
+        },
+      ],
+    });
 
-  return response.choices[0]?.message?.content || 'Keep journaling to unlock insights.';
+    return extractTextContent(response) || 'Keep journaling to unlock insights.';
+  } catch (error) {
+    console.error('Failed to generate key insight:', error);
+    return 'Keep journaling to unlock insights.';
+  }
 }
 
 /**
