@@ -54,7 +54,8 @@ const CONVICTION_LABELS: Record<string, string> = {
   HIGH: 'High',
 };
 
-export default function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
+// Also export as named export for flexibility
+export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
   const router = useRouter();
 
   // Form state
@@ -502,3 +503,6 @@ export default function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
     </div>
   );
 }
+
+// Default export for backward compatibility
+export default QuickCapture;

@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "@/components/ui/toaster"
+import { Toaster } from "@/components/ui/toaster";
 import Navigation from "@/components/Navigation";
-import FloatingActionButton from "@/components/FloatingActionButton";
+import { BottomNav } from "@/components/navigation/BottomNav";
 import OfflineIndicator from "@/components/OfflineIndicator";
 import InstallPrompt from "@/components/InstallPrompt";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -45,9 +45,9 @@ export default function RootLayout({
         >
           <OfflineIndicator />
           <Navigation />
-          {children}
+          <main className="pb-nav md:pb-0">{children}</main>
           <Toaster />
-          <FloatingActionButton />
+          <BottomNav />
           <InstallPrompt />
         </ThemeProvider>
       </body>
