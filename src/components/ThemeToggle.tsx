@@ -3,9 +3,14 @@
 import * as React from 'react';
 import { Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import { cn } from '@/lib/utils';
 
-export function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
+interface ThemeToggleProps {
+  className?: string;
+}
+
+export function ThemeToggle({ className }: ThemeToggleProps) {
+  const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
 
   // Avoid hydration mismatch by only rendering after mount
@@ -15,22 +20,39 @@ export function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <button className="flex items-center justify-center w-[44px] h-[44px] rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-        <div className="w-5 h-5" />
+      <button
+        className={cn(
+          "flex items-center justify-center w-[44px] h-[44px]",
+          "rounded-xl bg-slate-100 dark:bg-slate-800",
+          "transition-colors",
+          className
+        )}
+      >
+        <div className="w-5 h-5 skeleton rounded" />
       </button>
     );
   }
 
+  const isDark = resolvedTheme === 'dark';
+
   return (
     <button
-      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-      className="flex items-center justify-center w-[44px] h-[44px] rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-      aria-label="Toggle theme"
+      onClick={() => setTheme(isDark ? 'light' : 'dark')}
+      className={cn(
+        "flex items-center justify-center w-[44px] h-[44px]",
+        "rounded-xl transition-all duration-200",
+        "active:scale-95",
+        isDark
+          ? "bg-slate-800 hover:bg-slate-700 text-amber-400"
+          : "bg-slate-100 hover:bg-slate-200 text-amber-600",
+        className
+      )}
+      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
     >
-      {theme === 'dark' ? (
-        <Sun className="h-5 w-5 text-foreground" />
+      {isDark ? (
+        <Sun className="h-5 w-5" />
       ) : (
-        <Moon className="h-5 w-5 text-foreground" />
+        <Moon className="h-5 w-5" />
       )}
     </button>
   );

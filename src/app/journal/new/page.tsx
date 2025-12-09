@@ -10,9 +10,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { GuidedEntryWizard } from '@/components/GuidedEntryWizard';
+import { MoodSelector, MoodValue } from '@/components/ui/mood-selector';
 
 type EntryType = 'TRADE_IDEA' | 'TRADE' | 'REFLECTION' | 'OBSERVATION';
-type EntryMood = 'CONFIDENT' | 'NERVOUS' | 'EXCITED' | 'UNCERTAIN' | 'NEUTRAL';
 type ConvictionLevel = 'LOW' | 'MEDIUM' | 'HIGH';
 
 interface TickerResult {
@@ -27,13 +27,6 @@ const entryTypes: { value: EntryType; label: string }[] = [
   { value: 'OBSERVATION', label: 'Observation' },
 ];
 
-const moods: { value: EntryMood; emoji: string; label: string }[] = [
-  { value: 'CONFIDENT', emoji: '😊', label: 'Confident' },
-  { value: 'NERVOUS', emoji: '😰', label: 'Nervous' },
-  { value: 'EXCITED', emoji: '🚀', label: 'Excited' },
-  { value: 'UNCERTAIN', emoji: '🤔', label: 'Uncertain' },
-  { value: 'NEUTRAL', emoji: '😐', label: 'Neutral' },
-];
 
 const convictionLevels: ConvictionLevel[] = ['LOW', 'MEDIUM', 'HIGH'];
 
@@ -47,7 +40,7 @@ export default function NewEntryPage() {
   const [mode, setMode] = useState<EntryMode>('FREE_FORM');
   const [entryType, setEntryType] = useState<EntryType>('TRADE_IDEA');
   const [content, setContent] = useState('');
-  const [mood, setMood] = useState<EntryMood>('NEUTRAL');
+  const [mood, setMood] = useState<MoodValue>('NEUTRAL');
   const [conviction, setConviction] = useState<ConvictionLevel>('MEDIUM');
   const [tickerInput, setTickerInput] = useState('');
   const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
@@ -231,7 +224,8 @@ export default function NewEntryPage() {
             initialData={{
               entryType,
               content,
-              mood,
+              // Cast to the limited mood type the wizard expects
+              mood: mood as 'CONFIDENT' | 'NERVOUS' | 'EXCITED' | 'UNCERTAIN' | 'NEUTRAL',
               conviction,
               ticker: selectedTicker,
             }}
@@ -291,22 +285,12 @@ export default function NewEntryPage() {
         {/* Mood Selector */}
         <div className="mb-6">
           <Label className="text-sm font-medium mb-3 block dark:text-gray-200">How are you feeling?</Label>
-          <div className="flex flex-wrap gap-2">
-            {moods.map((m) => (
-              <button
-                key={m.value}
-                onClick={() => setMood(m.value)}
-                className={`px-4 py-2 rounded-lg border-2 transition-all flex items-center gap-2 min-h-[44px] ${
-                  mood === m.value
-                    ? 'border-primary bg-primary text-primary-foreground font-medium'
-                    : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 dark:text-gray-200'
-                }`}
-              >
-                <span className="text-xl" role="img" aria-label={m.label}>{m.emoji}</span>
-                <span>{m.label}</span>
-              </button>
-            ))}
-          </div>
+          <MoodSelector
+            value={mood}
+            onChange={setMood}
+            variant="expanded"
+            className="py-2"
+          />
         </div>
 
         {/* Conviction Level */}
