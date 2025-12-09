@@ -199,3 +199,29 @@ ENV/
 .mypy_cache/
 .dmypy.json
 dmypy.json
+
+# Local development files (not for production)
+docs/local/
+scripts/local/
+logs/
+nul
+
+# Database files (never commit)
+prisma/*.db
+prisma/*.db-journal
+
+# Root-level test scripts (keep in tests/ folder)
+test-*.ts
+test-*.sh
+
+# Windows artifacts
+Thumbs.db
+Desktop.ini
+
+# IDE/Editor specific
+*.swp
+*.swo
+*~
+
+# Build artifacts
+tsconfig.tsbuildinfo

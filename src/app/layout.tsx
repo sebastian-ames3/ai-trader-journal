@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster"
@@ -10,21 +10,22 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: "#171717",
+};
+
 export const metadata: Metadata = {
   title: "AI Trader Journal",
   description: "Track your options trades with AI-powered insights",
   manifest: "/manifest.json",
-  themeColor: "#171717",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "Trader Journal",
-  },
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
   },
 };
 
