@@ -9,10 +9,17 @@ import OpenAI from 'openai';
 import { prisma } from '@/lib/prisma';
 import { PatternType, Trend } from '@prisma/client';
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy-load OpenAI client to avoid build-time errors
+let openaiClient: OpenAI | null = null;
+
+function getOpenAI(): OpenAI {
+  if (!openaiClient) {
+    openaiClient = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openaiClient;
+}
 
 // Types for pattern analysis
 export interface PatternDetectionResult {
@@ -164,7 +171,7 @@ async function detectPatternsWithGPT(
     };
   });
 
-  const response = await openai.chat.completions.create({
+  const response = await getOpenAI().chat.completions.create({
     model: 'gpt-4o', // GPT-5 equivalent for complex analysis
     messages: [
       {
@@ -314,7 +321,7 @@ export async function checkForPatternMatch(
   }
 
   // Use GPT-4o-mini for fast similarity check
-  const response = await openai.chat.completions.create({
+  const response = await getOpenAI().chat.completions.create({
     model: 'gpt-4o-mini',
     messages: [
       {
@@ -576,7 +583,7 @@ async function generateKeyInsight(
   const topBias =
     Object.entries(biasDistribution).sort(([, a], [, b]) => b - a)[0]?.[0] || 'none';
 
-  const response = await openai.chat.completions.create({
+  const response = await getOpenAI().chat.completions.create({
     model: 'gpt-4o-mini',
     messages: [
       {

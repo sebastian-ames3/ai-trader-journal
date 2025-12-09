@@ -8,10 +8,17 @@
 import OpenAI from 'openai';
 import { prisma } from '@/lib/prisma';
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy-load OpenAI client to avoid build-time errors
+let openaiClient: OpenAI | null = null;
+
+function getOpenAI(): OpenAI {
+  if (!openaiClient) {
+    openaiClient = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openaiClient;
+}
 
 // Common false positives for ticker detection
 const FALSE_POSITIVE_TICKERS = [
@@ -104,7 +111,7 @@ export async function detectTickers(content: string): Promise<string[]> {
 
   // Use GPT to validate if these are actual tickers
   try {
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         {
@@ -337,7 +344,7 @@ export async function generateTickerInsight(
   }
 
   try {
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: 'gpt-4o', // Use flagship for nuanced insights
       messages: [
         {
