@@ -174,19 +174,19 @@ export default function NewEntryPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 sticky top-0 z-10">
+      <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-700/50 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <Button
             variant="ghost"
             onClick={() => router.back()}
-            className="hover:bg-gray-100 dark:hover:bg-gray-700 min-h-[44px] min-w-[44px]"
+            className="hover:bg-slate-100 dark:hover:bg-slate-800 min-h-[44px] min-w-[44px]"
           >
             <ArrowLeft className="h-5 w-5 mr-1" />
             Back
           </Button>
-          <h1 className="text-lg font-semibold dark:text-gray-100">New Entry</h1>
+          <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">New Entry</h1>
           <div className="w-16" /> {/* Spacer for centering */}
         </div>
       </div>
@@ -195,23 +195,23 @@ export default function NewEntryPage() {
       <div className="max-w-4xl mx-auto px-4 py-6 pb-24">
         {/* Mode Toggle */}
         <div className="mb-6">
-          <div className="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 p-1">
+          <div className="inline-flex rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 p-1">
             <button
               onClick={() => setMode('FREE_FORM')}
-              className={`px-6 py-2 rounded-md text-sm font-medium transition-all min-h-[44px] ${
+              className={`px-6 py-2 rounded-lg text-sm font-medium transition-all min-h-[44px] ${
                 mode === 'FREE_FORM'
-                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
               }`}
             >
               Free Form
             </button>
             <button
               onClick={() => setMode('GUIDED')}
-              className={`px-6 py-2 rounded-md text-sm font-medium transition-all min-h-[44px] ${
+              className={`px-6 py-2 rounded-lg text-sm font-medium transition-all min-h-[44px] ${
                 mode === 'GUIDED'
-                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
               }`}
             >
               Guided Entry
@@ -245,16 +245,16 @@ export default function NewEntryPage() {
 
         {/* Entry Type Selector */}
         <div className="mb-6">
-          <Label className="text-sm font-medium mb-3 block dark:text-gray-200">Entry Type</Label>
+          <Label className="text-sm font-medium mb-3 block text-slate-700 dark:text-slate-200">Entry Type</Label>
           <div className="flex flex-wrap gap-2">
             {entryTypes.map((type) => (
               <button
                 key={type.value}
                 onClick={() => setEntryType(type.value)}
-                className={`px-4 py-2 rounded-lg border-2 transition-all min-h-[44px] ${
+                className={`px-4 py-2 rounded-xl border-2 transition-all min-h-[44px] ${
                   entryType === type.value
-                    ? 'border-primary bg-primary text-primary-foreground font-medium'
-                    : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 dark:text-gray-200'
+                    ? 'border-amber-500 bg-amber-500 text-white font-medium shadow-md shadow-amber-500/20'
+                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 text-slate-700 dark:text-slate-200'
                 }`}
               >
                 {type.label}
@@ -265,7 +265,7 @@ export default function NewEntryPage() {
 
         {/* Main Content */}
         <div className="mb-6">
-          <Label htmlFor="content" className="text-sm font-medium mb-3 block dark:text-gray-200">
+          <Label htmlFor="content" className="text-sm font-medium mb-3 block text-slate-700 dark:text-slate-200">
             What&apos;s on your mind?
           </Label>
           <Textarea
@@ -274,17 +274,17 @@ export default function NewEntryPage() {
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="Share your thoughts, analysis, or observations..."
-            className="min-h-[200px] text-base resize-none focus:min-h-[300px] transition-all"
+            className="min-h-[200px] text-base resize-none focus:min-h-[300px] transition-all rounded-xl border-slate-200 dark:border-slate-700"
             autoCapitalize="sentences"
           />
-          <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
             {content.length} characters
           </p>
         </div>
 
         {/* Mood Selector */}
         <div className="mb-6">
-          <Label className="text-sm font-medium mb-3 block dark:text-gray-200">How are you feeling?</Label>
+          <Label className="text-sm font-medium mb-3 block text-slate-700 dark:text-slate-200">How are you feeling?</Label>
           <MoodSelector
             value={mood}
             onChange={setMood}
@@ -295,16 +295,16 @@ export default function NewEntryPage() {
 
         {/* Conviction Level */}
         <div className="mb-6">
-          <Label className="text-sm font-medium mb-3 block dark:text-gray-200">Conviction Level</Label>
+          <Label className="text-sm font-medium mb-3 block text-slate-700 dark:text-slate-200">Conviction Level</Label>
           <div className="flex gap-2">
             {convictionLevels.map((level) => (
               <button
                 key={level}
                 onClick={() => setConviction(level)}
-                className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all font-medium min-h-[44px] ${
+                className={`flex-1 px-4 py-3 rounded-xl border-2 transition-all font-medium min-h-[44px] ${
                   conviction === level
-                    ? 'border-primary bg-primary text-primary-foreground'
-                    : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 dark:text-gray-200'
+                    ? 'border-amber-500 bg-amber-500 text-white shadow-md shadow-amber-500/20'
+                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 text-slate-700 dark:text-slate-200'
                 }`}
               >
                 {level}
@@ -315,12 +315,12 @@ export default function NewEntryPage() {
 
         {/* Ticker (Optional) */}
         <div className="mb-6">
-          <Label htmlFor="ticker" className="text-sm font-medium mb-3 block dark:text-gray-200">
+          <Label htmlFor="ticker" className="text-sm font-medium mb-3 block text-slate-700 dark:text-slate-200">
             Ticker Symbol (Optional)
           </Label>
           {selectedTicker ? (
             <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="text-lg px-4 py-2 font-mono">
+              <Badge variant="secondary" className="text-lg px-4 py-2 font-mono bg-slate-100 dark:bg-slate-800">
                 {selectedTicker}
               </Badge>
               <Button
@@ -340,21 +340,21 @@ export default function NewEntryPage() {
                 value={tickerInput}
                 onChange={(e) => setTickerInput(e.target.value.toUpperCase())}
                 placeholder="Search for ticker (e.g., AAPL)"
-                className="text-base"
+                className="text-base rounded-xl border-slate-200 dark:border-slate-700 min-h-[44px]"
                 autoCapitalize="characters"
               />
 
               {/* Suggestions Dropdown */}
               {showSuggestions && suggestions.length > 0 && (
-                <div className="absolute z-20 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-auto">
+                <div className="absolute z-20 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg max-h-60 overflow-auto">
                   {suggestions.map((suggestion) => (
                     <button
                       key={suggestion.symbol}
                       onClick={() => handleTickerSelect(suggestion.symbol)}
-                      className="w-full px-4 py-3 text-left hover:bg-gray-100 dark:hover:bg-gray-700 first:rounded-t-lg last:rounded-b-lg min-h-[44px]"
+                      className="w-full px-4 py-3 text-left hover:bg-slate-100 dark:hover:bg-slate-700 first:rounded-t-xl last:rounded-b-xl min-h-[44px]"
                     >
-                      <div className="font-medium dark:text-gray-200">{suggestion.symbol}</div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">{suggestion.name}</div>
+                      <div className="font-medium text-slate-900 dark:text-slate-200">{suggestion.symbol}</div>
+                      <div className="text-sm text-slate-500 dark:text-slate-400">{suggestion.name}</div>
                     </button>
                   ))}
                 </div>
@@ -365,7 +365,7 @@ export default function NewEntryPage() {
 
         {/* Error Message */}
         {error && (
-          <div className="mb-6 p-3 bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 rounded-lg text-sm">
+          <div className="mb-6 p-3 bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 rounded-xl text-sm">
             {error}
           </div>
         )}
@@ -375,13 +375,13 @@ export default function NewEntryPage() {
 
       {/* Fixed Submit Button - Only show for Free Form mode */}
       {mode === 'FREE_FORM' && (
-      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t dark:border-gray-700 p-4 shadow-lg">
+      <div className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-700/50 p-4 pb-safe shadow-lg">
         <div className="max-w-4xl mx-auto">
           <Button
             onClick={handleSubmit}
             disabled={submitting || !content.trim()}
             size="lg"
-            className="w-full h-14 text-lg font-medium"
+            className="w-full h-14 text-lg font-medium bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/30"
           >
             {submitting ? (
               <>

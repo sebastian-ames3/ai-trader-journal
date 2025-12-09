@@ -75,14 +75,17 @@ export function GreetingHeader({ userName, className }: GreetingHeaderProps) {
   return (
     <div
       className={cn(
-        "px-4 py-6",
+        "px-4 py-6 pt-safe",
         "bg-gradient-to-br",
         timeData.gradientClass,
+        "border-b border-slate-200/30 dark:border-slate-700/30",
         className
       )}
     >
       <div className="flex items-start gap-3">
-        <div className="mt-1">{timeData.icon}</div>
+        <div className="mt-1 p-2 rounded-xl bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm">
+          {timeData.icon}
+        </div>
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
             {timeData.greeting}
