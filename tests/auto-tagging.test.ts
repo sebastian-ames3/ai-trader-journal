@@ -4,7 +4,7 @@
  *
  * Prerequisites:
  * - Dev server running on localhost:3000
- * - OPENAI_API_KEY set in .env
+ * - ANTHROPIC_API_KEY set in .env (Claude for AI analysis)
  * - Database connection active
  */
 
@@ -61,8 +61,8 @@ async function runTests() {
   let testEntryId: string;
 
   // Test 1: API Key Check
-  await test('OpenAI API Key Configuration', async () => {
-    assert(!!process.env.OPENAI_API_KEY, 'OPENAI_API_KEY must be set in .env');
+  await test('Anthropic API Key Configuration', async () => {
+    assert(!!process.env.ANTHROPIC_API_KEY, 'ANTHROPIC_API_KEY must be set in .env');
     log('API key is configured');
   });
 
@@ -82,7 +82,7 @@ async function runTests() {
 
     assert(response.ok, `Failed to create entry: ${response.status}`);
     const data = await response.json();
-    testEntryId = data.id;
+    testEntryId = data.entry.id;
     assert(!!testEntryId, 'Entry ID should be returned');
     log(`Created entry: ${testEntryId}`);
   });

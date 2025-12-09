@@ -4,6 +4,10 @@
  * POST /api/transcribe
  * Transcribes audio files using OpenAI Whisper.
  *
+ * NOTE: This is the ONLY AI endpoint that uses OpenAI instead of Claude.
+ * Claude does not offer audio transcription, so we keep OpenAI Whisper
+ * for voice memo transcription. All other AI features use Claude models.
+ *
  * Request: multipart/form-data with 'audio' file
  * Response: { text: string, duration?: number }
  */

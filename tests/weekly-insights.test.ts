@@ -92,7 +92,7 @@ async function runTests() {
       {
         type: 'REFLECTION',
         content: 'I made a mistake by entering too early. Feeling frustrated and disappointed.',
-        mood: 'FRUSTRATED',
+        mood: 'NERVOUS',
         conviction: 'MEDIUM',
         sentiment: 'negative',
         emotionalKeywords: ['frustrated', 'disappointed'],
@@ -110,7 +110,7 @@ async function runTests() {
       {
         type: 'TRADE',
         content: 'Everyone is buying this stock and I feel like I am missing out. Need to get in now!',
-        mood: 'ANXIOUS',
+        mood: 'NERVOUS',
         conviction: 'MEDIUM',
         sentiment: 'negative',
         emotionalKeywords: ['anxious', 'FOMO'],
@@ -119,7 +119,7 @@ async function runTests() {
       {
         type: 'TRADE_IDEA',
         content: 'Lost on my last trade. Going to double down on this one to make it back quickly.',
-        mood: 'FRUSTRATED',
+        mood: 'NERVOUS',
         conviction: 'HIGH',
         sentiment: 'negative',
         emotionalKeywords: ['frustrated'],
