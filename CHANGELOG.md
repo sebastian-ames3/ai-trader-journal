@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Mood Selector Touch Targets** (2025-12-10)
+  - Added explicit min-width/min-height constraints to ensure WCAG 2.1 AA compliance (44x44px minimum)
+  - Touch targets now guaranteed: compact variant 64×80px, expanded variant 56×64px
+
 ### Added
 - **Spec 06 Phase 2 - Trade Logging Features** (2025-12-10, PR #82)
   - Enhanced trade logging form with full fields

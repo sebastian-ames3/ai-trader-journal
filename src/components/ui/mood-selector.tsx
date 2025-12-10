@@ -171,9 +171,9 @@ export function MoodSelector({
             aria-checked={isSelected}
             onClick={() => onChange(mood.value)}
             className={cn(
-              // Base
+              // Base - ensure minimum 44x44px touch targets (WCAG 2.1 AA)
               "flex flex-col items-center justify-center",
-              variant === "compact" ? "w-16 h-20" : "w-14 h-16",
+              variant === "compact" ? "min-w-[64px] min-h-[80px] w-16 h-20" : "min-w-[56px] min-h-[64px] w-14 h-16",
               "rounded-2xl",
               "border-2 transition-all duration-200",
 
