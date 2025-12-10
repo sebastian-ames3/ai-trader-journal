@@ -8,6 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Spec 06 Phase 2 - Trade Logging Features** (2025-12-10, PR #82)
+  - Enhanced trade logging form with full fields
+    - Action type selector (INITIAL, ADD, REDUCE, ROLL, CONVERT, CLOSE, ASSIGNED, EXERCISED)
+    - Strategy type dropdown (18 options strategies)
+    - Description with voice recording support
+    - Debit/Credit and quantity inputs
+    - Expiration date picker
+    - Reasoning note textarea
+    - File attachment upload UI
+  - Trade timeline component (`TradeTimeline.tsx`)
+    - Visual timeline with action-specific icons and colors
+    - Shows trade details, P/L, quantity, timestamps
+    - Displays reasoning notes and attachment counts
+    - Oldest-to-newest chronological ordering
+  - Voice recording integration for trade descriptions
+    - Reuses existing `VoiceRecorder` component
+    - Transcription fills description field
+  - Updated thesis detail page to use timeline component
+  - New dedicated `/theses/[id]/log-trade` page for logging trades
+
 - **Spec 11 Playwright Verification** (2025-12-10)
   - All 6 micro-interaction and accessibility features verified via Playwright
   - Screenshots and verification reports saved to `agent-os/specs/11-ux-ui-design-system/verification/`

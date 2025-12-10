@@ -532,9 +532,20 @@ Modern mobile-first design overhaul inspired by Day One, Reflectly, and fintech 
 - [x] Dashboard integration (Active Theses section) (PR #76)
 - [x] 18 integration tests (PR #76)
 
+### ✅ Thesis-Based Trade Management - Phase 2 (Completed)
+
+**PRD:** `specs/06-trade-management.md`
+
+- [x] Enhanced trade logging form with full fields (PR #82)
+- [x] Trade timeline component with visual action indicators (PR #82)
+- [x] Voice recording integration for trade reasoning (PR #82)
+- [x] File attachment upload UI (PR #82)
+- [x] Strategy type selection (18 options strategies) (PR #82)
+- [x] Expiration date, quantity, and reasoning note fields (PR #82)
+
 ### 🎯 Phase 4 - Power User Features (Current Focus)
 
-**Thesis-Based Trade Management - Phase 2:** `specs/06-trade-management.md`
+**Thesis-Based Trade Management - Phase 3:** `specs/06-trade-management.md`
 - [ ] Screenshot data extraction via Claude vision
 - [ ] Pattern learning from historical data
 - [ ] AI reminders of past lessons
