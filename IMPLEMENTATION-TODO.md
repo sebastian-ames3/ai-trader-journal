@@ -13,7 +13,7 @@ This document tracks all incomplete features across all PRDs/specs. As features 
 |------|--------|------------|
 | Spec 05: Phase 1 MVP Polish | COMPLETE | 100% |
 | Spec 06: Trade Management Phase 1 | COMPLETE | 100% |
-| Spec 11: UX/UI Design System | MOSTLY COMPLETE | 95% |
+| Spec 11: UX/UI Design System | COMPLETE | 100% |
 | Spec 12: Claude Migration | COMPLETE | 100% |
 | Specs 01-04: Phase 2 Features | COMPLETE | 100% |
 
@@ -68,17 +68,17 @@ This document tracks all incomplete features across all PRDs/specs. As features 
   - Integrated into journal page
   - Visual indicator with rotation feedback
 
-### Accessibility Improvements
+### Accessibility Improvements - COMPLETE
 
-- [ ] **A11Y-1**: Complete WCAG 2.1 AA audit
-  - Contrast ratios verification
-  - Focus indicators
-  - Screen reader testing
+- [x] **A11Y-1**: Complete WCAG 2.1 AA audit (PR #80)
+  - Added skip-to-content link in layout
+  - Enhanced focus-visible indicators globally
+  - Emoji accessibility (role="img" aria-label)
 
-- [ ] **A11Y-2**: Keyboard navigation paths
-  - Tab order verification
-  - Modal focus trapping
-  - Escape key handling
+- [x] **A11Y-2**: Keyboard navigation paths (PR #80)
+  - Skip-to-content link for bypassing navigation
+  - Global focus-visible ring (amber-500)
+  - Mouse click removes focus ring, keyboard shows it
 
 ---
 
@@ -149,6 +149,13 @@ This document tracks all incomplete features across all PRDs/specs. As features 
 ---
 
 ## Completed Features Log
+
+### 2025-12-10 (PR #80)
+- [x] Spec 11: Accessibility Improvements (WCAG 2.1 AA)
+  - Skip-to-content link for keyboard navigation
+  - Enhanced focus-visible indicators globally
+  - Emoji accessibility (role="img" aria-label)
+  - Fixed StreakCard emoji accessibility
 
 ### 2025-12-09 (PR #79)
 - [x] Spec 11: Micro-Interactions

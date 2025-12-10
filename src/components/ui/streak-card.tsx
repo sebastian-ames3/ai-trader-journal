@@ -65,14 +65,16 @@ export function StreakCard({
     >
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
-        <div
+        <span
           className={cn(
             "text-4xl",
             currentStreak > 0 && "animate-fire"
           )}
+          role="img"
+          aria-label={currentStreak > 0 ? "Fire - active streak" : "Sparkle - no streak yet"}
         >
           {currentStreak > 0 ? "🔥" : "✨"}
-        </div>
+        </span>
         <div>
           <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100">
             Journaling Streak
@@ -86,7 +88,7 @@ export function StreakCard({
         {isNewRecord && currentStreak > 1 && (
           <div className="ml-auto">
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300">
-              🏆 New Record!
+              <span role="img" aria-label="Trophy">🏆</span> New Record!
             </span>
           </div>
         )}
@@ -159,7 +161,11 @@ export function StreakBadge({
         className
       )}
     >
-      <span className={cn("text-lg", currentStreak > 0 && "animate-fire")}>
+      <span
+        className={cn("text-lg", currentStreak > 0 && "animate-fire")}
+        role="img"
+        aria-label={currentStreak > 0 ? "Fire - active streak" : "Sparkle"}
+      >
         {currentStreak > 0 ? "🔥" : "✨"}
       </span>
       <span className="font-semibold text-orange-600 dark:text-orange-400">

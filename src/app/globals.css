@@ -136,6 +136,16 @@
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+
+  /* Enhanced focus indicators for keyboard navigation (WCAG 2.1 AA) */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-amber-500 ring-offset-2 ring-offset-background;
+  }
+
+  /* Remove focus ring on mouse click, show only for keyboard */
+  *:focus:not(:focus-visible) {
+    @apply outline-none ring-0;
+  }
 }
 
 @layer utilities {
