@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Thesis-Based Trade Management** (2025-12-09, PR #76)
+  - Create trading theses with name, ticker, direction (Bullish/Bearish/Neutral/Volatile)
+  - Track trades under each thesis (INITIAL, ADD, REDUCE, ROLL, CONVERT, CLOSE, etc.)
+  - Real-time P/L aggregation (Realized P/L, Capital Deployed, ROC)
+  - Thesis updates with type indicators (Strengthened, Weakened, Changed, Note)
+  - Close thesis workflow with outcome (WIN/LOSS/BREAKEVEN) and lessons learned
+  - Active Theses section on dashboard homepage
+  - 18 integration tests for full API coverage
+
+- **Implementation Tracking** (2025-12-09)
+  - Added IMPLEMENTATION-TODO.md for tracking incomplete features across all specs
+  - Comprehensive audit of PRDs vs implemented features
+
 - **Phase 2 Engagement & Capture Features** (2025-12-09, PRs #65-68)
   - **Frictionless Capture System (PR #65):**
     - Voice recording infrastructure with MediaRecorder API
