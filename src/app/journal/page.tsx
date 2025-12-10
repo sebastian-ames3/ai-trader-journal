@@ -10,6 +10,7 @@ import { EntryCardList, EntryCardSkeleton } from '@/components/ui/entry-card';
 import { VirtualizedEntryList } from '@/components/VirtualizedEntryList';
 import { InlineEditModal } from '@/components/InlineEditModal';
 import { CalendarWeekStrip } from '@/components/ui/calendar-week-strip';
+import { PullToRefresh } from '@/components/PullToRefresh';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
@@ -236,8 +237,17 @@ function JournalContent() {
     }
   }, [entries, toast]);
 
+  // Pull-to-refresh handler
+  const handleRefresh = useCallback(async () => {
+    await fetchEntries();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
+
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-20">
+    <PullToRefresh
+      onRefresh={handleRefresh}
+      className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-20"
+    >
       {/* Calendar Week Strip */}
       <CalendarWeekStrip
         selectedDate={selectedDate}
@@ -318,7 +328,7 @@ function JournalContent() {
         onClose={handleCloseEditModal}
         onSave={handleSaveEntry}
       />
-    </div>
+    </PullToRefresh>
   );
 }
 

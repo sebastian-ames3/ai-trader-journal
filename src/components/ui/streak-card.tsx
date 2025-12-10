@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { Confetti, useStreakConfetti } from "@/components/Confetti";
 
 interface StreakCardProps {
   currentStreak: number;
@@ -42,9 +43,12 @@ export function StreakCard({
   const nextMilestone = getNextMilestone(currentStreak);
   const progress = currentStreak > 0 ? (currentStreak / nextMilestone) * 100 : 0;
   const isNewRecord = currentStreak > 0 && currentStreak >= longestStreak;
+  const showConfetti = useStreakConfetti(currentStreak);
 
   return (
-    <div
+    <>
+      <Confetti isActive={showConfetti} />
+      <div
       className={cn(
         // Gradient background
         "bg-gradient-to-br from-amber-50 via-orange-50 to-red-50",
@@ -126,13 +130,14 @@ export function StreakCard({
         </div>
       )}
 
-      {/* Zero streak encouragement */}
-      {currentStreak === 0 && (
-        <p className="text-sm text-slate-600 dark:text-slate-400 text-center py-2">
-          Create your first entry to start your streak!
-        </p>
-      )}
-    </div>
+        {/* Zero streak encouragement */}
+        {currentStreak === 0 && (
+          <p className="text-sm text-slate-600 dark:text-slate-400 text-center py-2">
+            Create your first entry to start your streak!
+          </p>
+        )}
+      </div>
+    </>
   );
 }
 

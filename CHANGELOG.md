@@ -8,6 +8,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Micro-Interactions & Animations** (2025-12-09, PR #79)
+  - Page transition animations with framer-motion fade/slide
+    - Created `template.tsx` for smooth route transitions
+    - Respects `prefers-reduced-motion` accessibility setting
+  - Button ripple effects on tap for tactile feedback
+    - CSS-based ripple animation
+    - Applied to all Button components
+  - Success animations for positive feedback
+    - `SuccessCheckmark` component with animated SVG checkmark
+    - `Confetti` component with celebration particles
+    - `useStreakConfetti` hook for milestone celebrations
+    - Integrated into StreakCard for streak milestones
+  - Pull-to-refresh gesture on mobile
+    - `PullToRefresh` component with touch handling
+    - Visual rotation indicator with refresh icon
+    - Integrated into journal page
+    - Disabled during loading states
+
+- **Performance Optimization** (2025-12-09, PR #78)
+  - Lighthouse audit and performance baseline documentation
+  - React.memo optimization for list items (EntryCard, ThesisCard)
+  - Bundle analyzer setup (@next/bundle-analyzer)
+  - Virtual scrolling for long lists (react-window)
+
 - **Thesis-Based Trade Management** (2025-12-09, PR #76)
   - Create trading theses with name, ticker, direction (Bullish/Bearish/Neutral/Volatile)
   - Track trades under each thesis (INITIAL, ADD, REDUCE, ROLL, CONVERT, CLOSE, etc.)
