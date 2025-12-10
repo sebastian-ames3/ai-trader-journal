@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Plus, TrendingUp, TrendingDown, Minus, Activity, ChevronRight } from 'lucide-react';
@@ -61,7 +61,7 @@ function getDaysActive(startedAt: string, closedAt: string | null): number {
   return Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-function ThesisCard({ thesis }: { thesis: Thesis }) {
+const ThesisCard = React.memo(function ThesisCard({ thesis }: { thesis: Thesis }) {
   const DirectionIcon = DIRECTION_CONFIG[thesis.direction].icon;
   const directionColors = DIRECTION_CONFIG[thesis.direction];
   const daysActive = getDaysActive(thesis.startedAt, thesis.closedAt);
@@ -156,7 +156,7 @@ function ThesisCard({ thesis }: { thesis: Thesis }) {
       </div>
     </Link>
   );
-}
+});
 
 function ThesisCardSkeleton() {
   return (

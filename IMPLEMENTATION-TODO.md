@@ -11,7 +11,7 @@ This document tracks all incomplete features across all PRDs/specs. As features 
 
 | Spec | Status | Completion |
 |------|--------|------------|
-| Spec 05: Phase 1 MVP Polish | COMPLETE | 95% |
+| Spec 05: Phase 1 MVP Polish | COMPLETE | 100% |
 | Spec 06: Trade Management Phase 1 | COMPLETE | 100% |
 | Spec 11: UX/UI Design System | MOSTLY COMPLETE | 90% |
 | Spec 12: Claude Migration | COMPLETE | 100% |
@@ -21,28 +21,28 @@ This document tracks all incomplete features across all PRDs/specs. As features 
 
 ## HIGH PRIORITY - Performance & Polish
 
-### Performance Optimization (Spec 05 Remaining)
+### Performance Optimization (Spec 05 Remaining) - COMPLETE
 
-- [ ] **PERF-1**: Run Lighthouse audit and document baseline
-  - Record FCP, LCP, TTI, bundle size
+- [x] **PERF-1**: Run Lighthouse audit and document baseline (PR #78)
+  - Recorded FCP, LCP, TTI, bundle size
   - File: `PERFORMANCE-BASELINE.md`
 
-- [ ] **PERF-2**: Implement Next.js Image optimization
-  - Replace img tags with next/image
-  - Configure image domains in next.config
+- [x] **PERF-2**: Implement Next.js Image optimization (PR #78)
+  - Audited img tags - only user-uploaded previews (blob URLs, can't use next/image)
+  - No static images need optimization
 
-- [ ] **PERF-3**: Add React.memo to entry card list items
-  - Optimize re-renders on journal page
-  - File: `src/components/ui/entry-card.tsx`
+- [x] **PERF-3**: Add React.memo to entry card list items (PR #78)
+  - Added React.memo to EntryCard, SwipeableEntryCard, ThesisCard
+  - Optimizes re-renders on journal and theses pages
 
-- [ ] **PERF-4**: Bundle analyzer setup
-  - Install @next/bundle-analyzer
-  - Identify large dependencies
-  - Document findings
+- [x] **PERF-4**: Bundle analyzer setup (PR #78)
+  - Installed @next/bundle-analyzer
+  - Identified large dependencies (framer-motion main culprit)
+  - Documented findings in PERFORMANCE-BASELINE.md
 
-- [ ] **PERF-5**: Virtual scrolling for long lists
-  - Consider react-window for journal page
-  - Threshold: 100+ entries
+- [x] **PERF-5**: Virtual scrolling for long lists (PR #78)
+  - Implemented VirtualizedEntryList with react-window
+  - Threshold: 20+ entries for virtualization
 
 ---
 

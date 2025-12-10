@@ -57,7 +57,7 @@ function formatTimeAgo(date: Date | string): string {
   return formatDistanceToNow(d, { addSuffix: true });
 }
 
-export function EntryCard({
+export const EntryCard = React.memo(function EntryCard({
   id,
   content,
   type,
@@ -188,7 +188,7 @@ export function EntryCard({
       {cardContent}
     </Link>
   );
-}
+});
 
 // Skeleton loader for EntryCard
 export function EntryCardSkeleton() {

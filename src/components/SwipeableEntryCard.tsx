@@ -25,7 +25,7 @@ interface SwipeableEntryCardProps {
 const SWIPE_THRESHOLD = 60;
 const MAX_SWIPE = 80;
 
-export function SwipeableEntryCard({
+export const SwipeableEntryCard = React.memo(function SwipeableEntryCard({
   id,
   content,
   type,
@@ -132,4 +132,4 @@ export function SwipeableEntryCard({
       </div>
     </div>
   );
-}
+});
