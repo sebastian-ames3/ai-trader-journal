@@ -7,7 +7,7 @@ import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import SearchFilters, { FilterState } from '@/components/SearchFilters';
 import { EntryCardList, EntryCardSkeleton } from '@/components/ui/entry-card';
-import { SwipeableEntryCard } from '@/components/SwipeableEntryCard';
+import { VirtualizedEntryList } from '@/components/VirtualizedEntryList';
 import { InlineEditModal } from '@/components/InlineEditModal';
 import { CalendarWeekStrip } from '@/components/ui/calendar-week-strip';
 import { useToast } from '@/hooks/use-toast';
@@ -303,22 +303,11 @@ function JournalContent() {
             </div>
           )
         ) : (
-          // Entry List using SwipeableEntryCard (supports desktop hover edit + mobile swipe)
-          <EntryCardList>
-            {entries.map((entry) => (
-              <SwipeableEntryCard
-                key={entry.id}
-                id={entry.id}
-                content={entry.content}
-                type={entry.type}
-                ticker={entry.ticker}
-                mood={entry.mood}
-                conviction={entry.conviction}
-                createdAt={entry.createdAt}
-                onEdit={() => handleEditEntry(entry)}
-              />
-            ))}
-          </EntryCardList>
+          // Entry List using VirtualizedEntryList (enables virtual scrolling for 20+ entries)
+          <VirtualizedEntryList
+            entries={entries}
+            onEditEntry={handleEditEntry}
+          />
         )}
       </div>
 
