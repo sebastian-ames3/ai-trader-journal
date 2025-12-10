@@ -13,7 +13,7 @@ This document tracks all incomplete features across all PRDs/specs. As features 
 |------|--------|------------|
 | Spec 05: Phase 1 MVP Polish | COMPLETE | 100% |
 | Spec 06: Trade Management Phase 1 | COMPLETE | 100% |
-| Spec 11: UX/UI Design System | MOSTLY COMPLETE | 90% |
+| Spec 11: UX/UI Design System | MOSTLY COMPLETE | 95% |
 | Spec 12: Claude Migration | COMPLETE | 100% |
 | Specs 01-04: Phase 2 Features | COMPLETE | 100% |
 
@@ -48,23 +48,25 @@ This document tracks all incomplete features across all PRDs/specs. As features 
 
 ## MEDIUM PRIORITY - UX Polish
 
-### Micro-Interactions (Spec 11 Remaining)
+### Micro-Interactions (Spec 11 Remaining) - COMPLETE
 
-- [ ] **MICRO-1**: Page transition animations
-  - Fade/slide between routes
-  - Loading states during navigation
+- [x] **MICRO-1**: Page transition animations (PR #79)
+  - Created template.tsx with framer-motion fade/slide
+  - Respects prefers-reduced-motion
 
-- [ ] **MICRO-2**: Button ripple effects
-  - Add tactile feedback on tap
-  - Use CSS animations
+- [x] **MICRO-2**: Button ripple effects (PR #79)
+  - Added btn-ripple CSS animation on tap
+  - Applied to all Button components
 
-- [ ] **MICRO-3**: Success animations
-  - Checkmark animation on save
-  - Confetti on streak milestones (7, 30, etc.)
+- [x] **MICRO-3**: Success animations (PR #79)
+  - SuccessCheckmark component with animated SVG
+  - Confetti component with useStreakConfetti hook
+  - Integrated into StreakCard for milestones
 
-- [ ] **MICRO-4**: Pull-to-refresh gesture
-  - Mobile refresh indicator
-  - Haptic feedback (if supported)
+- [x] **MICRO-4**: Pull-to-refresh gesture (PR #79)
+  - PullToRefresh component with touch handling
+  - Integrated into journal page
+  - Visual indicator with rotation feedback
 
 ### Accessibility Improvements
 
@@ -147,6 +149,20 @@ This document tracks all incomplete features across all PRDs/specs. As features 
 ---
 
 ## Completed Features Log
+
+### 2025-12-09 (PR #79)
+- [x] Spec 11: Micro-Interactions
+  - Page transition animations (template.tsx with framer-motion)
+  - Button ripple effects (CSS animations)
+  - Success animations (SuccessCheckmark, Confetti components)
+  - Pull-to-refresh gesture (PullToRefresh component)
+
+### 2025-12-09 (PR #78)
+- [x] Performance Optimization Sprint
+  - Lighthouse audit and baseline (PERFORMANCE-BASELINE.md)
+  - React.memo optimization (EntryCard, SwipeableEntryCard, ThesisCard)
+  - Bundle analyzer setup (@next/bundle-analyzer)
+  - Virtual scrolling (VirtualizedEntryList with react-window)
 
 ### 2025-12-09 (PR #76)
 - [x] Spec 06 Phase 1: Database schema (TradingThesis, ThesisTrade, etc.)
