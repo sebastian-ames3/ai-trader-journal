@@ -39,6 +39,14 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow, format } from 'date-fns';
+import TradeTimeline from '@/components/TradeTimeline';
+
+interface ThesisTradeAttachment {
+  id: string;
+  type: string;
+  filename: string;
+  url: string;
+}
 
 interface ThesisTrade {
   id: string;
@@ -51,6 +59,8 @@ interface ThesisTrade {
   quantity: number;
   realizedPL: number | null;
   status: string;
+  reasoningNote: string | null;
+  attachments?: ThesisTradeAttachment[];
 }
 
 interface ThesisUpdate {
@@ -452,7 +462,7 @@ export default function ThesisDetailPage() {
             {thesis.status === 'ACTIVE' && (
               <Button
                 size="sm"
-                onClick={() => setShowAddTradeModal(true)}
+                onClick={() => router.push(`/theses/${thesisId}/log-trade`)}
                 className="min-h-[36px]"
               >
                 <Plus className="h-4 w-4 mr-1" />
@@ -461,59 +471,7 @@ export default function ThesisDetailPage() {
             )}
           </div>
 
-          {thesis.thesisTrades.length === 0 ? (
-            <p className="text-slate-500 dark:text-slate-400 text-center py-4">
-              No trades logged yet
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {thesis.thesisTrades.map((trade) => (
-                <div
-                  key={trade.id}
-                  className={cn(
-                    'p-3 rounded-xl',
-                    'bg-slate-50 dark:bg-slate-800',
-                    'border border-slate-200/50 dark:border-slate-700/50'
-                  )}
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <Badge variant="outline" className="text-xs">
-                          {trade.action}
-                        </Badge>
-                        <Badge variant="secondary" className="text-xs">
-                          {trade.status}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-slate-700 dark:text-slate-300">
-                        {trade.description}
-                      </p>
-                      <p className="text-xs text-slate-400 mt-1">
-                        {formatDistanceToNow(new Date(trade.openedAt), { addSuffix: true })}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className={cn(
-                        'font-medium',
-                        trade.debitCredit >= 0 ? 'text-green-600' : 'text-red-600'
-                      )}>
-                        {trade.debitCredit >= 0 ? '+' : ''}{formatCurrency(trade.debitCredit)}
-                      </p>
-                      {trade.realizedPL !== null && (
-                        <p className={cn(
-                          'text-sm',
-                          trade.realizedPL >= 0 ? 'text-green-600' : 'text-red-600'
-                        )}>
-                          P/L: {formatPL(trade.realizedPL)}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <TradeTimeline trades={thesis.thesisTrades} />
         </div>
 
         {/* Updates Section */}
