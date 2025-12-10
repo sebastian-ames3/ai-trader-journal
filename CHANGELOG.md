@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Accessibility Improvements - WCAG 2.1 AA** (2025-12-10, PR #80)
+  - Skip-to-content link for keyboard navigation
+    - Hidden by default, visible on focus (Tab key)
+    - Jumps directly to main content area
+  - Enhanced focus-visible indicators globally
+    - Amber ring with offset for all focusable elements
+    - Only shows on keyboard navigation, not mouse clicks
+  - Emoji accessibility improvements
+    - Added role="img" and aria-label to decorative emojis
+    - StreakCard fire/sparkle emojis now accessible to screen readers
+
 - **Micro-Interactions & Animations** (2025-12-09, PR #79)
   - Page transition animations with framer-motion fade/slide
     - Created `template.tsx` for smooth route transitions

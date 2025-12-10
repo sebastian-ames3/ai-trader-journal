@@ -43,9 +43,16 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          {/* Skip to content link for keyboard navigation */}
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-amber-500 focus:text-white focus:rounded-lg focus:shadow-lg"
+          >
+            Skip to content
+          </a>
           <OfflineIndicator />
           <Navigation />
-          <main className="pb-nav md:pb-0">{children}</main>
+          <main id="main-content" className="pb-nav md:pb-0">{children}</main>
           <Toaster />
           <BottomNav />
           <InstallPrompt />
