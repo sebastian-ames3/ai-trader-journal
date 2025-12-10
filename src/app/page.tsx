@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Plus, TrendingUp, Brain, ArrowRight } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Minus, Activity, Brain, ArrowRight, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -39,6 +39,22 @@ interface RecentEntry {
   createdAt: string;
 }
 
+interface ActiveThesis {
+  id: string;
+  name: string;
+  ticker: string;
+  direction: 'BULLISH' | 'BEARISH' | 'NEUTRAL' | 'VOLATILE';
+  totalRealizedPL: number;
+  _count: { thesisTrades: number };
+}
+
+const DIRECTION_CONFIG = {
+  BULLISH: { icon: TrendingUp, color: 'text-green-600 dark:text-green-400' },
+  BEARISH: { icon: TrendingDown, color: 'text-red-600 dark:text-red-400' },
+  NEUTRAL: { icon: Minus, color: 'text-slate-600 dark:text-slate-400' },
+  VOLATILE: { icon: Activity, color: 'text-amber-600 dark:text-amber-400' },
+};
+
 // Skeleton components
 function DashboardSkeleton() {
   return (
@@ -73,6 +89,7 @@ function DashboardSkeleton() {
 export default function DashboardPage() {
   const [weeklySnapshot, setWeeklySnapshot] = useState<WeeklySnapshot | null>(null);
   const [recentEntries, setRecentEntries] = useState<RecentEntry[]>([]);
+  const [activeTheses, setActiveTheses] = useState<ActiveThesis[]>([]);
   const [streakData, setStreakData] = useState<{ currentStreak: number; longestStreak: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasData, setHasData] = useState(false);
@@ -100,8 +117,13 @@ export default function DashboardPage() {
       const streakResponse = await fetch('/api/streak');
       const streakDataResult = await streakResponse.json();
 
+      // Fetch active theses (limit to 3)
+      const thesesResponse = await fetch('/api/theses?status=ACTIVE&limit=3');
+      const thesesData = await thesesResponse.json();
+
       setWeeklySnapshot(insightsData);
       setRecentEntries(entriesData.entries || []);
+      setActiveTheses(thesesData.theses || []);
       setStreakData(streakDataResult);
       setHasData(entriesData.pagination?.total > 0);
       setTotalEntries(entriesData.pagination?.total || 0);
@@ -223,6 +245,81 @@ export default function DashboardPage() {
             Quick Actions
           </h2>
           <TimeAwareActionCards />
+        </section>
+
+        {/* Active Theses Section */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+              Trading Theses
+            </h2>
+            <Link href="/theses">
+              <Button variant="ghost" size="sm" className="text-amber-600 dark:text-amber-400 min-h-[44px]">
+                {activeTheses.length > 0 ? 'View All' : 'Create'}
+                <ArrowRight className="ml-1 h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+          {activeTheses.length > 0 ? (
+            <div className="space-y-2">
+              {activeTheses.map((thesis) => {
+                const DirectionIcon = DIRECTION_CONFIG[thesis.direction].icon;
+                const directionColor = DIRECTION_CONFIG[thesis.direction].color;
+                return (
+                  <Link key={thesis.id} href={`/theses/${thesis.id}`}>
+                    <div className={cn(
+                      'p-3 rounded-xl',
+                      'bg-white dark:bg-slate-800/50',
+                      'border border-slate-200/50 dark:border-slate-700/50',
+                      'hover:border-slate-300 dark:hover:border-slate-600',
+                      'transition-colors',
+                      'flex items-center justify-between'
+                    )}>
+                      <div className="flex items-center gap-3">
+                        <div className={cn('p-2 rounded-lg bg-slate-100 dark:bg-slate-800', directionColor)}>
+                          <DirectionIcon className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-slate-900 dark:text-slate-100">
+                              {thesis.name}
+                            </span>
+                            <Badge variant="outline" className="text-xs font-mono">
+                              ${thesis.ticker}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {thesis._count.thesisTrades} trade{thesis._count.thesisTrades !== 1 ? 's' : ''}
+                          </p>
+                        </div>
+                      </div>
+                      <span className={cn(
+                        'font-semibold',
+                        thesis.totalRealizedPL >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                      )}>
+                        {thesis.totalRealizedPL >= 0 ? '+' : ''}${Math.abs(thesis.totalRealizedPL).toLocaleString()}
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          ) : (
+            <Card className="border-dashed">
+              <CardContent className="py-6 text-center">
+                <FileText className="h-8 w-8 mx-auto mb-2 text-slate-400" />
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
+                  Group related trades under a thesis to track your trading ideas
+                </p>
+                <Link href="/theses/new">
+                  <Button size="sm" variant="outline" className="min-h-[40px]">
+                    <Plus className="h-4 w-4 mr-1" />
+                    Create First Thesis
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
         </section>
 
         {/* Weekly Snapshot Card */}

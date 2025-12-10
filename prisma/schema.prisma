@@ -395,3 +395,228 @@ model MarketSnapshot {
   @@index([ticker])
   @@index([date(sort: Desc)])
 }
+
+// ============================================
+// Thesis-Based Trade Management (Spec 06)
+// ============================================
+
+// Direction of the trading thesis
+enum ThesisDirection {
+  BULLISH
+  BEARISH
+  NEUTRAL
+  VOLATILE
+}
+
+// Status of a trading thesis
+enum ThesisStatus {
+  ACTIVE
+  CLOSED
+  EXPIRED
+}
+
+// Outcome of a completed thesis
+enum ThesisOutcome {
+  WIN
+  LOSS
+  BREAKEVEN
+}
+
+// Types of trade actions
+enum TradeAction {
+  INITIAL     // Opening position
+  ADD         // Adding to position
+  REDUCE      // Reducing position
+  ROLL        // Rolling to new expiration/strikes
+  CONVERT     // Converting strategy type
+  CLOSE       // Closing position
+  ASSIGNED    // Option assigned
+  EXERCISED   // Option exercised
+}
+
+// Status of individual trades
+enum ThesisTradeStatus {
+  OPEN
+  CLOSED
+  EXPIRED
+  ASSIGNED
+}
+
+// Types of thesis updates
+enum UpdateType {
+  THESIS_STRENGTHENED
+  THESIS_WEAKENED
+  THESIS_CHANGED
+  NOTE
+}
+
+// Attachment file types
+enum AttachmentType {
+  IMAGE
+  AUDIO
+  PDF
+  VIDEO
+}
+
+// Options strategy types
+enum StrategyType {
+  LONG_CALL
+  LONG_PUT
+  SHORT_CALL
+  SHORT_PUT
+  CALL_SPREAD
+  PUT_SPREAD
+  IRON_CONDOR
+  IRON_BUTTERFLY
+  STRADDLE
+  STRANGLE
+  CALENDAR
+  DIAGONAL
+  RATIO
+  BUTTERFLY
+  STOCK
+  COVERED_CALL
+  CASH_SECURED_PUT
+  CUSTOM
+}
+
+// Trading Thesis - groups related trades under one idea
+model TradingThesis {
+  id                   String          @id @default(cuid())
+
+  // Identity
+  name                 String          // "NVDA Bullish Q4 2024"
+  ticker               String          // Primary ticker
+  direction            ThesisDirection
+
+  // The "why"
+  originalThesis       String          @db.Text  // Initial reasoning
+
+  // Status
+  status               ThesisStatus    @default(ACTIVE)
+  startedAt            DateTime        @default(now())
+  closedAt             DateTime?
+
+  // Calculated aggregates (updated on trade changes)
+  totalRealizedPL      Float           @default(0)
+  totalUnrealizedPL    Float           @default(0)
+  totalCapitalDeployed Float           @default(0)
+
+  // Outcome
+  outcome              ThesisOutcome?
+  lessonsLearned       String?         @db.Text
+
+  // AI-generated
+  aiSummary            String?
+  learnedPatterns      String[]
+
+  // Relations
+  thesisTrades         ThesisTrade[]
+  updates              ThesisUpdate[]
+  attachments          ThesisAttachment[]
+
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  @@index([ticker])
+  @@index([status])
+  @@index([startedAt(sort: Desc)])
+}
+
+// ThesisTrade - Individual trades within a thesis
+model ThesisTrade {
+  id                String           @id @default(cuid())
+  thesisId          String?
+  thesis            TradingThesis?   @relation(fields: [thesisId], references: [id], onDelete: SetNull)
+
+  // Action type
+  action            TradeAction
+  previousTradeId   String?          // What this trade adjusted (for rolls/converts)
+
+  // Description
+  description       String           @db.Text
+  strategyType      StrategyType?
+
+  // Timing
+  openedAt          DateTime         @default(now())
+  closedAt          DateTime?
+  expiration        DateTime?
+
+  // Financials (user-provided)
+  debitCredit       Float            // Positive = paid, negative = received
+  quantity          Int              @default(1)
+  realizedPL        Float?           // When closed
+  status            ThesisTradeStatus @default(OPEN)
+
+  // Context (extracted from screenshots or user input)
+  extractedData     Json?
+
+  // Reasoning
+  reasoningEntryId  String?          // Link to journal entry
+  reasoningNote     String?          @db.Text
+
+  // Attachments
+  attachments       ThesisTradeAttachment[]
+
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@index([thesisId])
+  @@index([openedAt(sort: Desc)])
+  @@index([status])
+}
+
+// Thesis updates - how the thesis evolved over time
+model ThesisUpdate {
+  id        String        @id @default(cuid())
+  thesisId  String
+  thesis    TradingThesis @relation(fields: [thesisId], references: [id], onDelete: Cascade)
+
+  date      DateTime      @default(now())
+  type      UpdateType
+  content   String        @db.Text
+  entryId   String?       // Linked journal entry
+
+  @@index([thesisId])
+  @@index([date(sort: Desc)])
+}
+
+// Attachments for theses
+model ThesisAttachment {
+  id                   String         @id @default(cuid())
+  thesisId             String
+  thesis               TradingThesis  @relation(fields: [thesisId], references: [id], onDelete: Cascade)
+
+  type                 AttachmentType
+  url                  String
+  filename             String
+
+  // AI extraction
+  extractedText        String?        @db.Text
+  extractedData        Json?
+  extractionConfidence Float?
+
+  createdAt            DateTime       @default(now())
+
+  @@index([thesisId])
+}
+
+// Attachments for thesis trades
+model ThesisTradeAttachment {
+  id                   String         @id @default(cuid())
+  tradeId              String
+  trade                ThesisTrade    @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+
+  type                 AttachmentType
+  url                  String
+  filename             String
+
+  // AI extraction
+  extractedText        String?        @db.Text
+  extractedData        Json?
+  extractionConfidence Float?
+
+  createdAt            DateTime       @default(now())
+
+  @@index([tradeId])
+}
