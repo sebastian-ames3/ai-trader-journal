@@ -225,3 +225,37 @@ Desktop.ini
 
 # Build artifacts
 tsconfig.tsbuildinfo
+
+# ==========================================
+# Development/Local Files (not for production)
+# ==========================================
+
+# Test and verification scripts (keep locally)
+lighthouse-*.js
+lighthouse-*.json
+*-verification.js
+*-test.js
+phase*-verification.js
+phase*-test.js
+spec*-verification.js
+ui-audit-script.js
+performance-audit.js
+mobile-verification.js
+
+# Development tracking docs
+SESSION-TODO.md
+IMPLEMENTATION-TODO.md
+PERFORMANCE-BASELINE.md
+BEFORE-AFTER-EXAMPLES.md
+
+# Verification screenshots and reports
+agent-os/**/verification/
+agent-os/**/screenshots/
+agent-os/mobile-verification-screenshots/
+agent-os/specs/validation-screenshots/
+
+# Implementation drafts
+agent-os/**/implementation/
+
+# Claude Code local settings
+.claude/settings.local.json
