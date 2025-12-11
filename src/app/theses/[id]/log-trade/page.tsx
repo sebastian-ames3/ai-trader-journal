@@ -12,6 +12,7 @@ import {
   Image as ImageIcon,
   Loader2,
   FileText,
+  Brain,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,6 +30,8 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import VoiceRecorder from '@/components/VoiceRecorder';
 import AudioPlayer from '@/components/AudioPlayer';
+import ScreenshotExtractor, { type ExtractedTradeData } from '@/components/trades/ScreenshotExtractor';
+import AIReminders, { type RiskWarning, type HistoricalLesson, type PatternInsight } from '@/components/trades/AIReminders';
 
 const TRADE_ACTIONS = [
   { value: 'INITIAL', label: 'Initial Position', description: 'Opening a new position' },
@@ -68,6 +71,14 @@ interface VoiceData {
   transcription: string;
 }
 
+interface ThesisData {
+  id: string;
+  name: string;
+  ticker: string;
+  direction: 'BULLISH' | 'BEARISH' | 'NEUTRAL' | 'VOLATILE';
+  strategyType?: string;
+}
+
 export default function LogTradePage() {
   const router = useRouter();
   const params = useParams();
@@ -75,8 +86,7 @@ export default function LogTradePage() {
   const thesisId = params.id as string;
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [thesisName, setThesisName] = useState<string>('');
-  const [thesisTicker, setThesisTicker] = useState<string>('');
+  const [thesisData, setThesisData] = useState<ThesisData | null>(null);
 
   // Form state
   const [action, setAction] = useState<string>('INITIAL');
@@ -91,8 +101,19 @@ export default function LogTradePage() {
   const [voiceData, setVoiceData] = useState<VoiceData | null>(null);
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
 
-  // File attachment state (mocked for now - would need R2 integration)
+  // File attachment state
   const [attachments, setAttachments] = useState<File[]>([]);
+
+  // Screenshot extraction state
+  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
+  const [showExtractor, setShowExtractor] = useState(false);
+
+  // AI Reminders state
+  const [showAIReminders, setShowAIReminders] = useState(false);
+  const [aiRemindersLoading, setAiRemindersLoading] = useState(false);
+  const [warnings, setWarnings] = useState<RiskWarning[]>([]);
+  const [lessons, setLessons] = useState<HistoricalLesson[]>([]);
+  const [patterns, setPatterns] = useState<PatternInsight[]>([]);
 
   // Fetch thesis info
   useEffect(() => {
@@ -101,8 +122,13 @@ export default function LogTradePage() {
         const response = await fetch(`/api/theses/${thesisId}`);
         if (response.ok) {
           const data = await response.json();
-          setThesisName(data.name);
-          setThesisTicker(data.ticker);
+          setThesisData({
+            id: data.id,
+            name: data.name,
+            ticker: data.ticker,
+            direction: data.direction,
+            strategyType: data.strategyType,
+          });
         }
       } catch (error) {
         console.error('Error fetching thesis:', error);
@@ -132,24 +158,119 @@ export default function LogTradePage() {
       const newFiles = Array.from(files).filter(f =>
         f.type.startsWith('image/') || f.type === 'application/pdf'
       );
+
+      // Check if any are images for screenshot extraction
+      const imageFile = newFiles.find(f => f.type.startsWith('image/'));
+      if (imageFile && !screenshotFile) {
+        setScreenshotFile(imageFile);
+        setShowExtractor(true);
+      }
+
       setAttachments(prev => [...prev, ...newFiles]);
     }
   };
 
   // Remove attachment
   const removeAttachment = (index: number) => {
+    const fileToRemove = attachments[index];
     setAttachments(prev => prev.filter((_, i) => i !== index));
+
+    // If removing the screenshot file, also clear extractor
+    if (screenshotFile && fileToRemove === screenshotFile) {
+      setScreenshotFile(null);
+      setShowExtractor(false);
+    }
   };
+
+  // Handle screenshot extraction complete
+  const handleExtractionComplete = useCallback((data: ExtractedTradeData) => {
+    // Update form fields with extracted data
+    if (data.ticker && data.ticker.toUpperCase() !== thesisData?.ticker.toUpperCase()) {
+      toast({
+        title: 'Ticker mismatch',
+        description: `Screenshot shows ${data.ticker}, but thesis is for ${thesisData?.ticker}. Please verify.`,
+        variant: 'destructive',
+      });
+    }
+
+    if (data.strategyType && !strategyType) {
+      setStrategyType(data.strategyType);
+    }
+    if (data.expiration && !expiration) {
+      setExpiration(data.expiration);
+    }
+    if (data.quantity && quantity === '1') {
+      setQuantity(data.quantity.toString());
+    }
+    if (data.debitCredit !== undefined && !debitCredit) {
+      setDebitCredit(data.debitCredit.toString());
+    }
+    if (data.action && action === 'INITIAL') {
+      setAction(data.action);
+    }
+
+    // Add strikes info to description if available
+    if (data.strikes && !description.includes(data.strikes)) {
+      setDescription(prev => prev ? `${prev}\nStrikes: ${data.strikes}` : `Strikes: ${data.strikes}`);
+    }
+
+    toast({
+      title: 'Data extracted',
+      description: 'Review and adjust the extracted trade details',
+    });
+  }, [thesisData, strategyType, expiration, quantity, debitCredit, action, description, toast]);
+
+  // Fetch AI reminders when showing the modal
+  const fetchAIReminders = useCallback(async () => {
+    if (!thesisData) return;
+
+    setAiRemindersLoading(true);
+
+    try {
+      const params = new URLSearchParams({
+        ticker: thesisData.ticker,
+        thesisId: thesisId,
+        ...(strategyType && { strategyType }),
+        ...(thesisData.direction && { direction: thesisData.direction }),
+        ...(debitCredit && { debitCredit }),
+      });
+
+      const response = await fetch(`/api/trades/ai-reminders?${params.toString()}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        setWarnings(data.warnings || []);
+        setLessons(data.lessons || []);
+        setPatterns(data.patterns || []);
+      }
+    } catch (error) {
+      console.error('Error fetching AI reminders:', error);
+      // Don't show error toast - AI reminders are optional
+    } finally {
+      setAiRemindersLoading(false);
+    }
+  }, [thesisData, thesisId, strategyType, debitCredit]);
 
   // Form validation
   const isValid = description.trim() && debitCredit !== '';
 
-  // Handle submit
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Handle showing AI reminders before submit
+  const handlePreSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isValid || isSubmitting) return;
 
+    // Show AI reminders before final submit
+    setShowAIReminders(true);
+    await fetchAIReminders();
+  };
+
+  // Handle final submit after AI review
+  const handleSubmit = async () => {
+    if (!isValid || isSubmitting) return;
+
     setIsSubmitting(true);
+    setShowAIReminders(false);
+
     try {
       const response = await fetch('/api/trades', {
         method: 'POST',
@@ -163,8 +284,6 @@ export default function LogTradePage() {
           quantity: parseInt(quantity, 10) || 1,
           expiration: expiration || null,
           reasoningNote: reasoningNote.trim() || null,
-          // Note: Attachments would need R2 upload implementation
-          // For now, we're just logging the trade without attachments
         }),
       });
 
@@ -191,6 +310,15 @@ export default function LogTradePage() {
     }
   };
 
+  // Handle reconsider from AI reminders
+  const handleReconsider = () => {
+    setShowAIReminders(false);
+    toast({
+      title: 'Take your time',
+      description: 'Review your trade setup before proceeding',
+    });
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-20">
       {/* Header */}
@@ -208,12 +336,12 @@ export default function LogTradePage() {
               <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">
                 Log Trade
               </h1>
-              {thesisName && (
+              {thesisData && (
                 <p className="text-sm text-slate-500 dark:text-slate-400">
                   <Badge variant="outline" className="font-mono text-xs mr-2">
-                    ${thesisTicker}
+                    ${thesisData.ticker}
                   </Badge>
-                  {thesisName}
+                  {thesisData.name}
                 </p>
               )}
             </div>
@@ -223,7 +351,25 @@ export default function LogTradePage() {
 
       {/* Form */}
       <div className="max-w-2xl mx-auto px-4 py-6">
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handlePreSubmit} className="space-y-6">
+          {/* Screenshot Extractor */}
+          {showExtractor && screenshotFile && (
+            <ScreenshotExtractor
+              imageFile={screenshotFile}
+              onExtractComplete={handleExtractionComplete}
+              onRemove={() => {
+                setShowExtractor(false);
+                setScreenshotFile(null);
+                // Also remove from attachments
+                const index = attachments.indexOf(screenshotFile);
+                if (index > -1) {
+                  removeAttachment(index);
+                }
+              }}
+              className="mb-6"
+            />
+          )}
+
           {/* Action Type */}
           <div className="space-y-3">
             <Label className="text-sm font-medium">What did you do?</Label>
@@ -448,6 +594,11 @@ export default function LogTradePage() {
                     <span className="text-xs text-slate-600 dark:text-slate-300 truncate max-w-[120px]">
                       {file.name}
                     </span>
+                    {file === screenshotFile && (
+                      <Badge variant="outline" className="text-xs">
+                        Extracting
+                      </Badge>
+                    )}
                     <button
                       type="button"
                       onClick={() => removeAttachment(index)}
@@ -462,7 +613,7 @@ export default function LogTradePage() {
             )}
 
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Note: File upload requires cloud storage setup. Screenshots are logged but not stored yet.
+              Images will be analyzed by AI to extract trade details. PDFs are stored as attachments.
             </p>
           </div>
 
@@ -479,12 +630,34 @@ export default function LogTradePage() {
                   Logging Trade...
                 </>
               ) : (
-                'Log Trade'
+                <>
+                  <Brain className="h-4 w-4 mr-2" />
+                  Review & Log Trade
+                </>
               )}
             </Button>
           </div>
         </form>
       </div>
+
+      {/* AI Reminders Modal */}
+      {showAIReminders && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <AIReminders
+              ticker={thesisData?.ticker || ''}
+              strategyType={strategyType}
+              direction={thesisData?.direction}
+              warnings={warnings}
+              lessons={lessons}
+              patterns={patterns}
+              isLoading={aiRemindersLoading}
+              onAcknowledge={handleSubmit}
+              onReconsider={handleReconsider}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -620,3 +620,373 @@ model ThesisTradeAttachment {
 
   @@index([tradeId])
 }
+
+// ============================================
+// AI Trading Coach (Phase 4 - Spec 07)
+// ============================================
+
+// Goal timeframe for coach goals
+enum GoalTimeframe {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+}
+
+// Status of coach goals
+enum GoalStatus {
+  ACTIVE
+  COMPLETED
+  ABANDONED
+  EXPIRED
+}
+
+// Status of coach prompts
+enum PromptStatus {
+  PENDING
+  RESPONDED
+  DISMISSED
+}
+
+// Coach conversation sessions
+model CoachSession {
+  id              String    @id @default(cuid())
+
+  messages        Json      // Array of { role: 'user' | 'assistant', content: string, timestamp: string }
+
+  // Session metadata
+  triggerType     String?   // What started this session (e.g., 'emotional_entry', 'loss_streak')
+  triggerEntryId  String?   // Related entry if any
+
+  // Context tracked
+  topicsDiscussed   String[]
+  entriesReferenced String[]
+  emotionalTone     String?   // 'supportive' | 'challenging' | 'celebratory'
+
+  // Outcomes
+  actionItems     String[]
+  goalsSet        String[]  // Goal IDs created during session
+
+  // Feedback
+  userRating      Int?      // 1-5
+  userFeedback    String?
+  wasHelpful      Boolean?
+
+  // AI-generated session summary
+  summary         String?   @db.Text
+
+  startedAt       DateTime  @default(now())
+  endedAt         DateTime?
+
+  @@index([startedAt(sort: Desc)])
+}
+
+// Coach goals for tracking progress
+model CoachGoal {
+  id          String        @id @default(cuid())
+
+  goal        String        // e.g., "Reduce FOMO trades"
+  description String?
+
+  // Measurement
+  metricType  String?       // e.g., 'bias_count', 'win_rate', 'streak'
+  metricName  String?       // e.g., 'FOMO', 'HIGH_CONVICTION'
+  targetValue Float?
+  currentValue Float?
+
+  // Timeline
+  timeframe   GoalTimeframe @default(WEEKLY)
+  startDate   DateTime      @default(now())
+  endDate     DateTime?
+
+  // Progress
+  status      GoalStatus    @default(ACTIVE)
+  progress    Float         @default(0) // 0-100 percentage
+  checkIns    Json?         // Array of { date, value, note }
+
+  // Outcome
+  completedAt DateTime?
+  reflection  String?       @db.Text
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([status])
+  @@index([startDate(sort: Desc)])
+}
+
+// Proactive coach prompts
+model CoachPrompt {
+  id          String       @id @default(cuid())
+
+  triggerType String       // e.g., 'emotional_entry', 'loss_streak', 'bias_alert'
+  message     String       @db.Text
+  context     Json?        // Additional context data
+
+  // State
+  status      PromptStatus @default(PENDING)
+  respondedAt DateTime?
+  dismissedAt DateTime?
+
+  createdAt   DateTime     @default(now())
+
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+}
+
+// ============================================
+// Social/Mentor Sharing (Phase 4 - Spec 08)
+// ============================================
+
+// Types of shareable content
+enum ShareType {
+  SINGLE_ENTRY
+  ENTRY_COLLECTION
+  WEEKLY_INSIGHTS
+  STATS_SUMMARY
+  MENTOR_ACCESS
+  ACCOUNTABILITY
+}
+
+// Status of mentor relationships
+enum RelationshipStatus {
+  PENDING
+  ACTIVE
+  PAUSED
+  ENDED
+}
+
+// Status of accountability partnerships
+enum PairStatus {
+  PENDING
+  ACTIVE
+  PAUSED
+  ENDED
+}
+
+// Share links for entries/insights
+model ShareLink {
+  id            String    @id @default(cuid())
+  slug          String    @unique  // URL-friendly ID
+
+  type          ShareType
+
+  // Content references
+  entryIds      String[]
+  weekOffset    Int?
+  includeFields String[]
+
+  // Access control
+  accessCode    String?   // Hashed if set
+  recipientEmail String?
+  expiresAt     DateTime?
+  maxViews      Int?
+  viewCount     Int       @default(0)
+
+  // Privacy settings
+  redactPL      Boolean   @default(true)
+  redactTickers Boolean   @default(false)
+  redactDates   Boolean   @default(false)
+  anonymize     Boolean   @default(false)
+
+  // Status
+  isActive      Boolean   @default(true)
+  lastViewedAt  DateTime?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([slug])
+  @@index([isActive])
+  @@index([createdAt(sort: Desc)])
+}
+
+// Mentor-mentee relationships
+model MentorRelationship {
+  id            String    @id @default(cuid())
+
+  mentorEmail   String    // Mentor's email (may not have account)
+  mentorName    String?   // Display name
+
+  // Permissions (what mentee shares)
+  shareWeeklyInsights Boolean @default(true)
+  shareBiasPatterns   Boolean @default(true)
+  shareIndividualEntries Boolean @default(false)
+  sharePLData         Boolean @default(false)
+
+  // Shared entries (explicit shares)
+  sharedEntryIds String[]
+
+  // Communication
+  lastInteraction DateTime?
+  messageCount    Int       @default(0)
+
+  status        RelationshipStatus @default(PENDING)
+  requestedBy   String    // Who initiated ('mentor' or 'mentee')
+
+  // Invite token for accepting
+  inviteToken   String    @unique @default(cuid())
+  inviteExpiresAt DateTime?
+
+  createdAt     DateTime  @default(now())
+  acceptedAt    DateTime?
+  endedAt       DateTime?
+
+  comments      MentorComment[]
+
+  @@index([mentorEmail])
+  @@index([status])
+  @@index([inviteToken])
+}
+
+// Mentor comments on shared entries
+model MentorComment {
+  id             String    @id @default(cuid())
+  relationshipId String
+  entryId        String
+
+  authorType     String    // 'mentor' or 'mentee'
+  content        String    @db.Text
+
+  relationship   MentorRelationship @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
+
+  createdAt      DateTime  @default(now())
+
+  @@index([relationshipId])
+  @@index([entryId])
+}
+
+// Accountability partnerships
+model AccountabilityPair {
+  id            String    @id @default(cuid())
+
+  partnerEmail  String    // Partner's email
+  partnerName   String?   // Display name
+
+  // Sharing settings
+  shareStreak           Boolean @default(true)
+  shareEntryCount       Boolean @default(true)
+  shareBiasDistribution Boolean @default(false)
+  shareMoodTrend        Boolean @default(false)
+
+  // Notifications
+  notifyOnJournal       Boolean @default(true)
+  notifyOnMilestone     Boolean @default(true)
+  notifyOnStreakBreak   Boolean @default(false)
+
+  status        PairStatus @default(PENDING)
+  requestedBy   String    // Who initiated
+
+  // Invite token for accepting
+  inviteToken   String    @unique @default(cuid())
+  inviteExpiresAt DateTime?
+
+  createdAt     DateTime  @default(now())
+  acceptedAt    DateTime?
+
+  @@index([partnerEmail])
+  @@index([status])
+  @@index([inviteToken])
+}
+
+// Discord webhook integrations
+model DiscordWebhook {
+  id            String    @id @default(cuid())
+
+  webhookUrl    String
+  serverId      String?   // For tracking
+  channelName   String?
+
+  // Triggers
+  onStreakMilestone Boolean @default(true)
+  onWeeklyInsights  Boolean @default(false)
+  onPatternBreak    Boolean @default(false)
+
+  anonymize     Boolean   @default(true)
+  includeStats  Boolean   @default(false)
+
+  isActive      Boolean   @default(true)
+  lastUsedAt    DateTime?
+
+  createdAt     DateTime  @default(now())
+
+  @@index([isActive])
+}
+
+// ============================================
+// Custom Dashboard (Phase 4 - Spec 09)
+// ============================================
+
+// Widget size options
+enum WidgetSize {
+  SMALL
+  MEDIUM
+  LARGE
+  FULL
+}
+
+// Widget categories
+enum WidgetCategory {
+  CAPTURE
+  INSIGHTS
+  TRACKING
+  POSITIONS
+  SOCIAL
+}
+
+// Dashboard layouts
+model DashboardLayout {
+  id          String    @id @default(cuid())
+
+  name        String
+  description String?
+  isDefault   Boolean   @default(false)
+  isActive    Boolean   @default(false)  // Currently selected
+
+  // Grid configuration stored as JSON
+  // Array of { widgetId, widgetType, config, position: { mobile, tablet, desktop } }
+  widgets     Json
+
+  // Sharing
+  isPublic    Boolean   @default(false)
+  shareSlug   String?   @unique
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([isActive])
+  @@index([isDefault])
+}
+
+// Per-widget configuration
+model WidgetConfig {
+  id          String    @id @default(cuid())
+
+  widgetType  String    // QUICK_CAPTURE, STREAK, WEEKLY_INSIGHTS, etc.
+  config      Json      // Widget-specific configuration
+
+  // For shared/default configs
+  isDefault   Boolean   @default(false)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([widgetType])
+}
+
+// Pre-built layout templates
+model LayoutTemplate {
+  id          String    @id @default(cuid())
+
+  name        String
+  description String
+  category    String    // 'beginner', 'advanced', 'minimal', 'options-trader', 'psychology'
+
+  widgets     Json      // Default widget configuration
+  thumbnail   String?   // Preview image URL
+
+  usageCount  Int       @default(0)
+  isActive    Boolean   @default(true)
+
+  createdAt   DateTime  @default(now())
+}
