@@ -99,7 +99,7 @@ async function fetchWidgetData(
       return fetchBiasTrackerData(config, searchParams);
 
     case 'CONVICTION_ANALYSIS':
-      return fetchConvictionAnalysisData(config);
+      return fetchConvictionAnalysisData();
 
     case 'OPEN_POSITIONS':
       return fetchOpenPositionsData(config, searchParams);
@@ -114,7 +114,7 @@ async function fetchWidgetData(
       return fetchTagCloudData(config, searchParams);
 
     case 'CALENDAR_HEATMAP':
-      return fetchCalendarHeatmapData(config, searchParams);
+      return fetchCalendarHeatmapData(config);
 
     case 'COACH_PROMPT':
       return fetchCoachPromptData(config);

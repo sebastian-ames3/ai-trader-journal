@@ -29,6 +29,7 @@ interface Message {
 }
 
 interface CoachChatProps {
+  sessionId?: string;
   initialMessages?: Message[];
   onSendMessage?: (message: string) => Promise<Message | null>;
   suggestedPrompts?: string[];
