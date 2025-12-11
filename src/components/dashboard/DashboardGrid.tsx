@@ -17,7 +17,7 @@ import {
   rectSortingStrategy,
   arrayMove,
 } from '@dnd-kit/sortable';
-import { Edit2, Check, RotateCcw, Plus } from 'lucide-react';
+import { Edit2, Check, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Widget, WidgetProps } from './Widget';
@@ -36,7 +36,7 @@ interface DashboardGridProps {
   widgets: WidgetConfig[];
   onWidgetsChange: (widgets: WidgetConfig[]) => void;
   onAddWidget?: () => void;
-  renderWidget: (config: WidgetConfig, isEditMode: boolean) => React.ReactNode;
+  renderWidget: (config: WidgetConfig) => React.ReactNode;
   className?: string;
 }
 
@@ -207,7 +207,7 @@ export function DashboardGrid({
                     handleWidgetSettingsChange(widget.id, settings)
                   }
                 >
-                  {renderWidget(widget, isEditMode)}
+                  {renderWidget(widget)}
                 </Widget>
               </div>
             ))}

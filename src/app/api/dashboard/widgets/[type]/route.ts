@@ -316,7 +316,7 @@ async function fetchBiasTrackerData(
   };
 }
 
-async function fetchConvictionAnalysisData(config: Record<string, unknown>) {
+async function fetchConvictionAnalysisData() {
   const entries = await prisma.entry.findMany({
     where: {
       OR: [
@@ -474,8 +474,7 @@ async function fetchTagCloudData(
 }
 
 async function fetchCalendarHeatmapData(
-  config: Record<string, unknown>,
-  searchParams: URLSearchParams
+  config: Record<string, unknown>
 ) {
   const months = parseInt(String(config.months || 3), 10);
   const startDate = subDays(new Date(), months * 30);

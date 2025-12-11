@@ -115,7 +115,8 @@ export async function POST(
       const patternAnalysis = await analyzeThesisPatterns();
 
       // Find patterns related to this thesis's characteristics
-      const similarTheses = await findSimilarTheses(
+      // Note: similarTheses result is computed for potential future use
+      await findSimilarTheses(
         existingThesis.ticker,
         existingThesis.thesisTrades[0]?.strategyType || undefined
       );

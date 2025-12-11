@@ -1,8 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Layout, RotateCcw, Save } from 'lucide-react';
+import { ArrowLeft, Layout, Save } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { DashboardGrid, WidgetConfig, WidgetSize } from '@/components/dashboard/DashboardGrid';
@@ -70,7 +69,6 @@ const LAYOUTS_STORAGE_KEY = 'dashboard-layouts';
 const ACTIVE_LAYOUT_KEY = 'dashboard-active-layout';
 
 export default function DashboardSettingsPage() {
-  const router = useRouter();
   const [widgets, setWidgets] = React.useState<WidgetConfig[]>([]);
   const [layouts, setLayouts] = React.useState<DashboardLayout[]>([DEFAULT_LAYOUT]);
   const [activeLayoutId, setActiveLayoutId] = React.useState('default');
@@ -180,7 +178,7 @@ export default function DashboardSettingsPage() {
   };
 
   // Render widget content
-  const renderWidget = (config: WidgetConfig, isEditMode: boolean) => {
+  const renderWidget = (config: WidgetConfig) => {
     return (
       <React.Suspense fallback={<WidgetSkeleton size={config.size} />}>
         {(() => {

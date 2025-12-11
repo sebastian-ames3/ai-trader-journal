@@ -296,9 +296,6 @@ export async function extractTradeData(
   try {
     const claude = getClaude();
 
-    // Determine media type from URL
-    const mediaType = getMediaTypeFromUrl(imageUrl);
-
     const response = await claude.messages.create({
       model: CLAUDE_MODELS.BALANCED,
       max_tokens: 1500,
@@ -428,17 +425,4 @@ export async function extractTradeDataFromBase64(
       processingTimeMs: Date.now() - startTime,
     };
   }
-}
-
-/**
- * Determines media type from URL extension
- */
-function getMediaTypeFromUrl(
-  url: string
-): 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' {
-  const lowercaseUrl = url.toLowerCase();
-  if (lowercaseUrl.includes('.png')) return 'image/png';
-  if (lowercaseUrl.includes('.gif')) return 'image/gif';
-  if (lowercaseUrl.includes('.webp')) return 'image/webp';
-  return 'image/jpeg';
 }

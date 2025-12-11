@@ -14,7 +14,6 @@ import {
   Bell,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -74,8 +73,8 @@ function formatDate(date: string): string {
 export default function SharingPage() {
   const router = useRouter();
   const [shares, setShares] = React.useState<ActiveShare[]>(MOCK_SHARES);
-  const [mentor, setMentor] = React.useState<Mentor | null>(MOCK_MENTOR);
-  const [partner, setPartner] = React.useState<Partner | null>(MOCK_PARTNER);
+  const [mentor] = React.useState<Mentor | null>(MOCK_MENTOR);
+  const [partner] = React.useState<Partner | null>(MOCK_PARTNER);
   const [copiedId, setCopiedId] = React.useState<string | null>(null);
   const [showInviteMentor, setShowInviteMentor] = React.useState(false);
   const [showInvitePartner, setShowInvitePartner] = React.useState(false);

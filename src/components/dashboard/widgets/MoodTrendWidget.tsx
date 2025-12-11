@@ -141,7 +141,7 @@ export function MoodTrendWidget({
       {moodData.length > 2 && (
         <div className="mt-auto pt-2 border-t border-slate-100 dark:border-slate-700">
           <div className="flex items-center justify-between h-8">
-            {moodData.slice(-7).map((data, index) => (
+            {moodData.slice(-7).map((data) => (
               <div
                 key={data.date}
                 className={cn(

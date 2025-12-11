@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ChevronLeft,
@@ -13,21 +12,20 @@ import {
   Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import GoalProgress, { Goal, GoalCard, GoalProgressSkeleton } from '@/components/coach/GoalProgress';
+import { Goal, GoalCard, GoalProgressSkeleton } from '@/components/coach/GoalProgress';
 import GoalForm, { GoalFormData } from '@/components/coach/GoalForm';
 import { cn } from '@/lib/utils';
 
 type FilterTab = 'ACTIVE' | 'COMPLETED' | 'ALL';
 
 export default function GoalsPage() {
-  const router = useRouter();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterTab>('ACTIVE');

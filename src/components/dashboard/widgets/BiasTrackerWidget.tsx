@@ -20,18 +20,6 @@ interface BiasTrackerWidgetProps {
   className?: string;
 }
 
-const BIAS_DESCRIPTIONS: Record<string, string> = {
-  CONFIRMATION_BIAS: 'Seeking info that confirms existing beliefs',
-  LOSS_AVERSION: 'Fear of losses outweighs potential gains',
-  OVERCONFIDENCE: 'Overestimating ability to predict outcomes',
-  RECENCY_BIAS: 'Overweighting recent events',
-  ANCHORING: 'Fixating on initial price/information',
-  FOMO: 'Fear of missing out on opportunities',
-  SUNK_COST_FALLACY: 'Continuing due to past investment',
-  HINDSIGHT_BIAS: 'Believing events were predictable',
-  AVAILABILITY_BIAS: 'Overweighting easily recalled info',
-};
-
 const BIAS_TIPS: Record<string, string> = {
   CONFIRMATION_BIAS: 'Actively seek opposing viewpoints before trading',
   LOSS_AVERSION: 'Set stop losses before entering trades',

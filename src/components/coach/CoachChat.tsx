@@ -29,7 +29,6 @@ interface Message {
 }
 
 interface CoachChatProps {
-  sessionId?: string;
   initialMessages?: Message[];
   onSendMessage?: (message: string) => Promise<Message | null>;
   suggestedPrompts?: string[];
@@ -230,7 +229,6 @@ function SuggestedPrompts({
 }
 
 export default function CoachChat({
-  sessionId,
   initialMessages = [],
   onSendMessage,
   suggestedPrompts = [
