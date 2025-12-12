@@ -6,6 +6,8 @@
  */
 
 import { NextResponse } from 'next/server';
+
+export const dynamic = 'force-dynamic';
 import { getLatestMarketCondition, fetchMarketSnapshot, classifyMarketState } from '@/lib/marketData';
 
 export async function GET() {
