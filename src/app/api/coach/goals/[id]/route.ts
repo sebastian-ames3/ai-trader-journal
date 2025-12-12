@@ -14,11 +14,12 @@ interface CheckIn {
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const goal = await prisma.coachGoal.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!goal) {
@@ -58,14 +59,15 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
 
     // Check if goal exists
     const existingGoal = await prisma.coachGoal.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!existingGoal) {
@@ -172,7 +174,7 @@ export async function PUT(
 
     // Update goal
     const goal = await prisma.coachGoal.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
     });
 
@@ -192,12 +194,13 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // Check if goal exists
     const existingGoal = await prisma.coachGoal.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!existingGoal) {
@@ -209,7 +212,7 @@ export async function DELETE(
 
     // Delete goal
     await prisma.coachGoal.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ success: true });

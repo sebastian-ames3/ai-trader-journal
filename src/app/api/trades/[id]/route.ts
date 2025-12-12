@@ -8,11 +8,12 @@ import { ThesisTradeStatus, StrategyType, Prisma } from '@prisma/client';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const trade = await prisma.thesisTrade.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         thesis: {
           select: {
@@ -51,14 +52,15 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
 
     // Check if trade exists
     const existingTrade = await prisma.thesisTrade.findUnique({
-      where: { id: params.id }
+      where: { id }
     });
 
     if (!existingTrade) {
@@ -108,7 +110,7 @@ export async function PATCH(
     // Update trade and recalculate thesis aggregates
     const trade = await prisma.$transaction(async (tx) => {
       const updatedTrade = await tx.thesisTrade.update({
-        where: { id: params.id },
+        where: { id },
         data: updateData,
         include: {
           thesis: {
@@ -170,12 +172,13 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // Check if trade exists and get thesis ID
     const existingTrade = await prisma.thesisTrade.findUnique({
-      where: { id: params.id }
+      where: { id }
     });
 
     if (!existingTrade) {
@@ -191,7 +194,7 @@ export async function DELETE(
     await prisma.$transaction(async (tx) => {
       // Delete trade (cascades to attachments)
       await tx.thesisTrade.delete({
-        where: { id: params.id }
+        where: { id }
       });
 
       // Update thesis aggregates if linked to a thesis

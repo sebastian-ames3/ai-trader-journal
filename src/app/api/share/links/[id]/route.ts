@@ -27,12 +27,13 @@ interface SharedContent {
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { searchParams } = new URL(request.url);
     const code = searchParams.get('code') || undefined;
-    const slug = params.id; // The id param represents the slug for public access
+    const slug = id; // The id param represents the slug for public access
 
     // Validate access
     const accessResult = await validateShareAccess(slug, code);

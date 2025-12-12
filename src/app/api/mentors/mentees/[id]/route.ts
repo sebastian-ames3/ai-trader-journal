@@ -13,10 +13,10 @@ import { redactEntry, RedactionSettings } from '@/lib/sharing';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     // Find the mentor relationship
     const relationship = await prisma.mentorRelationship.findUnique({

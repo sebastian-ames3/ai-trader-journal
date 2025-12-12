@@ -8,12 +8,13 @@ import { UpdateType } from '@prisma/client';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // Check if thesis exists
     const existingThesis = await prisma.tradingThesis.findUnique({
-      where: { id: params.id }
+      where: { id }
     });
 
     if (!existingThesis) {
@@ -24,7 +25,7 @@ export async function GET(
     }
 
     const updates = await prisma.thesisUpdate.findMany({
-      where: { thesisId: params.id },
+      where: { thesisId: id },
       orderBy: { date: 'desc' }
     });
 
@@ -44,9 +45,10 @@ export async function GET(
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
 
     // Validate required fields
@@ -67,7 +69,7 @@ export async function POST(
 
     // Check if thesis exists
     const existingThesis = await prisma.tradingThesis.findUnique({
-      where: { id: params.id }
+      where: { id }
     });
 
     if (!existingThesis) {
@@ -80,7 +82,7 @@ export async function POST(
     // Create update
     const update = await prisma.thesisUpdate.create({
       data: {
-        thesisId: params.id,
+        thesisId: id,
         type: body.type,
         content: body.content,
         entryId: body.entryId || null

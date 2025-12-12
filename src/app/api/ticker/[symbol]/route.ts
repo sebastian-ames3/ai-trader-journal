@@ -11,9 +11,9 @@ const USE_MOCK_DATA = process.env.USE_MOCK_DATA === 'true';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { symbol: string } }
+  { params }: { params: Promise<{ symbol: string }> }
 ) {
-  const { symbol } = params;
+  const { symbol } = await params;
 
   try {
     logger.debug('Ticker info request', { symbol, useMock: USE_MOCK_DATA });

@@ -24,8 +24,57 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "Trader Journal",
+    startupImage: [
+      // iPhone 14 Pro Max (430x932)
+      {
+        url: "/splash/apple-splash-1290-2796.png",
+        media: "(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)",
+      },
+      // iPhone 14 Pro (393x852)
+      {
+        url: "/splash/apple-splash-1179-2556.png",
+        media: "(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3)",
+      },
+      // iPhone 14/13/12 (390x844)
+      {
+        url: "/splash/apple-splash-1170-2532.png",
+        media: "(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)",
+      },
+      // iPhone SE 3rd gen (375x667)
+      {
+        url: "/splash/apple-splash-750-1334.png",
+        media: "(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)",
+      },
+      // iPad Pro 12.9" (1024x1366)
+      {
+        url: "/splash/apple-splash-2048-2732.png",
+        media: "(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2)",
+      },
+      // iPad Pro 11" (834x1194)
+      {
+        url: "/splash/apple-splash-1668-2388.png",
+        media: "(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2)",
+      },
+    ],
+  },
+  icons: {
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-capable": "yes",
+    "application-name": "Trader Journal",
+    "apple-mobile-web-app-title": "Trader Journal",
+    "msapplication-TileColor": "#171717",
+    "msapplication-config": "/browserconfig.xml",
   },
 };
 
