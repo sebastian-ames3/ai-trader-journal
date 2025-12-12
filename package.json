@@ -46,6 +46,8 @@
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-toast": "^1.2.15",
+    "@supabase/ssr": "^0.8.0",
+    "@supabase/supabase-js": "^2.87.1",
     "@types/lodash.debounce": "^4.0.9",
     "@types/react-window": "^1.8.8",
     "class-variance-authority": "^0.7.1",

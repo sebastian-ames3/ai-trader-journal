@@ -45,6 +45,9 @@ export function getOfflineQueueDB(): OfflineQueueDB {
   return db;
 }
 
+// Export singleton for direct access (used by clientCleanup)
+export const offlineDb = getOfflineQueueDB();
+
 /**
  * Add an entry to the offline queue
  */
