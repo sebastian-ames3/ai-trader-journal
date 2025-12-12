@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ThesisDirection, ThesisStatus, Prisma } from '@prisma/client';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/theses
  * List trading theses with optional filters

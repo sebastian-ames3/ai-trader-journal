@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { TradeAction, StrategyType, ThesisTradeStatus, Prisma } from '@prisma/client';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/trades
  * List trades with optional filters

@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { EntryType, EntryMood, ConvictionLevel, CaptureMethod, Prisma } from '@prisma/client';
 import { updateStreakAfterEntry, getCelebrationMessage } from '@/lib/streakTracking';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/entries
  * List journal entries with optional filters
