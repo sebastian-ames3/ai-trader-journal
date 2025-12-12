@@ -259,3 +259,29 @@ agent-os/**/implementation/
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# ==========================================
+# Personal/Private Files (NEVER commit)
+# ==========================================
+
+# Project instructions and changelogs
+CLAUDE.md
+CHANGELOG.md
+
+# Product specs and PRDs (local development only)
+specs/
+agent-os/
+design/
+
+# Claude Code agents (development tools)
+.claude/agents/
+.claude/*.md
+!.claude/commands/
+
+# Draft documents
+PRD-*.md
+*-prompt.md
+*.prd.md
+
+# Local design folder
+design/
