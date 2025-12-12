@@ -1,0 +1,118 @@
+name: Scheduled Cron Jobs
+
+on:
+  schedule:
+    # Market check: Every 30 min during market hours (Mon-Fri 9:30am-4pm ET)
+    # Note: GitHub uses UTC. ET = UTC-5 (winter) or UTC-4 (summer)
+    # 9:30am-4pm ET ≈ 13:30-21:00 UTC (winter) / 13:30-20:00 UTC (summer)
+    - cron: '30 13-20 * * 1-5'  # market-check
+
+    # Daily reminder: 4:30pm ET Mon-Fri (21:30 UTC winter / 20:30 UTC summer)
+    - cron: '30 21 * * 1-5'     # daily-reminder
+
+    # Weekly review: Sunday 10pm ET (Mon 03:00 UTC winter / 02:00 UTC summer)
+    - cron: '0 3 * * 1'         # weekly-review
+
+    # Pattern analysis: 7am ET daily (12:00 UTC winter / 11:00 UTC summer)
+    - cron: '0 12 * * *'        # pattern-analysis
+
+  # Allow manual trigger for testing
+  workflow_dispatch:
+    inputs:
+      endpoint:
+        description: 'Which endpoint to call'
+        required: true
+        type: choice
+        options:
+          - market-check
+          - daily-reminder
+          - weekly-review
+          - pattern-analysis
+
+env:
+  BASE_URL: https://ai-trader-journal.vercel.app
+
+jobs:
+  market-check:
+    if: github.event.schedule == '30 13-20 * * 1-5' || github.event.inputs.endpoint == 'market-check'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call market-check endpoint
+        run: |
+          response=$(curl -s -w "\n%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ env.BASE_URL }}/api/cron/market-check")
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "Response: $body"
+          echo "Status: $http_code"
+
+          if [ "$http_code" -ne 200 ]; then
+            echo "::error::API returned $http_code"
+            exit 1
+          fi
+
+  daily-reminder:
+    if: github.event.schedule == '30 21 * * 1-5' || github.event.inputs.endpoint == 'daily-reminder'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call daily-reminder endpoint
+        run: |
+          response=$(curl -s -w "\n%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ env.BASE_URL }}/api/cron/daily-reminder")
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "Response: $body"
+          echo "Status: $http_code"
+
+          if [ "$http_code" -ne 200 ]; then
+            echo "::error::API returned $http_code"
+            exit 1
+          fi
+
+  weekly-review:
+    if: github.event.schedule == '0 3 * * 1' || github.event.inputs.endpoint == 'weekly-review'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call weekly-review endpoint
+        run: |
+          response=$(curl -s -w "\n%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ env.BASE_URL }}/api/cron/weekly-review")
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "Response: $body"
+          echo "Status: $http_code"
+
+          if [ "$http_code" -ne 200 ]; then
+            echo "::error::API returned $http_code"
+            exit 1
+          fi
+
+  pattern-analysis:
+    if: github.event.schedule == '0 12 * * *' || github.event.inputs.endpoint == 'pattern-analysis'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call pattern-analysis endpoint
+        run: |
+          response=$(curl -s -w "\n%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ env.BASE_URL }}/api/cron/pattern-analysis")
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "Response: $body"
+          echo "Status: $http_code"
+
+          if [ "$http_code" -ne 200 ]; then
+            echo "::error::API returned $http_code"
+            exit 1
+          fi
