@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { GoalStatus, GoalTimeframe } from '@prisma/client';
 import { GOAL_TEMPLATES } from '@/lib/coach';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/coach/goals
  * List coach goals with optional filters

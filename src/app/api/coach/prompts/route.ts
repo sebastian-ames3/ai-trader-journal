@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { PromptStatus } from '@prisma/client';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/coach/prompts
  * Get pending coach prompts

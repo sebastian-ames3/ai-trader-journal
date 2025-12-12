@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { RelationshipStatus } from '@prisma/client';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/mentors/comments
  * Add a comment on a shared entry
