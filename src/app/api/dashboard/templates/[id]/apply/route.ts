@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { LAYOUT_TEMPLATES, generateWidgetId, WidgetInstance } from '@/lib/dashboard';
 
 interface RouteParams {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 /**
@@ -23,7 +23,7 @@ export async function POST(
   { params }: RouteParams
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     // Parse optional body
     let body: { name?: string; description?: string; activate?: boolean } = {};

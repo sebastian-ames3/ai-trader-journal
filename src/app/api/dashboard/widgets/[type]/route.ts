@@ -9,7 +9,7 @@ import {
 import { startOfWeek, endOfWeek, subDays } from 'date-fns';
 
 interface RouteParams {
-  params: { type: string };
+  params: Promise<{ type: string }>;
 }
 
 /**
@@ -26,7 +26,7 @@ export async function GET(
   { params }: RouteParams
 ) {
   try {
-    const { type } = params;
+    const { type } = await params;
 
     // Validate widget type
     if (!isValidWidgetType(type)) {

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 interface RouteParams {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 /**
@@ -16,9 +16,10 @@ export async function POST(
   { params }: RouteParams
 ) {
   try {
+    const { id } = await params;
     // Check if layout exists
     const layout = await prisma.dashboardLayout.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!layout) {
@@ -43,7 +44,7 @@ export async function POST(
 
       // Activate the specified layout
       return tx.dashboardLayout.update({
-        where: { id: params.id },
+        where: { id },
         data: { isActive: true },
       });
     });

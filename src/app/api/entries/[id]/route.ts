@@ -49,12 +49,13 @@ function isSignificantChange(oldContent: string, newContent: string): boolean {
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const entry = await prisma.entry.findUnique({
       where: {
-        id: params.id
+        id
       },
       include: {
         tags: true,
@@ -86,14 +87,15 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
 
     // Check if entry exists
     const existingEntry = await prisma.entry.findUnique({
-      where: { id: params.id }
+      where: { id }
     });
 
     if (!existingEntry) {
@@ -153,7 +155,7 @@ export async function PUT(
     // Update entry
     const entry = await prisma.entry.update({
       where: {
-        id: params.id
+        id
       },
       data: {
         type: body.type,
@@ -184,12 +186,13 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // Check if entry exists
     const existingEntry = await prisma.entry.findUnique({
-      where: { id: params.id }
+      where: { id }
     });
 
     if (!existingEntry) {
@@ -202,7 +205,7 @@ export async function DELETE(
     // Delete entry
     await prisma.entry.delete({
       where: {
-        id: params.id
+        id
       }
     });
 

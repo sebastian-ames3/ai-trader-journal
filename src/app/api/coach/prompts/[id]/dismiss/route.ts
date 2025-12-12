@@ -8,12 +8,13 @@ import { PromptStatus } from '@prisma/client';
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // Check if prompt exists
     const existingPrompt = await prisma.coachPrompt.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!existingPrompt) {
@@ -33,7 +34,7 @@ export async function POST(
 
     // Update prompt status to dismissed
     const prompt = await prisma.coachPrompt.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         status: PromptStatus.DISMISSED,
         dismissedAt: new Date(),

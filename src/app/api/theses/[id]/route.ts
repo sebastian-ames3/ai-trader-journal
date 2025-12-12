@@ -8,11 +8,12 @@ import { ThesisStatus } from '@prisma/client';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const thesis = await prisma.tradingThesis.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         thesisTrades: {
           orderBy: { openedAt: 'desc' },
@@ -50,14 +51,15 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
 
     // Check if thesis exists
     const existingThesis = await prisma.tradingThesis.findUnique({
-      where: { id: params.id }
+      where: { id }
     });
 
     if (!existingThesis) {
@@ -88,7 +90,7 @@ export async function PATCH(
 
     // Update thesis
     const thesis = await prisma.tradingThesis.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
       include: {
         thesisTrades: {
@@ -124,12 +126,13 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // Check if thesis exists
     const existingThesis = await prisma.tradingThesis.findUnique({
-      where: { id: params.id }
+      where: { id }
     });
 
     if (!existingThesis) {
@@ -141,7 +144,7 @@ export async function DELETE(
 
     // Delete thesis (cascades to trades, updates, attachments)
     await prisma.tradingThesis.delete({
-      where: { id: params.id }
+      where: { id }
     });
 
     return NextResponse.json({ success: true });

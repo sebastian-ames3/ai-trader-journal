@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { generateWidgetId, isValidWidgetType, WidgetInstance } from '@/lib/dashboard';
 
 interface RouteParams {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 /**
@@ -15,8 +15,9 @@ export async function GET(
   { params }: RouteParams
 ) {
   try {
+    const { id } = await params;
     const layout = await prisma.dashboardLayout.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!layout) {
@@ -52,9 +53,10 @@ export async function PUT(
   { params }: RouteParams
 ) {
   try {
+    const { id } = await params;
     // Check if layout exists
     const existingLayout = await prisma.dashboardLayout.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!existingLayout) {
@@ -137,7 +139,7 @@ export async function PUT(
         const existingSlug = await prisma.dashboardLayout.findUnique({
           where: { shareSlug: body.shareSlug },
         });
-        if (existingSlug && existingSlug.id !== params.id) {
+        if (existingSlug && existingSlug.id !== id) {
           return NextResponse.json(
             { error: 'Share slug already in use' },
             { status: 400 }
@@ -149,7 +151,7 @@ export async function PUT(
 
     // Update the layout
     const layout = await prisma.dashboardLayout.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
     });
 
@@ -172,9 +174,10 @@ export async function DELETE(
   { params }: RouteParams
 ) {
   try {
+    const { id } = await params;
     // Check if layout exists
     const existingLayout = await prisma.dashboardLayout.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!existingLayout) {
@@ -197,7 +200,7 @@ export async function DELETE(
       // Find another layout to activate
       const anotherLayout = await prisma.dashboardLayout.findFirst({
         where: {
-          id: { not: params.id },
+          id: { not: id },
         },
         orderBy: [
           { isDefault: 'desc' },
@@ -215,7 +218,7 @@ export async function DELETE(
 
     // Delete the layout
     await prisma.dashboardLayout.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ success: true });

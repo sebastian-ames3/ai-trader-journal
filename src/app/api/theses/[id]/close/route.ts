@@ -12,9 +12,10 @@ import { analyzeThesisPatterns, findSimilarTheses } from '@/lib/thesisPatterns';
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
 
     // Validate required fields
@@ -35,7 +36,7 @@ export async function POST(
 
     // Check if thesis exists
     const existingThesis = await prisma.tradingThesis.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         thesisTrades: true
       }
@@ -69,7 +70,7 @@ export async function POST(
       // Close all open trades
       await tx.thesisTrade.updateMany({
         where: {
-          thesisId: params.id,
+          thesisId: id,
           status: ThesisTradeStatus.OPEN
         },
         data: {
@@ -80,7 +81,7 @@ export async function POST(
 
       // Update thesis with closure data
       return tx.tradingThesis.update({
-        where: { id: params.id },
+        where: { id },
         data: {
           status: ThesisStatus.CLOSED,
           closedAt: new Date(),
@@ -155,7 +156,7 @@ export async function POST(
       // Store learned patterns on the thesis if any were detected
       if (learnedPatterns.length > 0) {
         await prisma.tradingThesis.update({
-          where: { id: params.id },
+          where: { id },
           data: {
             learnedPatterns
           }

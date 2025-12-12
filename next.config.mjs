@@ -15,6 +15,12 @@ const pwaConfig = withPWA({
   disable: process.env.NODE_ENV === 'development',
   register: true,
   skipWaiting: true,
+  fallbacks: {
+    document: '/offline',
+    image: '/icon-192.png',
+  },
+  cacheOnFrontEndNav: true,
+  reloadOnOnline: true,
   runtimeCaching: [
     {
       urlPattern: /^https:\/\/fonts\.(?:gstatic)\.com\/.*/i,
@@ -134,7 +140,55 @@ const pwaConfig = withPWA({
       options: {
         cacheName: 'api-entries',
         expiration: {
+          maxEntries: 64,
+          maxAgeSeconds: 5 * 60, // 5 minutes
+        },
+        networkTimeoutSeconds: 10,
+      },
+    },
+    {
+      urlPattern: /\/api\/theses/i,
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'api-theses',
+        expiration: {
           maxEntries: 32,
+          maxAgeSeconds: 5 * 60, // 5 minutes
+        },
+        networkTimeoutSeconds: 10,
+      },
+    },
+    {
+      urlPattern: /\/api\/coach/i,
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'api-coach',
+        expiration: {
+          maxEntries: 32,
+          maxAgeSeconds: 5 * 60, // 5 minutes
+        },
+        networkTimeoutSeconds: 10,
+      },
+    },
+    {
+      urlPattern: /\/api\/insights/i,
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'api-insights',
+        expiration: {
+          maxEntries: 16,
+          maxAgeSeconds: 10 * 60, // 10 minutes (insights change less frequently)
+        },
+        networkTimeoutSeconds: 10,
+      },
+    },
+    {
+      urlPattern: /\/api\/share/i,
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'api-share',
+        expiration: {
+          maxEntries: 16,
           maxAgeSeconds: 5 * 60, // 5 minutes
         },
         networkTimeoutSeconds: 10,
@@ -146,7 +200,7 @@ const pwaConfig = withPWA({
       options: {
         cacheName: 'api-cache',
         expiration: {
-          maxEntries: 16,
+          maxEntries: 32,
           maxAgeSeconds: 5 * 60, // 5 minutes
         },
         networkTimeoutSeconds: 10,

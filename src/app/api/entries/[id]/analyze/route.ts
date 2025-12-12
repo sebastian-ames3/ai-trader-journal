@@ -8,12 +8,13 @@ import { analyzeEntryText } from '@/lib/aiAnalysis';
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // Fetch the entry
     const entry = await prisma.entry.findUnique({
-      where: { id: params.id }
+      where: { id }
     });
 
     if (!entry) {
@@ -32,7 +33,7 @@ export async function POST(
 
     // Update entry with analysis results
     const updatedEntry = await prisma.entry.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         sentiment: analysis.sentiment,
         emotionalKeywords: analysis.emotionalKeywords,

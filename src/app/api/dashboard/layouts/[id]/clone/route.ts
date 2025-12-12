@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { generateWidgetId, WidgetInstance } from '@/lib/dashboard';
 
 interface RouteParams {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 /**
@@ -19,9 +19,10 @@ export async function POST(
   { params }: RouteParams
 ) {
   try {
+    const { id } = await params;
     // Find the source layout
     const sourceLayout = await prisma.dashboardLayout.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!sourceLayout) {

@@ -7,11 +7,12 @@ import { prisma } from '@/lib/prisma';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await prisma.coachSession.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!session) {
@@ -40,12 +41,13 @@ export async function GET(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // Check if session exists
     const existingSession = await prisma.coachSession.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!existingSession) {
@@ -57,7 +59,7 @@ export async function DELETE(
 
     // Delete session
     await prisma.coachSession.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ success: true });

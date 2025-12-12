@@ -13,14 +13,15 @@ import { generateSessionSummary } from '@/lib/coach';
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
 
     // Check if session exists
     const existingSession = await prisma.coachSession.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!existingSession) {
@@ -68,7 +69,7 @@ export async function POST(
 
     // Update session with ending data
     const session = await prisma.coachSession.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         endedAt: new Date(),
         userRating: body.rating ? parseInt(body.rating, 10) : null,
