@@ -9,12 +9,6 @@ import { updateSession } from '@/lib/supabase/middleware'
  * - Redirects authenticated users away from /login
  */
 export async function middleware(request: NextRequest) {
-  const { response, supabase } = await updateSession(request)
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
   const { pathname } = request.nextUrl
 
   // Public routes that don't require authentication
@@ -37,24 +31,42 @@ export async function middleware(request: NextRequest) {
 
   // Allow API routes and static assets through (except protected API routes handled elsewhere)
   if (isStaticOrApi && !pathname.startsWith('/api/auth')) {
+    return NextResponse.next()
+  }
+
+  // Allow public routes through without auth check
+  if (isPublicRoute) {
+    return NextResponse.next()
+  }
+
+  try {
+    const { response, supabase } = await updateSession(request)
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    // Redirect authenticated users away from login page
+    if (user && pathname === '/login') {
+      const redirectUrl = new URL('/', request.url)
+      return NextResponse.redirect(redirectUrl)
+    }
+
+    // Redirect unauthenticated users to login
+    if (!user) {
+      const redirectUrl = new URL('/login', request.url)
+      redirectUrl.searchParams.set('next', pathname)
+      return NextResponse.redirect(redirectUrl)
+    }
+
     return response
-  }
-
-  // Redirect authenticated users away from login page
-  if (user && pathname === '/login') {
-    const redirectUrl = new URL('/', request.url)
-    return NextResponse.redirect(redirectUrl)
-  }
-
-  // Redirect unauthenticated users to login (except public routes)
-  if (!user && !isPublicRoute) {
+  } catch (error) {
+    // On any error, redirect to login for protected routes
+    console.error('Middleware auth error:', error)
     const redirectUrl = new URL('/login', request.url)
-    // Preserve the intended destination
     redirectUrl.searchParams.set('next', pathname)
     return NextResponse.redirect(redirectUrl)
   }
-
-  return response
 }
 
 export const config = {
