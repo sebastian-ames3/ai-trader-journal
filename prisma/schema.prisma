@@ -25,6 +25,7 @@ model User {
   notes               Note[]
   entries             Entry[]
   theses              TradingThesis[]
+  thesisTrades        ThesisTrade[]
   coachSessions       CoachSession[]
   coachGoals          CoachGoal[]
   coachPrompts        CoachPrompt[]
@@ -180,6 +181,10 @@ model Entry {
   tradeId String? // Optional link to Trade (null if Trade deleted)
   trade   Trade?  @relation(fields: [tradeId], references: [id], onDelete: SetNull)
 
+  // Link to ThesisTrade (PRD-digitization-import)
+  thesisTradeId String?
+  thesisTrade   ThesisTrade? @relation(fields: [thesisTradeId], references: [id], onDelete: SetNull)
+
   snapshotId String?   @unique // Optional link to market conditions snapshot
   snapshot   Snapshot? @relation(fields: [snapshotId], references: [id], onDelete: SetNull)
 
@@ -195,6 +200,10 @@ model Entry {
   imageUrls     String[] // Screenshot URLs (Cloudflare R2)
   imageAnalyses Json? // GPT-4o vision analysis results
   captureMethod CaptureMethod @default(TEXT) // How the entry was captured
+
+  // OCR metadata (PRD-digitization-import)
+  isOcrScanned  Boolean @default(false)
+  ocrConfidence Float? // 0-1 confidence score
 
   // AI analysis fields (Phase 2 - Issue #20)
   sentiment          String? // AI-detected sentiment: positive/negative/neutral
@@ -218,6 +227,7 @@ model Entry {
   @@index([mood])
   @@index([conviction])
   @@index([tradeId])
+  @@index([thesisTradeId])
   @@index([userId])
 }
 
@@ -507,6 +517,14 @@ enum AttachmentType {
   VIDEO
 }
 
+// Trade source for import tracking (PRD-digitization-import)
+enum TradeSource {
+  MANUAL
+  OPTIONSTRAT
+  SCHWAB
+  SCREENSHOT
+}
+
 // Options strategy types
 enum StrategyType {
   LONG_CALL
@@ -609,8 +627,23 @@ model ThesisTrade {
   reasoningEntryId String? // Link to journal entry
   reasoningNote    String? @db.Text
 
+  // Import tracking (PRD-digitization-import)
+  source       TradeSource @default(MANUAL)
+  importedAt   DateTime?
+  importBatch  String? // Group imports by batch ID
+
+  // Broker integration (future)
+  brokerOrderId  String?  @unique
+  brokerFees     Float?
+  brokerAccount  String?
+
+  // User ownership
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   // Attachments
   attachments ThesisTradeAttachment[]
+  entries     Entry[] // Journal entries linked to this trade
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -618,6 +651,8 @@ model ThesisTrade {
   @@index([thesisId])
   @@index([openedAt(sort: Desc)])
   @@index([status])
+  @@index([source])
+  @@index([userId])
 }
 
 // Thesis updates - how the thesis evolved over time
