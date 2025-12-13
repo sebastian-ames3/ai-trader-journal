@@ -9,6 +9,8 @@ import { updateSession } from '@/lib/supabase/middleware'
  * - Redirects authenticated users away from /login
  */
 export async function middleware(request: NextRequest) {
+  console.log('[Middleware] Running for path:', request.nextUrl.pathname)
+
   const { pathname } = request.nextUrl
 
   // Public routes that don't require authentication
@@ -39,34 +41,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  try {
-    const { response, supabase } = await updateSession(request)
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    // Redirect authenticated users away from login page
-    if (user && pathname === '/login') {
-      const redirectUrl = new URL('/', request.url)
-      return NextResponse.redirect(redirectUrl)
-    }
-
-    // Redirect unauthenticated users to login
-    if (!user) {
-      const redirectUrl = new URL('/login', request.url)
-      redirectUrl.searchParams.set('next', pathname)
-      return NextResponse.redirect(redirectUrl)
-    }
-
-    return response
-  } catch (error) {
-    // On any error, redirect to login for protected routes
-    console.error('Middleware auth error:', error)
-    const redirectUrl = new URL('/login', request.url)
-    redirectUrl.searchParams.set('next', pathname)
-    return NextResponse.redirect(redirectUrl)
-  }
+  // TEMP: Force redirect to login to test middleware is running
+  const redirectUrl = new URL('/login', request.url)
+  redirectUrl.searchParams.set('next', pathname)
+  return NextResponse.redirect(redirectUrl)
 }
 
 export const config = {
