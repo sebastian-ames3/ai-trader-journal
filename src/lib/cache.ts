@@ -68,6 +68,7 @@ class Cache {
 // Singleton cache instance
 const cache = new Cache();
 export default cache;
+export { cache };
 
 /**
  * Cache TTL constants (in milliseconds)
@@ -75,6 +76,8 @@ export default cache;
 export const CacheTTL = {
   ONE_MINUTE: 60 * 1000,
   FIVE_MINUTES: 5 * 60 * 1000,
+  FIFTEEN_MINUTES: 15 * 60 * 1000,
+  THIRTY_MINUTES: 30 * 60 * 1000,
   ONE_HOUR: 60 * 60 * 1000,
   ONE_DAY: 24 * 60 * 60 * 1000,
 } as const;
@@ -83,12 +86,17 @@ export const CacheTTL = {
  * Cache key generators for consistent key formatting
  */
 export const CacheKeys = {
+  // Market data
   priceHistory: (ticker: string, days: number) => `price_history_${ticker}_${days}`,
   tickerInfo: (ticker: string) => `ticker_info_${ticker}`,
   tickerSearch: (query: string) => `ticker_search_${query.toLowerCase()}`,
   quote: (ticker: string) => `quote_${ticker}`,
   optionsExpirations: (ticker: string) => `options_expirations_${ticker}`,
   optionsChain: (ticker: string, expiration: string) => `options_chain_${ticker}_${expiration}`,
+
+  // OCR & Import (PRD-digitization-import)
+  ocrResult: (imageHash: string) => `ocr_result_${imageHash}`,
+  importPreview: (importToken: string) => `import_preview_${importToken}`,
 } as const;
 
 /**
