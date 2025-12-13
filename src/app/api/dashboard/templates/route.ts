@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { LAYOUT_TEMPLATES, generateWidgetId } from '@/lib/dashboard';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/dashboard/templates
  * Get all available layout templates
