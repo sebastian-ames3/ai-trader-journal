@@ -204,7 +204,54 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create entry with media fields
+    // Validate thesisTradeId if provided
+    if (body.thesisTradeId) {
+      const tradeExists = await prisma.thesisTrade.findFirst({
+        where: {
+          id: body.thesisTradeId,
+          userId: user.id
+        }
+      });
+
+      if (!tradeExists) {
+        return NextResponse.json(
+          { error: 'Invalid thesisTradeId - trade not found or not owned by user' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Parse createdAt override (for OCR-extracted dates)
+    let entryDate: Date | undefined;
+    if (body.createdAt) {
+      try {
+        entryDate = new Date(body.createdAt);
+        if (isNaN(entryDate.getTime())) {
+          return NextResponse.json(
+            { error: 'Invalid createdAt date format' },
+            { status: 400 }
+          );
+        }
+      } catch {
+        return NextResponse.json(
+          { error: 'Invalid createdAt date format' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate OCR confidence if provided
+    if (body.ocrConfidence !== undefined) {
+      const confidence = parseFloat(body.ocrConfidence);
+      if (isNaN(confidence) || confidence < 0 || confidence > 1) {
+        return NextResponse.json(
+          { error: 'ocrConfidence must be a number between 0 and 1' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Create entry with media fields and OCR data
     const entry = await prisma.entry.create({
       data: {
         userId: user.id,
@@ -221,7 +268,14 @@ export async function POST(request: NextRequest) {
         transcription: body.transcription || null,
         imageUrls: body.imageUrls || [],
         imageAnalyses: body.imageAnalyses || null,
-        captureMethod: body.captureMethod || CaptureMethod.TEXT
+        captureMethod: body.captureMethod || CaptureMethod.TEXT,
+        // ThesisTrade link (PRD-digitization-import)
+        thesisTradeId: body.thesisTradeId || null,
+        // OCR metadata (PRD-digitization-import)
+        isOcrScanned: body.isOcrScanned || false,
+        ocrConfidence: body.ocrConfidence ? parseFloat(body.ocrConfidence) : null,
+        // Date override (for OCR-extracted dates)
+        createdAt: entryDate
       },
       include: {
         tags: true
