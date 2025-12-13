@@ -3,8 +3,6 @@ import { prisma } from '@/lib/prisma';
 import { RelationshipStatus } from '@prisma/client';
 import { startOfWeek, endOfWeek, subDays } from 'date-fns';
 
-export const dynamic = 'force-dynamic';
-
 /**
  * Mentee overview with stats for the mentor dashboard
  */
