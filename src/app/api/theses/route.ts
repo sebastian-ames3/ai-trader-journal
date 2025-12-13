@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ThesisDirection, ThesisStatus, Prisma } from '@prisma/client';
+import { requireAuth } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +18,9 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
+    const { user, error } = await requireAuth();
+    if (error) return error;
+
     const { searchParams } = new URL(request.url);
 
     // Parse filter parameters
@@ -27,7 +31,7 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
     // Build where clause
-    const where: Prisma.TradingThesisWhereInput = {};
+    const where: Prisma.TradingThesisWhereInput = { userId: user.id };
 
     // Status filter
     if (status && Object.values(ThesisStatus).includes(status as ThesisStatus)) {
@@ -106,6 +110,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const { user, error } = await requireAuth();
+    if (error) return error;
+
     const body = await request.json();
 
     // Validate required fields
@@ -127,6 +134,7 @@ export async function POST(request: NextRequest) {
     // Create thesis
     const thesis = await prisma.tradingThesis.create({
       data: {
+        userId: user.id,
         name: body.name,
         ticker: body.ticker.toUpperCase(),
         direction: body.direction,

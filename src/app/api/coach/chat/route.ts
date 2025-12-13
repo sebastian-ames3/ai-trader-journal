@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { processCoachMessage, CoachContext } from '@/lib/coach';
 import { handleClaudeError, isClaudeConfigured } from '@/lib/claude';
+import { requireAuth } from '@/lib/auth';
 
 /**
  * POST /api/coach/chat
@@ -17,6 +18,9 @@ import { handleClaudeError, isClaudeConfigured } from '@/lib/claude';
  */
 export async function POST(request: NextRequest) {
   try {
+    const { user, error } = await requireAuth();
+    if (error) return error;
+
     // Check if Claude is configured
     if (!isClaudeConfigured()) {
       return NextResponse.json(
@@ -62,6 +66,7 @@ export async function POST(request: NextRequest) {
 
     // Process the message
     const result = await processCoachMessage(
+      user.id,
       body.sessionId || null,
       body.message.trim(),
       context

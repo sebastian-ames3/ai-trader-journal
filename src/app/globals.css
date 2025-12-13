@@ -37,6 +37,7 @@
     --brand-primary: 222 47% 11%;
     --brand-accent: 38 92% 50%;
     --brand-accent-light: 45 93% 58%;
+    --brand-green: 142 76% 36%; /* #16A34A */
 
     /* Semantic colors */
     --success: 142 76% 36%;
@@ -151,6 +152,17 @@
 @layer utilities {
   .border-border {
     border-color: hsl(var(--border));
+  }
+
+  /* Brand green utilities */
+  .text-brand-green {
+    color: hsl(var(--brand-green));
+  }
+  .bg-brand-green {
+    background-color: hsl(var(--brand-green));
+  }
+  .border-brand-green {
+    border-color: hsl(var(--brand-green));
   }
 }
 

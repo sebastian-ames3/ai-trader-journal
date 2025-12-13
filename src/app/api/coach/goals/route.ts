@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { GoalStatus, GoalTimeframe } from '@prisma/client';
 import { GOAL_TEMPLATES } from '@/lib/coach';
+import { requireAuth } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +22,9 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
+    const { user, error } = await requireAuth();
+    if (error) return error;
+
     const { searchParams } = new URL(request.url);
 
     const status = searchParams.get('status');
@@ -28,7 +32,7 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
     // Build where clause
-    const where: { status?: GoalStatus } = {};
+    const where: { userId: string; status?: GoalStatus } = { userId: user.id };
 
     if (status && Object.values(GoalStatus).includes(status as GoalStatus)) {
       where.status = status as GoalStatus;
@@ -82,6 +86,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const { user, error } = await requireAuth();
+    if (error) return error;
+
     const body = await request.json();
 
     // Validate required fields
@@ -146,6 +153,7 @@ export async function POST(request: NextRequest) {
     // Create goal
     const goal = await prisma.coachGoal.create({
       data: {
+        userId: user.id,
         goal: body.goal.trim(),
         description: body.description?.trim() || null,
         metricType: body.metricType || null,

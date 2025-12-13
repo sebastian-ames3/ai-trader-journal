@@ -8,12 +8,42 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============================================
+// User Authentication (Phase 5 - Spec 11)
+// ============================================
+
+model User {
+  id          String   @id @default(cuid())
+  supabaseId  String   @unique
+  email       String   @unique
+  displayName String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations - one-to-many
+  trades              Trade[]
+  notes               Note[]
+  entries             Entry[]
+  theses              TradingThesis[]
+  coachSessions       CoachSession[]
+  coachGoals          CoachGoal[]
+  coachPrompts        CoachPrompt[]
+  shareLinks          ShareLink[]
+  mentorRelationships MentorRelationship[]
+  accountabilityPairs AccountabilityPair[]
+  dashboardLayouts    DashboardLayout[]
+  settings            Settings? // One-to-one
+
+  @@index([supabaseId])
+  @@index([email])
+}
+
 // Entry types for journal entries
 enum EntryType {
-  TRADE_IDEA    // Pre-trade thoughts and analysis
-  TRADE         // Actual executed trade (links to Trade model)
-  REFLECTION    // Post-trade analysis and lessons learned
-  OBSERVATION   // General market observations and notes
+  TRADE_IDEA // Pre-trade thoughts and analysis
+  TRADE // Actual executed trade (links to Trade model)
+  REFLECTION // Post-trade analysis and lessons learned
+  OBSERVATION // General market observations and notes
 }
 
 // Trader's emotional state when creating entry
@@ -34,138 +64,152 @@ enum ConvictionLevel {
 
 // Capture method for journal entries (Phase 2 - Frictionless Capture)
 enum CaptureMethod {
-  TEXT            // Traditional typed entry
-  VOICE           // Voice memo with transcription
-  SCREENSHOT      // Image/screenshot with AI analysis
-  QUICK_CAPTURE   // Quick text with auto-inference
+  TEXT // Traditional typed entry
+  VOICE // Voice memo with transcription
+  SCREENSHOT // Image/screenshot with AI analysis
+  QUICK_CAPTURE // Quick text with auto-inference
 }
 
 model Trade {
-  id              String    @id @default(cuid())
-  ticker          String
-  strategy        String
-  status          String    @default("open")
-  entryDate       DateTime  @default(now())
-  exitDate        DateTime?
+  id        String    @id @default(cuid())
+  ticker    String
+  strategy  String
+  status    String    @default("open")
+  entryDate DateTime  @default(now())
+  exitDate  DateTime?
 
-  legs            Json
-  entryPrice      Float
-  exitPrice       Float?
-  contracts       Int
+  legs       Json
+  entryPrice Float
+  exitPrice  Float?
+  contracts  Int
 
-  accountSize     Float
-  riskPercentage  Float
-  maxLoss         Float
+  accountSize    Float
+  riskPercentage Float
+  maxLoss        Float
 
-  iv              Float
-  hv20            Float
-  hv30            Float
-  ivHvRatio       Float
+  iv        Float
+  hv20      Float
+  hv30      Float
+  ivHvRatio Float
 
   underlyingPrice Float
   volume          Int
   openInterest    Int
   bidAskSpread    Float
 
-  rationale       String?
-  marketRegime    String?
+  rationale    String?
+  marketRegime String?
 
   // Options-specific fields (Issue #50)
-  expirationDate  DateTime?  // Option expiration date
-  strikePrice     Float?     // Primary strike (or lowest strike for multi-leg)
-  optionType      String?    // 'CALL' or 'PUT' (null for multi-leg)
+  expirationDate DateTime? // Option expiration date
+  strikePrice    Float? // Primary strike (or lowest strike for multi-leg)
+  optionType     String? // 'CALL' or 'PUT' (null for multi-leg)
 
   // Entry price tracking for P/L calculation (Issue #55)
-  entryPrices     Json?      // Array of {legId, price, timestamp} for each leg
-  currentPrices   Json?      // Current market prices (updated daily)
-  currentPL       Float?     // Cached unrealized P/L
-  currentPLPercent Float?    // Cached P/L percentage
-  lastPriceUpdate DateTime?  // When prices were last updated
+  entryPrices      Json? // Array of {legId, price, timestamp} for each leg
+  currentPrices    Json? // Current market prices (updated daily)
+  currentPL        Float? // Cached unrealized P/L
+  currentPLPercent Float? // Cached P/L percentage
+  lastPriceUpdate  DateTime? // When prices were last updated
 
   // Exit price tracking
-  exitPrices      Json?      // Array of {legId, price, timestamp} for exit
-  realizedPL      Float?     // Final P/L when closed
+  exitPrices Json? // Array of {legId, price, timestamp} for exit
+  realizedPL Float? // Final P/L when closed
 
-  notes           Note[]
-  tags            Tag[]     @relation("TradeTags")
-  snapshot        Snapshot?
-  entries         Entry[]   // Journal entries related to this trade
+  // User ownership
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  notes    Note[]
+  tags     Tag[]     @relation("TradeTags")
+  snapshot Snapshot?
+  entries  Entry[] // Journal entries related to this trade
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([ticker])
   @@index([entryDate(sort: Desc)])
   @@index([status])
   @@index([expirationDate])
+  @@index([userId])
 }
 
 model Note {
-  id        String   @id @default(cuid())
-  content   String
-  type      String   @default("general")
+  id      String @id @default(cuid())
+  content String
+  type    String @default("general")
 
-  tradeId   String?
-  trade     Trade?   @relation(fields: [tradeId], references: [id])
+  tradeId String?
+  trade   Trade?  @relation(fields: [tradeId], references: [id])
+
+  // User ownership
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([tradeId])
+  @@index([userId])
 }
 
 model Tag {
-  id      String   @id @default(cuid())
-  name    String   @unique
-  trades  Trade[]  @relation("TradeTags")
-  entries Entry[]  @relation("EntryTags")
+  id      String  @id @default(cuid())
+  name    String  @unique
+  trades  Trade[] @relation("TradeTags")
+  entries Entry[] @relation("EntryTags")
 }
 
 // Journal Entry model - standalone entries that can optionally link to trades
 model Entry {
-  id       String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Entry classification
-  type     EntryType
+  type EntryType
 
   // Core content (Phase 1)
-  content  String   @db.Text  // Main journal text, supports full-text search
-  mood     EntryMood?
+  content    String           @db.Text // Main journal text, supports full-text search
+  mood       EntryMood?
   conviction ConvictionLevel?
 
   // Optional associations
-  ticker   String?  // Optional ticker symbol - entries don't require a ticker
+  ticker String? // Optional ticker symbol - entries don't require a ticker
 
   // Relationships
-  tradeId     String?    // Optional link to Trade (null if Trade deleted)
-  trade       Trade?     @relation(fields: [tradeId], references: [id], onDelete: SetNull)
+  tradeId String? // Optional link to Trade (null if Trade deleted)
+  trade   Trade?  @relation(fields: [tradeId], references: [id], onDelete: SetNull)
 
-  snapshotId  String?    @unique  // Optional link to market conditions snapshot
-  snapshot    Snapshot?  @relation(fields: [snapshotId], references: [id], onDelete: SetNull)
+  snapshotId String?   @unique // Optional link to market conditions snapshot
+  snapshot   Snapshot? @relation(fields: [snapshotId], references: [id], onDelete: SetNull)
 
-  tags        Tag[]      @relation("EntryTags")
+  tags Tag[] @relation("EntryTags")
 
   // Ticker mentions (Phase 2 - Context Surfacing)
   tickerMentions TickerMention[]
 
   // Media fields (Phase 2 - Frictionless Capture)
-  audioUrl      String?        // Voice note URL (Cloudflare R2)
-  audioDuration Int?           // Duration in seconds
-  transcription String?   @db.Text  // Whisper transcription of voice note
-  imageUrls     String[]       // Screenshot URLs (Cloudflare R2)
-  imageAnalyses Json?          // GPT-4o vision analysis results
-  captureMethod CaptureMethod  @default(TEXT)  // How the entry was captured
+  audioUrl      String? // Voice note URL (Cloudflare R2)
+  audioDuration Int? // Duration in seconds
+  transcription String?       @db.Text // Whisper transcription of voice note
+  imageUrls     String[] // Screenshot URLs (Cloudflare R2)
+  imageAnalyses Json? // GPT-4o vision analysis results
+  captureMethod CaptureMethod @default(TEXT) // How the entry was captured
 
   // AI analysis fields (Phase 2 - Issue #20)
-  sentiment          String?    // AI-detected sentiment: positive/negative/neutral
-  emotionalKeywords  String[]   // AI-extracted emotional keywords
-  detectedBiases     String[]   // AI-identified cognitive biases
-  aiTags             String[]   // AI-generated tags
-  convictionInferred ConvictionLevel?  // AI-inferred conviction vs user-selected
+  sentiment          String? // AI-detected sentiment: positive/negative/neutral
+  emotionalKeywords  String[] // AI-extracted emotional keywords
+  detectedBiases     String[] // AI-identified cognitive biases
+  aiTags             String[] // AI-generated tags
+  convictionInferred ConvictionLevel? // AI-inferred conviction vs user-selected
+
+  // User ownership
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Timestamps
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Indexes for common query patterns
   @@index([type])
@@ -174,51 +218,56 @@ model Entry {
   @@index([mood])
   @@index([conviction])
   @@index([tradeId])
+  @@index([userId])
 }
 
 model Snapshot {
-  id           String   @id @default(cuid())
-  tradeId      String   @unique
-  trade        Trade    @relation(fields: [tradeId], references: [id])
+  id      String @id @default(cuid())
+  tradeId String @unique
+  trade   Trade  @relation(fields: [tradeId], references: [id])
 
-  price      Float?    // Underlying price at snapshot
-  volume     Int?      // Volume
-  openInterest Int?    // Open interest
+  price        Float? // Underlying price at snapshot
+  volume       Int? // Volume
+  openInterest Int? // Open interest
 
-  marketData   Json
-  greeks       Json?
-  chainData    Json
-  hv20        Float?    // 20-day historical volatility
-  hv30        Float?    // 30-day historical volatility
-  hvSource    String?   // Data source (e.g., "yfinance")
-  newsEvents   Json?
-  calcAt      DateTime? // When HV was calculated
+  marketData Json
+  greeks     Json?
+  chainData  Json
+  hv20       Float? // 20-day historical volatility
+  hv30       Float? // 30-day historical volatility
+  hvSource   String? // Data source (e.g., "yfinance")
+  newsEvents Json?
+  calcAt     DateTime? // When HV was calculated
 
-  iv         Float?    // Implied volatility as decimal (0.285 = 28.5%)
-  ivTermDays Int?      // Term in days, default 30
-  ivSource   String?   // Source of IV data, default "manual"
+  iv         Float? // Implied volatility as decimal (0.285 = 28.5%)
+  ivTermDays Int? // Term in days, default 30
+  ivSource   String? // Source of IV data, default "manual"
   ivAt       DateTime? // When IV was recorded
 
-  entry        Entry?    // Optional link back to journal entry
+  entry Entry? // Optional link back to journal entry
 
-  capturedAt   DateTime @default(now())
+  capturedAt DateTime @default(now())
 }
 
 model Settings {
-  id                String   @id @default("default")
-  defaultRisk       Float    @default(1.0)
-  accountSize       Float    @default(10000)
-  liquidityThreshold Float   @default(100)
-  ivThreshold       Float    @default(80)
+  id                 String @id @default(cuid())
+  defaultRisk        Float  @default(1.0)
+  accountSize        Float  @default(10000)
+  liquidityThreshold Float  @default(100)
+  ivThreshold        Float  @default(80)
 
   // Journaling streak tracking (Issue #34)
-  currentStreak     Int      @default(0)    // Consecutive days with ≥1 entry
-  longestStreak     Int      @default(0)    // All-time best streak
-  totalEntries      Int      @default(0)    // Total entry count
-  lastEntryDate     DateTime?              // Last entry date for streak calculation
-  lastGraceDate     DateTime?              // Last grace day used (for 1-day forgiveness)
+  currentStreak Int       @default(0) // Consecutive days with ≥1 entry
+  longestStreak Int       @default(0) // All-time best streak
+  totalEntries  Int       @default(0) // Total entry count
+  lastEntryDate DateTime? // Last entry date for streak calculation
+  lastGraceDate DateTime? // Last grace day used (for 1-day forgiveness)
 
-  updatedAt         DateTime @updatedAt
+  // User ownership (one-to-one)
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  updatedAt DateTime @updatedAt
 }
 
 // ============================================
@@ -227,26 +276,26 @@ model Settings {
 
 // Notification type categories
 enum NotificationType {
-  MARKET_CONDITION    // Market down/up alerts
-  TICKER_MOVE         // User's mentioned tickers move
-  TIME_BASED          // Daily/weekly prompts
-  JOURNAL_NUDGE       // Silence detection
-  HISTORICAL_CONTEXT  // Similar past entry surfacing
+  MARKET_CONDITION // Market down/up alerts
+  TICKER_MOVE // User's mentioned tickers move
+  TIME_BASED // Daily/weekly prompts
+  JOURNAL_NUDGE // Silence detection
+  HISTORICAL_CONTEXT // Similar past entry surfacing
 }
 
 // Market state classification
 enum MarketState {
-  UP        // SPY > +1%
-  DOWN      // SPY < -1%
-  FLAT      // -1% to +1%
-  VOLATILE  // VIX > 25 or |SPY| > 2%
+  UP // SPY > +1%
+  DOWN // SPY < -1%
+  FLAT // -1% to +1%
+  VOLATILE // VIX > 25 or |SPY| > 2%
 }
 
 // Push notification subscriptions
 model PushSubscription {
   id        String   @id @default(cuid())
   endpoint  String   @unique
-  keys      Json     // { p256dh: string, auth: string }
+  keys      Json // { p256dh: string, auth: string }
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -255,12 +304,12 @@ model PushSubscription {
 
 // User notification preferences
 model UserNotificationPrefs {
-  id                  String  @id @default("default")
+  id String @id @default("default")
 
   // Market alerts
-  marketAlerts        Boolean @default(true)   // Big market moves
-  vixAlerts           Boolean @default(true)   // VIX spikes
-  tickerAlerts        Boolean @default(true)   // User's tickers move
+  marketAlerts Boolean @default(true) // Big market moves
+  vixAlerts    Boolean @default(true) // VIX spikes
+  tickerAlerts Boolean @default(true) // User's tickers move
 
   // Time-based prompts
   dailyReflection     Boolean @default(true)
@@ -269,27 +318,27 @@ model UserNotificationPrefs {
   tradeIdeaFollowups  Boolean @default(true)
 
   // Journal nudges
-  journalNudgeDays    Int     @default(7)      // Days of silence before nudge
+  journalNudgeDays Int @default(7) // Days of silence before nudge
 
   // Quiet hours (no notifications)
-  quietHoursStart     String  @default("21:00")
-  quietHoursEnd       String  @default("07:00")
+  quietHoursStart String @default("21:00")
+  quietHoursEnd   String @default("07:00")
 
-  updatedAt           DateTime @updatedAt
+  updatedAt DateTime @updatedAt
 }
 
 // Notification log for tracking engagement
 model NotificationLog {
-  id         String           @id @default(cuid())
-  type       NotificationType
-  trigger    String           // "market_down_2pct", "vix_spike", etc.
-  title      String
-  body       String
-  data       Json?            // Additional context
-  sentAt     DateTime         @default(now())
-  engagedAt  DateTime?        // When user clicked/responded
-  dismissed  Boolean          @default(false)
-  snoozedTo  DateTime?        // If snoozed, when to remind again
+  id        String           @id @default(cuid())
+  type      NotificationType
+  trigger   String // "market_down_2pct", "vix_spike", etc.
+  title     String
+  body      String
+  data      Json? // Additional context
+  sentAt    DateTime         @default(now())
+  engagedAt DateTime? // When user clicked/responded
+  dismissed Boolean          @default(false)
+  snoozedTo DateTime? // If snoozed, when to remind again
 
   @@index([type])
   @@index([sentAt(sort: Desc)])
@@ -300,14 +349,14 @@ model MarketCondition {
   id          String      @id @default(cuid())
   date        DateTime    @unique
   spyPrice    Float
-  spyChange   Float       // Daily percentage change
+  spyChange   Float // Daily percentage change
   qqqPrice    Float?
   qqqChange   Float?
   vixLevel    Float
-  vixChange   Float?      // Daily change in VIX
+  vixChange   Float? // Daily change in VIX
   marketState MarketState
 
-  createdAt   DateTime    @default(now())
+  createdAt DateTime @default(now())
 
   @@index([date(sort: Desc)])
   @@index([marketState])
@@ -319,33 +368,33 @@ model MarketCondition {
 
 // Types of behavioral patterns
 enum PatternType {
-  TIMING           // Early exits, late entries, etc.
-  CONVICTION       // Conviction patterns over time
-  EMOTIONAL        // Emotional response patterns
+  TIMING // Early exits, late entries, etc.
+  CONVICTION // Conviction patterns over time
+  EMOTIONAL // Emotional response patterns
   MARKET_CONDITION // Behavior during specific market conditions
-  STRATEGY         // Strategy-related patterns
-  BIAS_FREQUENCY   // Recurring cognitive biases
+  STRATEGY // Strategy-related patterns
+  BIAS_FREQUENCY // Recurring cognitive biases
 }
 
 // Pattern trend direction
 enum Trend {
-  INCREASING  // Pattern becoming more frequent
-  STABLE      // Pattern frequency unchanged
-  DECREASING  // Pattern becoming less frequent
+  INCREASING // Pattern becoming more frequent
+  STABLE // Pattern frequency unchanged
+  DECREASING // Pattern becoming less frequent
 }
 
 // Detected behavioral patterns
 model PatternInsight {
   id              String      @id @default(cuid())
   patternType     PatternType
-  patternName     String      // "fomo_trading", "drawdown_silence", etc.
+  patternName     String // "fomo_trading", "drawdown_silence", etc.
   description     String      @db.Text
-  occurrences     Int         // Number of times pattern detected
-  trend           Trend       // Is pattern increasing/decreasing?
-  confidence      Float       // 0-1 confidence score
-  relatedEntryIds String[]    // IDs of entries that form this pattern
-  evidence        String[]    // Quotes/excerpts from entries
-  outcomeData     Json?       // { winRate, avgReturn, etc. }
+  occurrences     Int // Number of times pattern detected
+  trend           Trend // Is pattern increasing/decreasing?
+  confidence      Float // 0-1 confidence score
+  relatedEntryIds String[] // IDs of entries that form this pattern
+  evidence        String[] // Quotes/excerpts from entries
+  outcomeData     Json? // { winRate, avgReturn, etc. }
   firstDetected   DateTime    @default(now())
   lastUpdated     DateTime    @default(now())
   isActive        Boolean     @default(true)
@@ -364,11 +413,11 @@ model PatternInsight {
 // Track ticker mentions in entries for quick lookup
 model TickerMention {
   id        String   @id @default(cuid())
-  ticker    String   // Normalized ticker symbol (uppercase)
+  ticker    String // Normalized ticker symbol (uppercase)
   entryId   String
   createdAt DateTime @default(now())
 
-  entry     Entry    @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  entry Entry @relation(fields: [entryId], references: [id], onDelete: Cascade)
 
   @@index([ticker])
   @@index([entryId])
@@ -377,17 +426,17 @@ model TickerMention {
 
 // Cache market snapshots for historical context
 model MarketSnapshot {
-  id        String   @id @default(cuid())
-  ticker    String
-  date      DateTime // Date of snapshot (day granularity)
-  price     Float
-  change    Float    // Percentage change
-  volume    Float?
-  iv        Float?   // Implied volatility
-  hv20      Float?   // 20-day historical volatility
-  ivRank    Float?   // IV rank (0-100)
-  high52w   Float?   // 52-week high
-  low52w    Float?   // 52-week low
+  id      String   @id @default(cuid())
+  ticker  String
+  date    DateTime // Date of snapshot (day granularity)
+  price   Float
+  change  Float // Percentage change
+  volume  Float?
+  iv      Float? // Implied volatility
+  hv20    Float? // 20-day historical volatility
+  ivRank  Float? // IV rank (0-100)
+  high52w Float? // 52-week high
+  low52w  Float? // 52-week low
 
   createdAt DateTime @default(now())
 
@@ -424,14 +473,14 @@ enum ThesisOutcome {
 
 // Types of trade actions
 enum TradeAction {
-  INITIAL     // Opening position
-  ADD         // Adding to position
-  REDUCE      // Reducing position
-  ROLL        // Rolling to new expiration/strikes
-  CONVERT     // Converting strategy type
-  CLOSE       // Closing position
-  ASSIGNED    // Option assigned
-  EXERCISED   // Option exercised
+  INITIAL // Opening position
+  ADD // Adding to position
+  REDUCE // Reducing position
+  ROLL // Rolling to new expiration/strikes
+  CONVERT // Converting strategy type
+  CLOSE // Closing position
+  ASSIGNED // Option assigned
+  EXERCISED // Option exercised
 }
 
 // Status of individual trades
@@ -482,84 +531,89 @@ enum StrategyType {
 
 // Trading Thesis - groups related trades under one idea
 model TradingThesis {
-  id                   String          @id @default(cuid())
+  id String @id @default(cuid())
 
   // Identity
-  name                 String          // "NVDA Bullish Q4 2024"
-  ticker               String          // Primary ticker
-  direction            ThesisDirection
+  name      String // "NVDA Bullish Q4 2024"
+  ticker    String // Primary ticker
+  direction ThesisDirection
 
   // The "why"
-  originalThesis       String          @db.Text  // Initial reasoning
+  originalThesis String @db.Text // Initial reasoning
 
   // Status
-  status               ThesisStatus    @default(ACTIVE)
-  startedAt            DateTime        @default(now())
-  closedAt             DateTime?
+  status    ThesisStatus @default(ACTIVE)
+  startedAt DateTime     @default(now())
+  closedAt  DateTime?
 
   // Calculated aggregates (updated on trade changes)
-  totalRealizedPL      Float           @default(0)
-  totalUnrealizedPL    Float           @default(0)
-  totalCapitalDeployed Float           @default(0)
+  totalRealizedPL      Float @default(0)
+  totalUnrealizedPL    Float @default(0)
+  totalCapitalDeployed Float @default(0)
 
   // Outcome
-  outcome              ThesisOutcome?
-  lessonsLearned       String?         @db.Text
+  outcome        ThesisOutcome?
+  lessonsLearned String?        @db.Text
 
   // AI-generated
-  aiSummary            String?
-  learnedPatterns      String[]
+  aiSummary       String?
+  learnedPatterns String[]
+
+  // User ownership
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Relations
-  thesisTrades         ThesisTrade[]
-  updates              ThesisUpdate[]
-  attachments          ThesisAttachment[]
+  thesisTrades ThesisTrade[]
+  updates      ThesisUpdate[]
+  attachments  ThesisAttachment[]
 
-  createdAt            DateTime        @default(now())
-  updatedAt            DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([ticker])
   @@index([status])
   @@index([startedAt(sort: Desc)])
+  @@index([userId])
 }
 
 // ThesisTrade - Individual trades within a thesis
 model ThesisTrade {
-  id                String           @id @default(cuid())
-  thesisId          String?
-  thesis            TradingThesis?   @relation(fields: [thesisId], references: [id], onDelete: SetNull)
+  id       String         @id @default(cuid())
+  thesisId String?
+  thesis   TradingThesis? @relation(fields: [thesisId], references: [id], onDelete: SetNull)
 
   // Action type
-  action            TradeAction
-  previousTradeId   String?          // What this trade adjusted (for rolls/converts)
+  action          TradeAction
+  previousTradeId String? // What this trade adjusted (for rolls/converts)
 
   // Description
-  description       String           @db.Text
-  strategyType      StrategyType?
+  description  String        @db.Text
+  strategyType StrategyType?
 
   // Timing
-  openedAt          DateTime         @default(now())
-  closedAt          DateTime?
-  expiration        DateTime?
+  openedAt   DateTime  @default(now())
+  closedAt   DateTime?
+  expiration DateTime?
 
   // Financials (user-provided)
-  debitCredit       Float            // Positive = paid, negative = received
-  quantity          Int              @default(1)
-  realizedPL        Float?           // When closed
-  status            ThesisTradeStatus @default(OPEN)
+  debitCredit Float // Positive = paid, negative = received
+  quantity    Int               @default(1)
+  realizedPL  Float? // When closed
+  status      ThesisTradeStatus @default(OPEN)
 
   // Context (extracted from screenshots or user input)
-  extractedData     Json?
+  extractedData Json?
 
   // Reasoning
-  reasoningEntryId  String?          // Link to journal entry
-  reasoningNote     String?          @db.Text
+  reasoningEntryId String? // Link to journal entry
+  reasoningNote    String? @db.Text
 
   // Attachments
-  attachments       ThesisTradeAttachment[]
+  attachments ThesisTradeAttachment[]
 
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([thesisId])
   @@index([openedAt(sort: Desc)])
@@ -568,14 +622,14 @@ model ThesisTrade {
 
 // Thesis updates - how the thesis evolved over time
 model ThesisUpdate {
-  id        String        @id @default(cuid())
-  thesisId  String
-  thesis    TradingThesis @relation(fields: [thesisId], references: [id], onDelete: Cascade)
+  id       String        @id @default(cuid())
+  thesisId String
+  thesis   TradingThesis @relation(fields: [thesisId], references: [id], onDelete: Cascade)
 
-  date      DateTime      @default(now())
-  type      UpdateType
-  content   String        @db.Text
-  entryId   String?       // Linked journal entry
+  date    DateTime   @default(now())
+  type    UpdateType
+  content String     @db.Text
+  entryId String? // Linked journal entry
 
   @@index([thesisId])
   @@index([date(sort: Desc)])
@@ -583,40 +637,40 @@ model ThesisUpdate {
 
 // Attachments for theses
 model ThesisAttachment {
-  id                   String         @id @default(cuid())
-  thesisId             String
-  thesis               TradingThesis  @relation(fields: [thesisId], references: [id], onDelete: Cascade)
+  id       String        @id @default(cuid())
+  thesisId String
+  thesis   TradingThesis @relation(fields: [thesisId], references: [id], onDelete: Cascade)
 
-  type                 AttachmentType
-  url                  String
-  filename             String
+  type     AttachmentType
+  url      String
+  filename String
 
   // AI extraction
-  extractedText        String?        @db.Text
+  extractedText        String? @db.Text
   extractedData        Json?
   extractionConfidence Float?
 
-  createdAt            DateTime       @default(now())
+  createdAt DateTime @default(now())
 
   @@index([thesisId])
 }
 
 // Attachments for thesis trades
 model ThesisTradeAttachment {
-  id                   String         @id @default(cuid())
-  tradeId              String
-  trade                ThesisTrade    @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  id      String      @id @default(cuid())
+  tradeId String
+  trade   ThesisTrade @relation(fields: [tradeId], references: [id], onDelete: Cascade)
 
-  type                 AttachmentType
-  url                  String
-  filename             String
+  type     AttachmentType
+  url      String
+  filename String
 
   // AI extraction
-  extractedText        String?        @db.Text
+  extractedText        String? @db.Text
   extractedData        Json?
   extractionConfidence Float?
 
-  createdAt            DateTime       @default(now())
+  createdAt DateTime @default(now())
 
   @@index([tradeId])
 }
@@ -650,88 +704,103 @@ enum PromptStatus {
 
 // Coach conversation sessions
 model CoachSession {
-  id              String    @id @default(cuid())
+  id String @id @default(cuid())
 
-  messages        Json      // Array of { role: 'user' | 'assistant', content: string, timestamp: string }
+  messages Json // Array of { role: 'user' | 'assistant', content: string, timestamp: string }
 
   // Session metadata
-  triggerType     String?   // What started this session (e.g., 'emotional_entry', 'loss_streak')
-  triggerEntryId  String?   // Related entry if any
+  triggerType    String? // What started this session (e.g., 'emotional_entry', 'loss_streak')
+  triggerEntryId String? // Related entry if any
 
   // Context tracked
   topicsDiscussed   String[]
   entriesReferenced String[]
-  emotionalTone     String?   // 'supportive' | 'challenging' | 'celebratory'
+  emotionalTone     String? // 'supportive' | 'challenging' | 'celebratory'
 
   // Outcomes
-  actionItems     String[]
-  goalsSet        String[]  // Goal IDs created during session
+  actionItems String[]
+  goalsSet    String[] // Goal IDs created during session
 
   // Feedback
-  userRating      Int?      // 1-5
-  userFeedback    String?
-  wasHelpful      Boolean?
+  userRating   Int? // 1-5
+  userFeedback String?
+  wasHelpful   Boolean?
 
   // AI-generated session summary
-  summary         String?   @db.Text
+  summary String? @db.Text
 
-  startedAt       DateTime  @default(now())
-  endedAt         DateTime?
+  // User ownership
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
 
   @@index([startedAt(sort: Desc)])
+  @@index([userId])
 }
 
 // Coach goals for tracking progress
 model CoachGoal {
-  id          String        @id @default(cuid())
+  id String @id @default(cuid())
 
-  goal        String        // e.g., "Reduce FOMO trades"
+  goal        String // e.g., "Reduce FOMO trades"
   description String?
 
   // Measurement
-  metricType  String?       // e.g., 'bias_count', 'win_rate', 'streak'
-  metricName  String?       // e.g., 'FOMO', 'HIGH_CONVICTION'
-  targetValue Float?
+  metricType   String? // e.g., 'bias_count', 'win_rate', 'streak'
+  metricName   String? // e.g., 'FOMO', 'HIGH_CONVICTION'
+  targetValue  Float?
   currentValue Float?
 
   // Timeline
-  timeframe   GoalTimeframe @default(WEEKLY)
-  startDate   DateTime      @default(now())
-  endDate     DateTime?
+  timeframe GoalTimeframe @default(WEEKLY)
+  startDate DateTime      @default(now())
+  endDate   DateTime?
 
   // Progress
-  status      GoalStatus    @default(ACTIVE)
-  progress    Float         @default(0) // 0-100 percentage
-  checkIns    Json?         // Array of { date, value, note }
+  status   GoalStatus @default(ACTIVE)
+  progress Float      @default(0) // 0-100 percentage
+  checkIns Json? // Array of { date, value, note }
 
   // Outcome
   completedAt DateTime?
-  reflection  String?       @db.Text
+  reflection  String?   @db.Text
 
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  // User ownership
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([status])
   @@index([startDate(sort: Desc)])
+  @@index([userId])
 }
 
 // Proactive coach prompts
 model CoachPrompt {
-  id          String       @id @default(cuid())
+  id String @id @default(cuid())
 
-  triggerType String       // e.g., 'emotional_entry', 'loss_streak', 'bias_alert'
-  message     String       @db.Text
-  context     Json?        // Additional context data
+  triggerType String // e.g., 'emotional_entry', 'loss_streak', 'bias_alert'
+  message     String @db.Text
+  context     Json? // Additional context data
 
   // State
   status      PromptStatus @default(PENDING)
   respondedAt DateTime?
   dismissedAt DateTime?
 
-  createdAt   DateTime     @default(now())
+  // User ownership
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
 
   @@index([status])
   @@index([createdAt(sort: Desc)])
+  @@index([userId])
 }
 
 // ============================================
@@ -766,10 +835,10 @@ enum PairStatus {
 
 // Share links for entries/insights
 model ShareLink {
-  id            String    @id @default(cuid())
-  slug          String    @unique  // URL-friendly ID
+  id   String @id @default(cuid())
+  slug String @unique // URL-friendly ID
 
-  type          ShareType
+  type ShareType
 
   // Content references
   entryIds      String[]
@@ -777,42 +846,47 @@ model ShareLink {
   includeFields String[]
 
   // Access control
-  accessCode    String?   // Hashed if set
+  accessCode     String? // Hashed if set
   recipientEmail String?
-  expiresAt     DateTime?
-  maxViews      Int?
-  viewCount     Int       @default(0)
+  expiresAt      DateTime?
+  maxViews       Int?
+  viewCount      Int       @default(0)
 
   // Privacy settings
-  redactPL      Boolean   @default(true)
-  redactTickers Boolean   @default(false)
-  redactDates   Boolean   @default(false)
-  anonymize     Boolean   @default(false)
+  redactPL      Boolean @default(true)
+  redactTickers Boolean @default(false)
+  redactDates   Boolean @default(false)
+  anonymize     Boolean @default(false)
 
   // Status
-  isActive      Boolean   @default(true)
-  lastViewedAt  DateTime?
+  isActive     Boolean   @default(true)
+  lastViewedAt DateTime?
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  // User ownership
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([slug])
   @@index([isActive])
   @@index([createdAt(sort: Desc)])
+  @@index([userId])
 }
 
 // Mentor-mentee relationships
 model MentorRelationship {
-  id            String    @id @default(cuid())
+  id String @id @default(cuid())
 
-  mentorEmail   String    // Mentor's email (may not have account)
-  mentorName    String?   // Display name
+  mentorEmail String // Mentor's email (may not have account)
+  mentorName  String? // Display name
 
   // Permissions (what mentee shares)
-  shareWeeklyInsights Boolean @default(true)
-  shareBiasPatterns   Boolean @default(true)
+  shareWeeklyInsights    Boolean @default(true)
+  shareBiasPatterns      Boolean @default(true)
   shareIndividualEntries Boolean @default(false)
-  sharePLData         Boolean @default(false)
+  sharePLData            Boolean @default(false)
 
   // Shared entries (explicit shares)
   sharedEntryIds String[]
@@ -821,36 +895,41 @@ model MentorRelationship {
   lastInteraction DateTime?
   messageCount    Int       @default(0)
 
-  status        RelationshipStatus @default(PENDING)
-  requestedBy   String    // Who initiated ('mentor' or 'mentee')
+  status      RelationshipStatus @default(PENDING)
+  requestedBy String // Who initiated ('mentor' or 'mentee')
 
   // Invite token for accepting
-  inviteToken   String    @unique @default(cuid())
+  inviteToken     String    @unique @default(cuid())
   inviteExpiresAt DateTime?
 
-  createdAt     DateTime  @default(now())
-  acceptedAt    DateTime?
-  endedAt       DateTime?
+  // User ownership (the mentee)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  comments      MentorComment[]
+  createdAt  DateTime  @default(now())
+  acceptedAt DateTime?
+  endedAt    DateTime?
+
+  comments MentorComment[]
 
   @@index([mentorEmail])
   @@index([status])
   @@index([inviteToken])
+  @@index([userId])
 }
 
 // Mentor comments on shared entries
 model MentorComment {
-  id             String    @id @default(cuid())
+  id             String @id @default(cuid())
   relationshipId String
   entryId        String
 
-  authorType     String    // 'mentor' or 'mentee'
-  content        String    @db.Text
+  authorType String // 'mentor' or 'mentee'
+  content    String @db.Text
 
-  relationship   MentorRelationship @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
+  relationship MentorRelationship @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
 
-  createdAt      DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   @@index([relationshipId])
   @@index([entryId])
@@ -858,10 +937,10 @@ model MentorComment {
 
 // Accountability partnerships
 model AccountabilityPair {
-  id            String    @id @default(cuid())
+  id String @id @default(cuid())
 
-  partnerEmail  String    // Partner's email
-  partnerName   String?   // Display name
+  partnerEmail String // Partner's email
+  partnerName  String? // Display name
 
   // Sharing settings
   shareStreak           Boolean @default(true)
@@ -870,45 +949,50 @@ model AccountabilityPair {
   shareMoodTrend        Boolean @default(false)
 
   // Notifications
-  notifyOnJournal       Boolean @default(true)
-  notifyOnMilestone     Boolean @default(true)
-  notifyOnStreakBreak   Boolean @default(false)
+  notifyOnJournal     Boolean @default(true)
+  notifyOnMilestone   Boolean @default(true)
+  notifyOnStreakBreak Boolean @default(false)
 
-  status        PairStatus @default(PENDING)
-  requestedBy   String    // Who initiated
+  status      PairStatus @default(PENDING)
+  requestedBy String // Who initiated
 
   // Invite token for accepting
-  inviteToken   String    @unique @default(cuid())
+  inviteToken     String    @unique @default(cuid())
   inviteExpiresAt DateTime?
 
-  createdAt     DateTime  @default(now())
-  acceptedAt    DateTime?
+  // User ownership
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime  @default(now())
+  acceptedAt DateTime?
 
   @@index([partnerEmail])
   @@index([status])
   @@index([inviteToken])
+  @@index([userId])
 }
 
 // Discord webhook integrations
 model DiscordWebhook {
-  id            String    @id @default(cuid())
+  id String @id @default(cuid())
 
-  webhookUrl    String
-  serverId      String?   // For tracking
-  channelName   String?
+  webhookUrl  String
+  serverId    String? // For tracking
+  channelName String?
 
   // Triggers
   onStreakMilestone Boolean @default(true)
   onWeeklyInsights  Boolean @default(false)
   onPatternBreak    Boolean @default(false)
 
-  anonymize     Boolean   @default(true)
-  includeStats  Boolean   @default(false)
+  anonymize    Boolean @default(true)
+  includeStats Boolean @default(false)
 
-  isActive      Boolean   @default(true)
-  lastUsedAt    DateTime?
+  isActive   Boolean   @default(true)
+  lastUsedAt DateTime?
 
-  createdAt     DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   @@index([isActive])
 }
@@ -936,57 +1020,62 @@ enum WidgetCategory {
 
 // Dashboard layouts
 model DashboardLayout {
-  id          String    @id @default(cuid())
+  id String @id @default(cuid())
 
   name        String
   description String?
-  isDefault   Boolean   @default(false)
-  isActive    Boolean   @default(false)  // Currently selected
+  isDefault   Boolean @default(false)
+  isActive    Boolean @default(false) // Currently selected
 
   // Grid configuration stored as JSON
   // Array of { widgetId, widgetType, config, position: { mobile, tablet, desktop } }
-  widgets     Json
+  widgets Json
 
   // Sharing
-  isPublic    Boolean   @default(false)
-  shareSlug   String?   @unique
+  isPublic  Boolean @default(false)
+  shareSlug String? @unique
 
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  // User ownership
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([isActive])
   @@index([isDefault])
+  @@index([userId])
 }
 
 // Per-widget configuration
 model WidgetConfig {
-  id          String    @id @default(cuid())
+  id String @id @default(cuid())
 
-  widgetType  String    // QUICK_CAPTURE, STREAK, WEEKLY_INSIGHTS, etc.
-  config      Json      // Widget-specific configuration
+  widgetType String // QUICK_CAPTURE, STREAK, WEEKLY_INSIGHTS, etc.
+  config     Json // Widget-specific configuration
 
   // For shared/default configs
-  isDefault   Boolean   @default(false)
+  isDefault Boolean @default(false)
 
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([widgetType])
 }
 
 // Pre-built layout templates
 model LayoutTemplate {
-  id          String    @id @default(cuid())
+  id String @id @default(cuid())
 
   name        String
   description String
-  category    String    // 'beginner', 'advanced', 'minimal', 'options-trader', 'psychology'
+  category    String // 'beginner', 'advanced', 'minimal', 'options-trader', 'psychology'
 
-  widgets     Json      // Default widget configuration
-  thumbnail   String?   // Preview image URL
+  widgets   Json // Default widget configuration
+  thumbnail String? // Preview image URL
 
-  usageCount  Int       @default(0)
-  isActive    Boolean   @default(true)
+  usageCount Int     @default(0)
+  isActive   Boolean @default(true)
 
-  createdAt   DateTime  @default(now())
+  createdAt DateTime @default(now())
 }

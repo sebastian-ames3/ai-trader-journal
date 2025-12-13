@@ -6,6 +6,7 @@ import {
   hashAccessCode,
   getExpirationDate
 } from '@/lib/sharing';
+import { requireAuth } from '@/lib/auth';
 
 /**
  * GET /api/share/links
@@ -13,7 +14,11 @@ import {
  */
 export async function GET() {
   try {
+    const { user, error } = await requireAuth();
+    if (error) return error;
+
     const links = await prisma.shareLink.findMany({
+      where: { userId: user.id },
       orderBy: { createdAt: 'desc' }
     });
 
@@ -47,6 +52,9 @@ export async function GET() {
  */
 export async function POST(request: NextRequest) {
   try {
+    const { user, error } = await requireAuth();
+    if (error) return error;
+
     const body = await request.json();
 
     // Validate required fields
@@ -85,10 +93,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify entries exist
+    // Verify entries exist and belong to user
     if (body.entryIds && body.entryIds.length > 0) {
       const entries = await prisma.entry.findMany({
-        where: { id: { in: body.entryIds } },
+        where: { id: { in: body.entryIds }, userId: user.id },
         select: { id: true }
       });
 
@@ -117,6 +125,7 @@ export async function POST(request: NextRequest) {
     // Create share link
     const link = await prisma.shareLink.create({
       data: {
+        userId: user.id,
         slug,
         type: body.type,
         entryIds: body.entryIds || [],

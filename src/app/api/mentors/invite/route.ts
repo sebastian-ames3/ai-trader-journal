@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { RelationshipStatus } from '@prisma/client';
+import { requireAuth } from '@/lib/auth';
 
 /**
  * POST /api/mentors/invite
@@ -18,6 +19,9 @@ import { RelationshipStatus } from '@prisma/client';
  */
 export async function POST(request: NextRequest) {
   try {
+    const { user, error } = await requireAuth();
+    if (error) return error;
+
     const body = await request.json();
 
     // Validate required fields
@@ -40,6 +44,7 @@ export async function POST(request: NextRequest) {
     // Check for existing pending or active relationship
     const existingRelationship = await prisma.mentorRelationship.findFirst({
       where: {
+        userId: user.id,
         mentorEmail: body.mentorEmail.toLowerCase(),
         status: { in: [RelationshipStatus.PENDING, RelationshipStatus.ACTIVE] }
       }
@@ -61,6 +66,7 @@ export async function POST(request: NextRequest) {
     // Create mentor relationship
     const relationship = await prisma.mentorRelationship.create({
       data: {
+        userId: user.id,
         mentorEmail: body.mentorEmail.toLowerCase(),
         mentorName: body.mentorName || null,
         shareWeeklyInsights: permissions.shareWeeklyInsights ?? true,

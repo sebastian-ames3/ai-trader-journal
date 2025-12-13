@@ -19,12 +19,12 @@ const STREAK_MILESTONES = [3, 7, 14, 30, 60, 90, 180, 365];
  * Updates streak tracking after a new entry is created
  * Implements grace day logic: allows 1 missed day before resetting streak
  */
-export async function updateStreakAfterEntry(): Promise<StreakData> {
+export async function updateStreakAfterEntry(userId: string): Promise<StreakData> {
   try {
     const settings = await prisma.settings.upsert({
-      where: { id: 'default' },
+      where: { userId },
       create: {
-        id: 'default',
+        userId,
         currentStreak: 0,
         longestStreak: 0,
         totalEntries: 0,
@@ -105,7 +105,7 @@ export async function updateStreakAfterEntry(): Promise<StreakData> {
 
     // Update database
     await prisma.settings.update({
-      where: { id: 'default' },
+      where: { userId },
       data: {
         currentStreak: newStreak,
         longestStreak: newLongestStreak,
@@ -140,12 +140,12 @@ export async function updateStreakAfterEntry(): Promise<StreakData> {
 /**
  * Gets current streak data without updating
  */
-export async function getStreakData(): Promise<StreakData> {
+export async function getStreakData(userId: string): Promise<StreakData> {
   try {
     const settings = await prisma.settings.upsert({
-      where: { id: 'default' },
+      where: { userId },
       create: {
-        id: 'default',
+        userId,
         currentStreak: 0,
         longestStreak: 0,
         totalEntries: 0,

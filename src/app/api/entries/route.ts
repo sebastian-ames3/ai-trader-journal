@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { EntryType, EntryMood, ConvictionLevel, CaptureMethod, Prisma } from '@prisma/client';
 import { updateStreakAfterEntry, getCelebrationMessage } from '@/lib/streakTracking';
+import { requireAuth } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +26,9 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
+    const { user, error } = await requireAuth();
+    if (error) return error;
+
     const { searchParams } = new URL(request.url);
 
     // Parse filter parameters
@@ -42,7 +46,7 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
     // Build where clause
-    const where: Prisma.EntryWhereInput = {};
+    const where: Prisma.EntryWhereInput = { userId: user.id };
 
     // Full-text search on content
     if (search) {
@@ -147,6 +151,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const { user, error } = await requireAuth();
+    if (error) return error;
+
     const body = await request.json();
 
     // Validate required fields
@@ -200,6 +207,7 @@ export async function POST(request: NextRequest) {
     // Create entry with media fields
     const entry = await prisma.entry.create({
       data: {
+        userId: user.id,
         type: body.type,
         content: body.content,
         mood: body.mood || null,
@@ -221,7 +229,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Update streak tracking
-    const streakData = await updateStreakAfterEntry();
+    const streakData = await updateStreakAfterEntry(user.id);
 
     // Prepare celebration message if milestone reached
     let celebrationMessage: string | undefined;

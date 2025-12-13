@@ -433,6 +433,7 @@ interface RawCoachResponse {
  * Processes a user message and generates a coach response
  */
 export async function processCoachMessage(
+  userId: string,
   sessionId: string | null,
   userMessage: string,
   context?: CoachContext
@@ -448,8 +449,8 @@ export async function processCoachMessage(
   // Get or create session
   let session: CoachSession;
   if (sessionId) {
-    const existing = await prisma.coachSession.findUnique({
-      where: { id: sessionId },
+    const existing = await prisma.coachSession.findFirst({
+      where: { id: sessionId, userId },
     });
     if (!existing) {
       throw new Error('Session not found');
@@ -458,6 +459,7 @@ export async function processCoachMessage(
   } else {
     session = await prisma.coachSession.create({
       data: {
+        userId,
         messages: [],
         triggerType: context?.trigger || null,
         triggerEntryId: context?.currentEntry || null,
