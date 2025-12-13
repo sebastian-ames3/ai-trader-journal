@@ -272,6 +272,11 @@ CHANGELOG.md
 specs/
 agent-os/
 design/
+docs/
+services/
+
+# Agent-OS slash commands (development tools)
+.claude/commands/agent-os/
 
 # Claude Code agents (development tools)
 .claude/agents/
