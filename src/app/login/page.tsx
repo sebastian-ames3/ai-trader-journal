@@ -1,8 +1,6 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -14,7 +12,11 @@ import { Loader2 } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
-  const supabase = createClient()
+  // Create client lazily only on client-side to avoid SSR issues
+  const supabase = useMemo(() => {
+    if (typeof window === 'undefined') return null
+    return createClient()
+  }, [])
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -27,6 +29,7 @@ export default function LoginPage() {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!supabase) return
     setError(null)
     setMessage(null)
     setLoading(true)
@@ -54,6 +57,7 @@ export default function LoginPage() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!supabase) return
     setError(null)
     setMessage(null)
 
@@ -92,6 +96,7 @@ export default function LoginPage() {
   }
 
   const handleMagicLink = async () => {
+    if (!supabase) return
     if (!email) {
       setError('Please enter your email address')
       return
