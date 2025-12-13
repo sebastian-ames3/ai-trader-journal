@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getStreakData } from '@/lib/streakTracking';
 import { requireAuth } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/streak
  * Get current streak data
