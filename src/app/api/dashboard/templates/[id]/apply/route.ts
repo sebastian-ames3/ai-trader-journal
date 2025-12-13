@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { LAYOUT_TEMPLATES, generateWidgetId, WidgetInstance } from '@/lib/dashboard';
+import { requireAuth } from '@/lib/auth';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -23,6 +24,9 @@ export async function POST(
   { params }: RouteParams
 ) {
   try {
+    const { user, error } = await requireAuth();
+    if (error) return error;
+
     const { id } = await params;
 
     // Parse optional body
@@ -77,7 +81,7 @@ export async function POST(
     // If activating, deactivate other layouts first
     if (body.activate) {
       await prisma.dashboardLayout.updateMany({
-        where: { isActive: true },
+        where: { userId: user.id, isActive: true },
         data: { isActive: false },
       });
     }
@@ -85,6 +89,7 @@ export async function POST(
     // Create new layout from template
     const newLayout = await prisma.dashboardLayout.create({
       data: {
+        userId: user.id,
         name: body.name?.trim() || templateName,
         description: body.description?.trim() || templateDescription,
         widgets: newWidgets as unknown as object,

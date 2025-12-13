@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getStreakData } from '@/lib/streakTracking';
+import { requireAuth } from '@/lib/auth';
 
 /**
  * GET /api/streak
@@ -7,7 +8,10 @@ import { getStreakData } from '@/lib/streakTracking';
  */
 export async function GET() {
   try {
-    const streakData = await getStreakData();
+    const { user, error } = await requireAuth();
+    if (error) return error;
+
+    const streakData = await getStreakData(user.id);
 
     return NextResponse.json(streakData);
   } catch (error) {

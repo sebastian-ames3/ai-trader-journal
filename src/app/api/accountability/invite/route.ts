@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { PairStatus } from '@prisma/client';
+import { requireAuth } from '@/lib/auth';
 
 /**
  * POST /api/accountability/invite
@@ -21,6 +22,9 @@ import { PairStatus } from '@prisma/client';
  */
 export async function POST(request: NextRequest) {
   try {
+    const { user, error } = await requireAuth();
+    if (error) return error;
+
     const body = await request.json();
 
     // Validate required fields
@@ -43,6 +47,7 @@ export async function POST(request: NextRequest) {
     // Check for existing pending or active partnership
     const existingPartnership = await prisma.accountabilityPair.findFirst({
       where: {
+        userId: user.id,
         partnerEmail: body.partnerEmail.toLowerCase(),
         status: { in: [PairStatus.PENDING, PairStatus.ACTIVE] }
       }
@@ -64,6 +69,7 @@ export async function POST(request: NextRequest) {
     // Create accountability pair
     const pair = await prisma.accountabilityPair.create({
       data: {
+        userId: user.id,
         partnerEmail: body.partnerEmail.toLowerCase(),
         partnerName: body.partnerName || null,
         shareStreak: settings.shareStreak ?? true,

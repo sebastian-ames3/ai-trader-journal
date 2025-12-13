@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { DEFAULT_LAYOUT, generateWidgetId, isValidWidgetType, WidgetInstance } from '@/lib/dashboard';
+import { requireAuth } from '@/lib/auth';
 
 /**
  * GET /api/dashboard/layouts
@@ -10,7 +11,11 @@ import { DEFAULT_LAYOUT, generateWidgetId, isValidWidgetType, WidgetInstance } f
  */
 export async function GET() {
   try {
+    const { user, error } = await requireAuth();
+    if (error) return error;
+
     const layouts = await prisma.dashboardLayout.findMany({
+      where: { userId: user.id },
       orderBy: [
         { isActive: 'desc' },
         { isDefault: 'desc' },
@@ -45,6 +50,9 @@ export async function GET() {
  */
 export async function POST(request: NextRequest) {
   try {
+    const { user, error } = await requireAuth();
+    if (error) return error;
+
     const body = await request.json();
 
     // Validate required fields
@@ -59,8 +67,8 @@ export async function POST(request: NextRequest) {
 
     // If copying from another layout
     if (body.copyFrom) {
-      const sourceLayout = await prisma.dashboardLayout.findUnique({
-        where: { id: body.copyFrom },
+      const sourceLayout = await prisma.dashboardLayout.findFirst({
+        where: { id: body.copyFrom, userId: user.id },
       });
 
       if (!sourceLayout) {
@@ -104,6 +112,7 @@ export async function POST(request: NextRequest) {
     // Create the layout
     const layout = await prisma.dashboardLayout.create({
       data: {
+        userId: user.id,
         name: body.name.trim(),
         description: body.description?.trim() || null,
         widgets: widgets as unknown as object,

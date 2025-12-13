@@ -50,6 +50,11 @@ export function BottomNav() {
   const pathname = usePathname();
   const [isQuickCaptureOpen, setIsQuickCaptureOpen] = useState(false);
 
+  // Hide navigation on login page
+  if (pathname === '/login') {
+    return null;
+  }
+
   const navItems = [
     { icon: Home, label: "Home", href: "/" },
     { icon: BookOpen, label: "Journal", href: "/journal" },

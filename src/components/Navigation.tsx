@@ -11,7 +11,13 @@ export default function Navigation() {
   const [streak, setStreak] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
+  // Hide navigation on login page
+  const isLoginPage = pathname === '/login';
+
   useEffect(() => {
+    // Don't fetch streak on login page
+    if (isLoginPage) return;
+
     async function fetchStreak() {
       try {
         const response = await fetch('/api/streak');
@@ -27,7 +33,11 @@ export default function Navigation() {
     }
 
     fetchStreak();
-  }, [pathname]); // Refetch when navigating
+  }, [pathname, isLoginPage]); // Refetch when navigating
+
+  if (isLoginPage) {
+    return null;
+  }
 
   const isActive = (path: string) => {
     if (path === '/') {

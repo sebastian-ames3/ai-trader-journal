@@ -3,18 +3,7 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-  // Create default settings
-  await prisma.settings.upsert({
-    where: { id: 'default' },
-    update: {},
-    create: {
-      id: 'default',
-      defaultRisk: 1.0,
-      accountSize: 10000,
-      liquidityThreshold: 100,
-      ivThreshold: 80,
-    },
-  });
+  // Note: Settings are now created per-user when they sign up (see src/lib/auth.ts)
 
   // Create sample tags
   const tags = await Promise.all([

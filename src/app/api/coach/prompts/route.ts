@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { PromptStatus } from '@prisma/client';
+import { requireAuth } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +18,9 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
+    const { user, error } = await requireAuth();
+    if (error) return error;
+
     const { searchParams } = new URL(request.url);
 
     const status = searchParams.get('status') || 'PENDING';
@@ -33,6 +37,7 @@ export async function GET(request: NextRequest) {
     // Fetch prompts
     const prompts = await prisma.coachPrompt.findMany({
       where: {
+        userId: user.id,
         status: status as PromptStatus,
       },
       orderBy: {
@@ -64,6 +69,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const { user, error } = await requireAuth();
+    if (error) return error;
+
     const body = await request.json();
 
     // Validate required fields
@@ -93,6 +101,7 @@ export async function POST(request: NextRequest) {
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const existingPrompt = await prisma.coachPrompt.findFirst({
       where: {
+        userId: user.id,
         triggerType: body.triggerType,
         status: PromptStatus.PENDING,
         createdAt: {
@@ -111,6 +120,7 @@ export async function POST(request: NextRequest) {
     // Create prompt
     const prompt = await prisma.coachPrompt.create({
       data: {
+        userId: user.id,
         triggerType: body.triggerType,
         message: body.message,
         context: body.context || null,

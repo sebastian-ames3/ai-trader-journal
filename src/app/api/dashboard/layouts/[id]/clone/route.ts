@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { generateWidgetId, WidgetInstance } from '@/lib/dashboard';
+import { requireAuth } from '@/lib/auth';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -19,10 +20,13 @@ export async function POST(
   { params }: RouteParams
 ) {
   try {
+    const { user, error } = await requireAuth();
+    if (error) return error;
+
     const { id } = await params;
     // Find the source layout
-    const sourceLayout = await prisma.dashboardLayout.findUnique({
-      where: { id },
+    const sourceLayout = await prisma.dashboardLayout.findFirst({
+      where: { id, userId: user.id },
     });
 
     if (!sourceLayout) {
@@ -50,6 +54,7 @@ export async function POST(
     // Create the cloned layout
     const clonedLayout = await prisma.dashboardLayout.create({
       data: {
+        userId: user.id,
         name: body.name?.trim() || `Copy of ${sourceLayout.name}`,
         description: body.description?.trim() || sourceLayout.description,
         widgets: clonedWidgets as unknown as object,
