@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { analyzeThesisPatterns } from '@/lib/thesisPatterns';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/patterns/theses
  * Analyze closed theses to identify patterns and performance metrics
