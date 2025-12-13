@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { PairStatus } from '@prisma/client';
 import { startOfWeek, endOfWeek, subDays, format } from 'date-fns';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * User stats for accountability comparison
  */

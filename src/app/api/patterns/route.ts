@@ -8,6 +8,8 @@
 import { NextResponse } from 'next/server';
 import { getActivePatterns } from '@/lib/patternAnalysis';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const patterns = await getActivePatterns();
