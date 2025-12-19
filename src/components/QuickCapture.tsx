@@ -231,6 +231,9 @@ export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
       thesisTradeId: string | null;
       ocrConfidence: number;
     }) => {
+      console.log('[OCR Save] Starting save with data:', data);
+      console.log('[OCR Save] ocrImageUrl:', ocrImageUrl);
+
       const entryData = {
         content: data.content,
         type: 'REFLECTION' as const,
@@ -245,16 +248,24 @@ export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
         createdAt: data.date || undefined,
       };
 
+      console.log('[OCR Save] Sending to API:', entryData);
+
       const response = await fetch('/api/entries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(entryData),
       });
 
+      console.log('[OCR Save] Response status:', response.status);
+
       if (!response.ok) {
         const responseData = await response.json();
+        console.error('[OCR Save] API error:', responseData);
         throw new Error(responseData.error || 'Failed to create entry');
       }
+
+      const result = await response.json();
+      console.log('[OCR Save] Success! Entry created:', result);
 
       // Close and redirect
       onClose();
