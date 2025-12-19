@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireAuth } from '@/lib/auth';
 import { TradeAction, StrategyType, ThesisTradeStatus, Prisma } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
@@ -88,6 +89,11 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    // Authentication check
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const { user } = auth;
+
     const body = await request.json();
 
     // Validate required fields
@@ -132,6 +138,7 @@ export async function POST(request: NextRequest) {
       // Create the trade
       const newTrade = await tx.thesisTrade.create({
         data: {
+          userId: user.id,
           thesisId: body.thesisId || null,
           action: body.action,
           previousTradeId: body.previousTradeId || null,

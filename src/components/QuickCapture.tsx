@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { X, Send, Loader2, Mic, Camera, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
+import { X, Send, Loader2, Mic, Camera, ChevronDown, ChevronUp, Sparkles, ScanText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -16,7 +16,9 @@ import {
 } from '@/components/ui/select';
 import VoiceRecorder from './VoiceRecorder';
 import AudioPlayer from './AudioPlayer';
-import ImageCapture, { ImageAnalysis } from './ImageCapture';
+import ImageCapture, { ImageAnalysis, OCRResult } from './ImageCapture';
+import OCRReviewModal from './entries/OCRReviewModal';
+import { LinkSuggestion } from './entries/TradeLinkSuggestions';
 import { cn } from '@/lib/utils';
 
 interface QuickCaptureProps {
@@ -85,6 +87,14 @@ export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
   const [error, setError] = useState<string | null>(null);
   const [showVoice, setShowVoice] = useState(false);
   const [showImage, setShowImage] = useState(false);
+  const [showJournalScanner, setShowJournalScanner] = useState(false);
+
+  // OCR Review Modal state
+  const [showOCRReview, setShowOCRReview] = useState(false);
+  const [ocrResult, setOcrResult] = useState<OCRResult | null>(null);
+  const [ocrImageUrl, setOcrImageUrl] = useState<string | null>(null);
+  const [ocrWarnings, setOcrWarnings] = useState<string[]>([]);
+  const [linkSuggestions, setLinkSuggestions] = useState<LinkSuggestion[]>([]);
 
   // Reset form when closed
   useEffect(() => {
@@ -108,6 +118,12 @@ export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
         setError(null);
         setShowVoice(false);
         setShowImage(false);
+        setShowJournalScanner(false);
+        setShowOCRReview(false);
+        setOcrResult(null);
+        setOcrImageUrl(null);
+        setOcrWarnings([]);
+        setLinkSuggestions([]);
       }, 300);
       return () => clearTimeout(timer);
     }
@@ -157,6 +173,95 @@ export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
     },
     [ticker, inferred?.ticker]
   );
+
+  // Handle journal scan complete
+  const handleJournalScan = useCallback(
+    async (data: { imageUrl: string; ocrResult: OCRResult; warnings?: string[] }) => {
+      setOcrResult(data.ocrResult);
+      setOcrImageUrl(data.imageUrl);
+      setOcrWarnings(data.warnings || []);
+      setShowJournalScanner(false);
+
+      // Fetch link suggestions if we have tickers
+      if (data.ocrResult.tickers.length > 0) {
+        try {
+          const response = await fetch('/api/journal/link-suggestions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              tickers: data.ocrResult.tickers,
+              date: data.ocrResult.date || new Date().toISOString(),
+              content: data.ocrResult.content,
+            }),
+          });
+
+          if (response.ok) {
+            const suggestions = await response.json();
+            setLinkSuggestions(suggestions.data || []);
+          }
+        } catch (err) {
+          console.error('Failed to fetch link suggestions:', err);
+        }
+      }
+
+      // Open the review modal
+      setShowOCRReview(true);
+    },
+    []
+  );
+
+  // Handle OCR save
+  const handleOCRSave = useCallback(
+    async (data: {
+      content: string;
+      date: string | null;
+      ticker: string | null;
+      mood: string | null;
+      thesisTradeId: string | null;
+      ocrConfidence: number;
+    }) => {
+      const entryData = {
+        content: data.content,
+        type: 'REFLECTION' as const,
+        mood: data.mood || 'NEUTRAL',
+        conviction: 'MEDIUM',
+        ticker: data.ticker || undefined,
+        imageUrls: ocrImageUrl ? [ocrImageUrl] : undefined,
+        captureMethod: 'JOURNAL_SCAN',
+        isOcrScanned: true,
+        ocrConfidence: data.ocrConfidence,
+        thesisTradeId: data.thesisTradeId || undefined,
+        createdAt: data.date || undefined,
+      };
+
+      const response = await fetch('/api/entries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(entryData),
+      });
+
+      if (!response.ok) {
+        const responseData = await response.json();
+        throw new Error(responseData.error || 'Failed to create entry');
+      }
+
+      // Close and redirect
+      onClose();
+      router.push('/journal');
+      router.refresh();
+    },
+    [ocrImageUrl, onClose, router]
+  );
+
+  // Handle OCR retry
+  const handleOCRRetry = useCallback(() => {
+    setShowOCRReview(false);
+    setOcrResult(null);
+    setOcrImageUrl(null);
+    setOcrWarnings([]);
+    setLinkSuggestions([]);
+    setShowJournalScanner(true);
+  }, []);
 
   // Remove an image
   const removeImage = useCallback((index: number) => {
@@ -379,6 +484,19 @@ export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
                 onImageCapture={handleImageCapture}
                 onError={(err) => setError(err)}
                 maxImages={5}
+                mode="chart"
+              />
+            </div>
+          )}
+
+          {/* Journal scanner */}
+          {showJournalScanner && (
+            <div className="flex justify-center py-4">
+              <ImageCapture
+                onImageCapture={handleImageCapture}
+                onJournalScan={handleJournalScan}
+                onError={(err) => setError(err)}
+                mode="journal"
               />
             </div>
           )}
@@ -413,7 +531,7 @@ export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
           )}
 
           {/* Action buttons */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Button
               type="button"
               variant={showVoice ? 'default' : 'outline'}
@@ -421,6 +539,7 @@ export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
               onClick={() => {
                 setShowVoice(!showVoice);
                 setShowImage(false);
+                setShowJournalScanner(false);
               }}
               className="gap-2"
             >
@@ -435,12 +554,28 @@ export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
               onClick={() => {
                 setShowImage(!showImage);
                 setShowVoice(false);
+                setShowJournalScanner(false);
               }}
               className="gap-2"
               disabled={imageUrls.length >= 5}
             >
               <Camera className="h-4 w-4" />
               Photo {imageUrls.length > 0 && `(${imageUrls.length})`}
+            </Button>
+
+            <Button
+              type="button"
+              variant={showJournalScanner ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => {
+                setShowJournalScanner(!showJournalScanner);
+                setShowVoice(false);
+                setShowImage(false);
+              }}
+              className="gap-2"
+            >
+              <ScanText className="h-4 w-4" />
+              Scan Journal
             </Button>
 
             <div className="flex-1" />
@@ -597,6 +732,26 @@ export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
           </Button>
         </div>
       </div>
+
+      {/* OCR Review Modal */}
+      {ocrResult && (
+        <OCRReviewModal
+          isOpen={showOCRReview}
+          onClose={() => {
+            setShowOCRReview(false);
+            setOcrResult(null);
+            setOcrImageUrl(null);
+            setOcrWarnings([]);
+            setLinkSuggestions([]);
+          }}
+          ocrResult={ocrResult}
+          imageUrl={ocrImageUrl || ''}
+          linkSuggestions={linkSuggestions}
+          warnings={ocrWarnings}
+          onSave={handleOCRSave}
+          onRetry={handleOCRRetry}
+        />
+      )}
     </div>
   );
 }
