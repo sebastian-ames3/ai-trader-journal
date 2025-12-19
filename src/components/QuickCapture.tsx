@@ -231,8 +231,8 @@ export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
       thesisTradeId: string | null;
       ocrConfidence: number;
     }) => {
-      console.log('[OCR Save] Starting save with data:', data);
-      console.log('[OCR Save] ocrImageUrl:', ocrImageUrl);
+      // DEBUG: On-screen alerts for mobile debugging
+      alert('[DEBUG 1] Starting save...\nocrImageUrl: ' + (ocrImageUrl || 'null'));
 
       const entryData = {
         content: data.content,
@@ -248,29 +248,34 @@ export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
         createdAt: data.date || undefined,
       };
 
-      console.log('[OCR Save] Sending to API:', entryData);
+      alert('[DEBUG 2] Sending to API...\n' + JSON.stringify(entryData, null, 2).slice(0, 500));
 
-      const response = await fetch('/api/entries', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(entryData),
-      });
+      try {
+        const response = await fetch('/api/entries', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(entryData),
+        });
 
-      console.log('[OCR Save] Response status:', response.status);
+        alert('[DEBUG 3] Response status: ' + response.status);
 
-      if (!response.ok) {
-        const responseData = await response.json();
-        console.error('[OCR Save] API error:', responseData);
-        throw new Error(responseData.error || 'Failed to create entry');
+        if (!response.ok) {
+          const responseData = await response.json();
+          alert('[DEBUG 4] API Error: ' + JSON.stringify(responseData));
+          throw new Error(responseData.error || 'Failed to create entry');
+        }
+
+        const result = await response.json();
+        alert('[DEBUG 5] Success! Entry ID: ' + result.entry?.id);
+
+        // Close and redirect
+        onClose();
+        router.push('/journal');
+        router.refresh();
+      } catch (err) {
+        alert('[DEBUG ERROR] ' + (err instanceof Error ? err.message : String(err)));
+        throw err;
       }
-
-      const result = await response.json();
-      console.log('[OCR Save] Success! Entry created:', result);
-
-      // Close and redirect
-      onClose();
-      router.push('/journal');
-      router.refresh();
     },
     [ocrImageUrl, onClose, router]
   );
