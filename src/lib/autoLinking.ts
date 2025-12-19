@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { StrategyType, ThesisTrade, TradingThesis } from '@prisma/client';
-import { differenceInDays, subDays, addDays, parseISO } from 'date-fns';
+import { differenceInDays, subDays, addDays } from 'date-fns';
 
 export interface LinkSuggestion {
   tradeId: string;
@@ -38,7 +38,7 @@ export async function getLinkSuggestions(
   input: MatchInput,
   maxSuggestions: number = 5
 ): Promise<LinkSuggestion[]> {
-  const { tickers, date, content } = input;
+  const { tickers, date } = input;
 
   if (tickers.length === 0) {
     return [];

@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { EntryMood } from '@prisma/client';
-import { parse, parseISO } from 'date-fns';
+import { parseISO } from 'date-fns';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',

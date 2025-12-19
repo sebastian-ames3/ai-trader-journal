@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { requireAuth } from '@/lib/auth';
 import { getLinkSuggestions } from '@/lib/autoLinking';
-import { prisma } from '@/lib/prisma';
 import { parseISO } from 'date-fns';
+
+export const dynamic = 'force-dynamic';
 
 /**
  * POST /api/journal/link-suggestions
@@ -11,10 +12,9 @@ import { parseISO } from 'date-fns';
 export async function POST(request: NextRequest) {
   try {
     // Authentication check
-    const session = await getServerSession();
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const { user } = auth;
 
     // Parse request body
     const body = await request.json();
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     // Validate tickers array
     if (tickers.length === 0) {
       return NextResponse.json({
-        suggestions: [],
+        data: [],
         message: 'No tickers provided',
       });
     }
@@ -65,21 +65,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'All tickers must be non-empty strings' },
         { status: 400 }
-      );
-    }
-
-    // Get user ID from session
-    // Note: You may need to adjust this based on your session structure
-    // For now, using email as identifier - you might need to query User table
-    const user = await prisma?.user.findUnique({
-      where: { email: session.user.email },
-      select: { id: true },
-    });
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
       );
     }
 
@@ -104,7 +89,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({
-      suggestions,
+      data: suggestions,
       count: suggestions.length,
     });
   } catch (error) {

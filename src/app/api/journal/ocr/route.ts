@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { extractJournalData, validateOCRResult } from '@/lib/journalOCR';
+import { requireAuth } from '@/lib/auth';
+import { extractJournalData, validateOCRResult, OCRResult } from '@/lib/journalOCR';
 import { cache, CacheKeys, CacheTTL } from '@/lib/cache';
 import { createHash } from 'crypto';
+
+export const dynamic = 'force-dynamic';
 
 /**
  * POST /api/journal/ocr
@@ -11,10 +13,8 @@ import { createHash } from 'crypto';
 export async function POST(request: NextRequest) {
   try {
     // Authentication check
-    const session = await getServerSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
 
     // Parse request body
     const body = await request.json();
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     const cacheKey = CacheKeys.ocrResult(urlHash);
 
     // Check cache first
-    let result = cache.get<ReturnType<typeof extractJournalData>>(cacheKey);
+    let result = cache.get<OCRResult>(cacheKey);
 
     if (!result) {
       console.log('[OCR] Cache miss, calling Claude Vision API...');

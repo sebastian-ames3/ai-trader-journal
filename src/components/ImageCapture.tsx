@@ -1,19 +1,36 @@
 'use client';
 
 import { useState, useRef, useCallback, ChangeEvent } from 'react';
-import { Camera, Upload, X, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Camera, Upload, X, Loader2, Image as ImageIcon, ScanText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+
+export type ImageCaptureMode = 'chart' | 'journal' | 'screenshot';
+
+export interface OCRResult {
+  content: string;
+  date: string | null;
+  tickers: string[];
+  mood: string | null;
+  sentiment: 'positive' | 'negative' | 'neutral';
+  confidence: number;
+}
 
 interface ImageCaptureProps {
   onImageCapture: (data: {
     imageUrl: string;
     analysis: ImageAnalysis | null;
   }) => void;
+  onJournalScan?: (data: {
+    imageUrl: string;
+    ocrResult: OCRResult;
+    warnings?: string[];
+  }) => void;
   onError?: (error: string) => void;
   disabled?: boolean;
   className?: string;
   maxImages?: number;
+  mode?: ImageCaptureMode;
 }
 
 export interface ImageAnalysis {
@@ -29,13 +46,15 @@ export interface ImageAnalysis {
   summary: string;
 }
 
-type CaptureState = 'idle' | 'capturing' | 'uploading' | 'analyzing' | 'error';
+type CaptureState = 'idle' | 'capturing' | 'uploading' | 'analyzing' | 'scanning' | 'error';
 
 export default function ImageCapture({
   onImageCapture,
+  onJournalScan,
   onError,
   disabled = false,
   className,
+  mode = 'chart',
 }: ImageCaptureProps) {
   const [state, setState] = useState<CaptureState>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -90,25 +109,51 @@ export default function ImageCapture({
 
         const { url } = await uploadResponse.json();
 
-        // Analyze the image
-        setState('analyzing');
+        // Handle different modes
+        if (mode === 'journal' && onJournalScan) {
+          // Journal mode - use OCR API
+          setState('scanning');
 
-        const analyzeResponse = await fetch('/api/analyze/image', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageUrl: url }),
-        });
+          const ocrResponse = await fetch('/api/journal/ocr', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imageUrl: url }),
+          });
 
-        let analysis: ImageAnalysis | null = null;
-        if (analyzeResponse.ok) {
-          analysis = await analyzeResponse.json();
+          if (!ocrResponse.ok) {
+            const data = await ocrResponse.json();
+            throw new Error(data.error || 'Failed to scan journal page');
+          }
+
+          const ocrData = await ocrResponse.json();
+
+          // Success - call the journal callback
+          onJournalScan({
+            imageUrl: url,
+            ocrResult: ocrData.data,
+            warnings: ocrData.warnings,
+          });
+        } else {
+          // Chart/screenshot mode - use image analysis API
+          setState('analyzing');
+
+          const analyzeResponse = await fetch('/api/analyze/image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imageUrl: url }),
+          });
+
+          let analysis: ImageAnalysis | null = null;
+          if (analyzeResponse.ok) {
+            analysis = await analyzeResponse.json();
+          }
+
+          // Success - call the callback
+          onImageCapture({
+            imageUrl: url,
+            analysis,
+          });
         }
-
-        // Success - call the callback
-        onImageCapture({
-          imageUrl: url,
-          analysis,
-        });
 
         setState('idle');
         setPreviewUrl(null);
@@ -121,7 +166,7 @@ export default function ImageCapture({
         onError?.(errorMsg);
       }
     },
-    [onImageCapture, onError]
+    [onImageCapture, onJournalScan, onError, mode]
   );
 
   // Handle file input change
@@ -199,8 +244,16 @@ export default function ImageCapture({
     return () => document.removeEventListener('paste', handlePaste);
   });
 
+  // Get loading message based on state and mode
+  const getLoadingMessage = () => {
+    if (state === 'uploading') return 'Uploading...';
+    if (state === 'scanning') return 'Reading handwriting...';
+    if (state === 'analyzing') return 'Analyzing image...';
+    return 'Processing...';
+  };
+
   // Render based on state
-  if (state === 'uploading' || state === 'analyzing') {
+  if (state === 'uploading' || state === 'analyzing' || state === 'scanning') {
     return (
       <div className={cn('flex flex-col items-center gap-3', className)}>
         {previewUrl && (
@@ -211,13 +264,17 @@ export default function ImageCapture({
               alt="Preview"
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-white" />
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center flex-col gap-2">
+              {mode === 'journal' ? (
+                <ScanText className="h-8 w-8 animate-pulse text-white" />
+              ) : (
+                <Loader2 className="h-8 w-8 animate-spin text-white" />
+              )}
             </div>
           </div>
         )}
         <p className="text-sm text-muted-foreground">
-          {state === 'uploading' ? 'Uploading...' : 'Analyzing image...'}
+          {getLoadingMessage()}
         </p>
       </div>
     );
