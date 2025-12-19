@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { cache } from '@/lib/cache';
-import { getImportCacheKey } from '../upload/route';
 import {
   ParsedTrade,
   mapToTradeAction,
   generateTradeDescription,
+  getImportCacheKey,
 } from '@/lib/csvImport';
 import { ThesisDirection } from '@prisma/client';
 

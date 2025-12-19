@@ -60,6 +60,17 @@ export async function GET(
       include: {
         tags: true,
         trade: true,
+        thesisTrade: {
+          include: {
+            thesis: {
+              select: {
+                id: true,
+                name: true,
+                ticker: true,
+              }
+            }
+          }
+        },
         snapshot: true
       }
     });
@@ -152,6 +163,11 @@ export async function PUT(
       }
     }
 
+    // Handle thesisTradeId - explicitly allow null to unlink
+    const thesisTradeUpdate = 'thesisTradeId' in body
+      ? { thesisTradeId: body.thesisTradeId || null }
+      : {};
+
     // Update entry
     const entry = await prisma.entry.update({
       where: {
@@ -163,10 +179,23 @@ export async function PUT(
         mood: body.mood || null,
         conviction: body.conviction || null,
         ticker: body.ticker || null,
+        ...thesisTradeUpdate,
         ...aiAnalysisData,
       },
       include: {
-        tags: true
+        tags: true,
+        trade: true,
+        thesisTrade: {
+          include: {
+            thesis: {
+              select: {
+                id: true,
+                name: true,
+                ticker: true,
+              }
+            }
+          }
+        }
       }
     });
 

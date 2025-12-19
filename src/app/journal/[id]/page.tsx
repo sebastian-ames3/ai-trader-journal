@@ -2,10 +2,24 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Edit, Trash2, Loader } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Loader, Link2, X, ChevronRight, ScanText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import TradeLinkSuggestions, { LinkSuggestion } from '@/components/entries/TradeLinkSuggestions';
+import { format } from 'date-fns';
+
+interface LinkedTrade {
+  id: string;
+  description: string;
+  openedAt: string;
+  strategyType: string | null;
+  thesis: {
+    id: string;
+    name: string;
+    ticker: string;
+  };
+}
 
 interface Entry {
   id: string;
@@ -14,6 +28,10 @@ interface Entry {
   mood: 'CONFIDENT' | 'NERVOUS' | 'EXCITED' | 'UNCERTAIN' | 'NEUTRAL' | null;
   conviction: 'LOW' | 'MEDIUM' | 'HIGH' | null;
   ticker: string | null;
+  thesisTradeId: string | null;
+  thesisTrade: LinkedTrade | null;
+  isOcrScanned?: boolean;
+  ocrConfidence?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -56,6 +74,12 @@ export default function EntryDetailPage() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
+
+  // Trade linking state
+  const [showLinkPanel, setShowLinkPanel] = useState(false);
+  const [linkSuggestions, setLinkSuggestions] = useState<LinkSuggestion[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [updatingLink, setUpdatingLink] = useState(false);
 
   const fetchEntry = useCallback(async () => {
     try {
@@ -101,6 +125,115 @@ export default function EntryDetailPage() {
       setError((err as Error).message);
       setDeleting(false);
     }
+  };
+
+  // Fetch link suggestions for the entry
+  const fetchLinkSuggestions = useCallback(async () => {
+    if (!entry) return;
+
+    setLoadingSuggestions(true);
+    try {
+      // Extract tickers from content and ticker field
+      const tickers: string[] = [];
+      if (entry.ticker) tickers.push(entry.ticker);
+
+      // Simple ticker extraction from content
+      const tickerMatches = entry.content.match(/\$([A-Z]{1,5})\b|\b([A-Z]{2,5})\b(?=\s*(call|put|spread|option|trade|position))/gi);
+      if (tickerMatches) {
+        tickerMatches.forEach(match => {
+          const ticker = match.replace('$', '').toUpperCase();
+          if (!tickers.includes(ticker)) tickers.push(ticker);
+        });
+      }
+
+      if (tickers.length === 0) {
+        setLinkSuggestions([]);
+        return;
+      }
+
+      const response = await fetch('/api/journal/link-suggestions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tickers,
+          date: entry.createdAt,
+          content: entry.content,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setLinkSuggestions(data.data || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch link suggestions:', err);
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  }, [entry]);
+
+  // Update the entry's trade link
+  const handleLinkTrade = async (tradeId: string) => {
+    setUpdatingLink(true);
+    try {
+      const response = await fetch(`/api/entries/${entryId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ thesisTradeId: tradeId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to link trade');
+      }
+
+      // Refresh entry data
+      await fetchEntry();
+      setShowLinkPanel(false);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setUpdatingLink(false);
+    }
+  };
+
+  // Remove the trade link
+  const handleUnlinkTrade = async () => {
+    if (!confirm('Remove the link to this trade?')) return;
+
+    setUpdatingLink(true);
+    try {
+      const response = await fetch(`/api/entries/${entryId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ thesisTradeId: null }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to unlink trade');
+      }
+
+      // Refresh entry data
+      await fetchEntry();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setUpdatingLink(false);
+    }
+  };
+
+  // Open link panel and fetch suggestions
+  const handleOpenLinkPanel = () => {
+    setShowLinkPanel(true);
+    fetchLinkSuggestions();
+  };
+
+  // Format strategy type for display
+  const formatStrategy = (type: string | null): string => {
+    if (!type) return 'Trade';
+    return type
+      .split('_')
+      .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
+      .join(' ');
   };
 
   const formatEntryType = (type: string) => {
@@ -231,11 +364,142 @@ export default function EntryDetailPage() {
                 )}
               </div>
 
+              {/* OCR Indicator */}
+              {entry.isOcrScanned && (
+                <div className="flex items-center gap-2 mt-4 pt-4 border-t dark:border-gray-700">
+                  <Badge variant="outline" className="gap-1">
+                    <ScanText className="h-3 w-3" />
+                    OCR Scanned
+                    {entry.ocrConfidence && (
+                      <span className="text-muted-foreground ml-1">
+                        ({Math.round(entry.ocrConfidence * 100)}% confidence)
+                      </span>
+                    )}
+                  </Badge>
+                </div>
+              )}
+
               {/* Updated timestamp if different from created */}
               {entry.updatedAt !== entry.createdAt && (
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
                   Last updated: {formatDateTime(entry.updatedAt)}
                 </p>
+              )}
+            </div>
+
+            {/* Trade Link Section */}
+            <div className="border-t dark:border-gray-700 pt-6 mt-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                  <Link2 className="h-4 w-4" />
+                  Linked Trade
+                </h3>
+              </div>
+
+              {/* Current Link Display */}
+              {entry.thesisTrade ? (
+                <div className="space-y-3">
+                  <div className="p-4 rounded-lg border bg-primary/5 border-primary/20">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Badge variant="secondary" className="font-mono">
+                            {entry.thesisTrade.thesis.ticker}
+                          </Badge>
+                          <span className="font-medium text-sm">
+                            {entry.thesisTrade.thesis.name}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground truncate">
+                          {formatStrategy(entry.thesisTrade.strategyType)} • {entry.thesisTrade.description}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Opened: {format(new Date(entry.thesisTrade.openedAt), 'MMM d, yyyy')}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleOpenLinkPanel}
+                        className="h-8 w-8"
+                        title="Change link"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="flex gap-2 mt-3 pt-3 border-t border-primary/10">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => router.push(`/theses/${entry.thesisTrade!.thesis.id}`)}
+                        className="flex-1"
+                      >
+                        View Thesis
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleUnlinkTrade}
+                        disabled={updatingLink}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        {updatingLink ? <Loader className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {!showLinkPanel ? (
+                    <button
+                      onClick={handleOpenLinkPanel}
+                      className="w-full p-4 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-700
+                               hover:border-primary/50 hover:bg-primary/5 transition-colors text-center"
+                    >
+                      <Link2 className="h-5 w-5 mx-auto mb-2 text-muted-foreground" />
+                      <p className="text-sm font-medium">Link to a Trade</p>
+                      <p className="text-xs text-muted-foreground">
+                        Connect this entry to a trade for better insights
+                      </p>
+                    </button>
+                  ) : null}
+                </div>
+              )}
+
+              {/* Link Suggestions Panel */}
+              {showLinkPanel && (
+                <div className="mt-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Select a trade to link</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowLinkPanel(false)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+
+                  {loadingSuggestions ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : linkSuggestions.length > 0 ? (
+                    <TradeLinkSuggestions
+                      suggestions={linkSuggestions}
+                      onLink={handleLinkTrade}
+                      onDismiss={() => setShowLinkPanel(false)}
+                      mode="modal"
+                    />
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <p className="text-sm">No matching trades found</p>
+                      <p className="text-xs mt-1">
+                        Create a trade first, or try adding a ticker to this entry
+                      </p>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </CardContent>

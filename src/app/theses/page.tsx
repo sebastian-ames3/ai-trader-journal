@@ -3,11 +3,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Plus, TrendingUp, TrendingDown, Minus, Activity, ChevronRight } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Minus, Activity, ChevronRight, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
+import OptionStratImportWizard from '@/components/import/OptionStratImportWizard';
 
 interface Thesis {
   id: string;
@@ -187,6 +188,7 @@ export default function ThesesPage() {
   const [theses, setTheses] = useState<Thesis[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'ACTIVE' | 'CLOSED' | 'all'>('ACTIVE');
+  const [showImportWizard, setShowImportWizard] = useState(false);
 
   const fetchTheses = useCallback(async () => {
     setLoading(true);
@@ -222,13 +224,23 @@ export default function ThesesPage() {
             <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
               Trading Theses
             </h1>
-            <Button
-              onClick={() => router.push('/theses/new')}
-              className="min-h-[44px]"
-            >
-              <Plus className="h-5 w-5 mr-1" />
-              New Thesis
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowImportWizard(true)}
+                className="min-h-[44px]"
+              >
+                <Upload className="h-4 w-4 mr-1" />
+                Import CSV
+              </Button>
+              <Button
+                onClick={() => router.push('/theses/new')}
+                className="min-h-[44px]"
+              >
+                <Plus className="h-5 w-5 mr-1" />
+                New Thesis
+              </Button>
+            </div>
           </div>
 
           {/* Filter tabs */}
@@ -316,6 +328,16 @@ export default function ThesesPage() {
           </div>
         )}
       </div>
+
+      {/* Import CSV Wizard Modal */}
+      <OptionStratImportWizard
+        isOpen={showImportWizard}
+        onClose={() => setShowImportWizard(false)}
+        onComplete={() => {
+          setShowImportWizard(false);
+          fetchTheses(); // Refresh theses list
+        }}
+      />
     </div>
   );
 }

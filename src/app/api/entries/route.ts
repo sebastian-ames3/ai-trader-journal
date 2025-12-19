@@ -111,6 +111,12 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Unlinked entries filter (no thesisTradeId)
+    const unlinked = searchParams.get('unlinked');
+    if (unlinked === 'true') {
+      where.thesisTradeId = null;
+    }
+
     // Fetch entries with filters and pagination
     const entries = await prisma.entry.findMany({
       where,

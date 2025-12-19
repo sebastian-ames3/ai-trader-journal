@@ -407,3 +407,16 @@ export function formatStrategyType(type: StrategyType): string {
     .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
     .join(' ');
 }
+
+// ============================================
+// Cache Key Helpers
+// ============================================
+
+const IMPORT_CACHE_PREFIX = 'import:csv:';
+
+/**
+ * Generate cache key for import preview data
+ */
+export function getImportCacheKey(batchId: string): string {
+  return `${IMPORT_CACHE_PREFIX}${batchId}`;
+}

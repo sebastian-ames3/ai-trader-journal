@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
-import { parseOptionStratCSV } from '@/lib/csvImport';
+import { parseOptionStratCSV, getImportCacheKey } from '@/lib/csvImport';
 import { prisma } from '@/lib/prisma';
 import { cache, CacheTTL } from '@/lib/cache';
 import { createHash } from 'crypto';
 
 export const dynamic = 'force-dynamic';
-
-// Cache key prefix for import previews
-const IMPORT_CACHE_PREFIX = 'import:csv:';
 
 /**
  * POST /api/import/csv/upload
@@ -130,7 +127,7 @@ export async function POST(request: NextRequest) {
       .digest('hex')
       .slice(0, 16);
 
-    const cacheKey = `${IMPORT_CACHE_PREFIX}${batchId}`;
+    const cacheKey = getImportCacheKey(batchId);
 
     // Cache parsed trades for 15 minutes (for confirmation step)
     cache.set(
@@ -177,9 +174,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-// Export cache key helper for confirm endpoint
-export function getImportCacheKey(batchId: string): string {
-  return `${IMPORT_CACHE_PREFIX}${batchId}`;
 }

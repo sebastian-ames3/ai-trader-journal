@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { X, Send, Loader2, Mic, Camera, ChevronDown, ChevronUp, Sparkles, ScanText } from 'lucide-react';
+import { X, Send, Loader2, Mic, Camera, ChevronDown, ChevronUp, Sparkles, ScanText, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -18,8 +18,11 @@ import VoiceRecorder from './VoiceRecorder';
 import AudioPlayer from './AudioPlayer';
 import ImageCapture, { ImageAnalysis, OCRResult } from './ImageCapture';
 import OCRReviewModal from './entries/OCRReviewModal';
-import { LinkSuggestion } from './entries/TradeLinkSuggestions';
+import TradeLinkSuggestions, { LinkSuggestion } from './entries/TradeLinkSuggestions';
 import { cn } from '@/lib/utils';
+
+// Ticker detection regex - matches common stock ticker patterns
+const TICKER_REGEX = /\$([A-Z]{1,5})\b|\b([A-Z]{2,5})\b(?=\s*(call|put|spread|option|trade|position|stock|shares|buy|sell|long|short|bullish|bearish|strike))/gi;
 
 interface QuickCaptureProps {
   isOpen: boolean;
@@ -96,6 +99,11 @@ export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
   const [ocrWarnings, setOcrWarnings] = useState<string[]>([]);
   const [linkSuggestions, setLinkSuggestions] = useState<LinkSuggestion[]>([]);
 
+  // Inline trade link state (for non-OCR entries)
+  const [inlineLinkSuggestions, setInlineLinkSuggestions] = useState<LinkSuggestion[]>([]);
+  const [selectedTradeId, setSelectedTradeId] = useState<string | null>(null);
+  const [linkDismissed, setLinkDismissed] = useState(false);
+
   // Reset form when closed
   useEffect(() => {
     if (!isOpen) {
@@ -124,6 +132,9 @@ export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
         setOcrImageUrl(null);
         setOcrWarnings([]);
         setLinkSuggestions([]);
+        setInlineLinkSuggestions([]);
+        setSelectedTradeId(null);
+        setLinkDismissed(false);
       }, 300);
       return () => clearTimeout(timer);
     }
@@ -309,6 +320,66 @@ export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
     return () => clearTimeout(timer);
   }, [content, inferMetadata]);
 
+  // Extract tickers from content
+  const extractTickers = useCallback((text: string): string[] => {
+    const tickers = new Set<string>();
+    let match;
+    const regex = new RegExp(TICKER_REGEX.source, 'gi');
+    while ((match = regex.exec(text)) !== null) {
+      const ticker = (match[1] || match[2])?.toUpperCase();
+      if (ticker && ticker.length >= 2 && ticker.length <= 5) {
+        // Skip common words that aren't tickers
+        const skipWords = ['THE', 'AND', 'FOR', 'ARE', 'BUT', 'NOT', 'YOU', 'ALL', 'CAN', 'HER', 'WAS', 'ONE', 'OUR', 'OUT'];
+        if (!skipWords.includes(ticker)) {
+          tickers.add(ticker);
+        }
+      }
+    }
+    // Also check for explicit ticker override
+    if (ticker) {
+      tickers.add(ticker.toUpperCase());
+    }
+    return Array.from(tickers);
+  }, [ticker]);
+
+  // Debounced link suggestion fetching when tickers detected
+  useEffect(() => {
+    // Don't fetch if dismissed or already in OCR flow
+    if (linkDismissed || showOCRReview || showJournalScanner) {
+      return;
+    }
+
+    const detectedTickers = extractTickers(content);
+
+    if (detectedTickers.length === 0) {
+      setInlineLinkSuggestions([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch('/api/journal/link-suggestions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tickers: detectedTickers,
+            date: new Date().toISOString(),
+            content: content,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setInlineLinkSuggestions(data.data || []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch inline link suggestions:', err);
+      }
+    }, 1500); // Slightly longer debounce for link suggestions
+
+    return () => clearTimeout(timer);
+  }, [content, linkDismissed, showOCRReview, showJournalScanner, extractTickers]);
+
   // Get effective values (override or inferred)
   const effectiveType = entryType || inferred?.entryType || 'OBSERVATION';
   const effectiveMood = mood || inferred?.mood || 'NEUTRAL';
@@ -367,6 +438,7 @@ export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
         imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
         imageAnalyses: imageAnalyses.filter(Boolean).length > 0 ? imageAnalyses : undefined,
         captureMethod,
+        thesisTradeId: selectedTradeId || undefined,
       };
 
       const response = await fetch('/api/entries', {
@@ -527,6 +599,44 @@ export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
                   )}
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Inline trade link suggestions */}
+          {inlineLinkSuggestions.length > 0 && !linkDismissed && !selectedTradeId && (
+            <TradeLinkSuggestions
+              suggestions={inlineLinkSuggestions}
+              onLink={(tradeId) => setSelectedTradeId(tradeId)}
+              onDismiss={() => setLinkDismissed(true)}
+              mode="inline"
+            />
+          )}
+
+          {/* Selected trade indicator */}
+          {selectedTradeId && inlineLinkSuggestions.length > 0 && (
+            <div className="flex items-center justify-between p-3 rounded-lg border border-primary/20 bg-primary/5">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-full bg-primary/10">
+                  <Check className="h-3 w-3 text-primary" />
+                </div>
+                <div className="text-sm">
+                  <span className="text-muted-foreground">Linked to </span>
+                  <span className="font-medium">
+                    {inlineLinkSuggestions.find(s => s.tradeId === selectedTradeId)?.thesisName || 'trade'}
+                  </span>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSelectedTradeId(null);
+                  setLinkDismissed(false);
+                }}
+                className="h-7 text-xs"
+              >
+                Change
+              </Button>
             </div>
           )}
 

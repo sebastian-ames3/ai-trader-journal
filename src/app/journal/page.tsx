@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense, useCallback } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Plus } from 'lucide-react';
+import { Plus, Link2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import SearchFilters, { FilterState } from '@/components/SearchFilters';
 import { EntryCardList, EntryCardSkeleton } from '@/components/ui/entry-card';
@@ -11,6 +11,7 @@ import { VirtualizedEntryList } from '@/components/VirtualizedEntryList';
 import { InlineEditModal } from '@/components/InlineEditModal';
 import { CalendarWeekStrip } from '@/components/ui/calendar-week-strip';
 import { PullToRefresh } from '@/components/PullToRefresh';
+import BulkLinkingTool from '@/components/entries/BulkLinkingTool';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
@@ -41,6 +42,9 @@ function JournalContent() {
   // Inline edit state
   const [editingEntry, setEditingEntry] = useState<Entry | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  // Bulk linking state
+  const [showBulkLinking, setShowBulkLinking] = useState(false);
 
   const [filters, setFilters] = useState<FilterState>({
     search: searchParams.get('search') || '',
@@ -263,6 +267,19 @@ function JournalContent() {
         onSearch={handleSearch}
       />
 
+      {/* Quick Actions */}
+      <div className="max-w-4xl mx-auto px-4 py-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowBulkLinking(true)}
+          className="gap-2"
+        >
+          <Link2 className="h-4 w-4" />
+          Bulk Link Entries
+        </Button>
+      </div>
+
       {/* Content */}
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Results Count */}
@@ -327,6 +344,16 @@ function JournalContent() {
         isOpen={isEditModalOpen}
         onClose={handleCloseEditModal}
         onSave={handleSaveEntry}
+      />
+
+      {/* Bulk Linking Tool */}
+      <BulkLinkingTool
+        isOpen={showBulkLinking}
+        onClose={() => setShowBulkLinking(false)}
+        onComplete={() => {
+          setShowBulkLinking(false);
+          fetchEntries(); // Refresh entries
+        }}
       />
     </PullToRefresh>
   );
