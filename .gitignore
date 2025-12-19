@@ -275,6 +275,10 @@ design/
 docs/
 services/
 
+# Allow process/ folder (development workflow files - should be committed)
+!process/
+!process/**
+
 # Agent-OS slash commands (development tools)
 .claude/commands/agent-os/
 
