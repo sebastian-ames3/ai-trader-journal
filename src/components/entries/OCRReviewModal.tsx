@@ -83,6 +83,7 @@ export default function OCRReviewModal({
   // UI state
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [showLinkSuggestions, setShowLinkSuggestions] = useState(
     linkSuggestions.length > 0
   );
@@ -96,12 +97,14 @@ export default function OCRReviewModal({
       setSelectedMood(ocrResult.mood);
       setSelectedTradeId(null);
       setIsEditing(false);
+      setSaveError(null);
       setShowLinkSuggestions(linkSuggestions.length > 0);
     }
   }, [isOpen, ocrResult, linkSuggestions.length]);
 
   const handleSave = async () => {
     setIsSaving(true);
+    setSaveError(null);
     try {
       await onSave({
         content,
@@ -114,6 +117,7 @@ export default function OCRReviewModal({
       onClose();
     } catch (error) {
       console.error('Failed to save entry:', error);
+      setSaveError(error instanceof Error ? error.message : 'Failed to save entry. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -371,7 +375,15 @@ export default function OCRReviewModal({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t">
+        <div className="p-4 border-t space-y-3">
+          {saveError && (
+            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-destructive">{saveError}</p>
+              </div>
+            </div>
+          )}
           <Button
             onClick={handleSave}
             disabled={!content.trim() || isSaving}
