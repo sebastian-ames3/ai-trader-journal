@@ -6,6 +6,10 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
 });
 
+// Use Haiku for fast OCR - 3-5x faster than Sonnet
+const OCR_MODEL = 'claude-3-5-haiku-latest';
+const METADATA_MODEL = 'claude-3-5-haiku-latest';
+
 export interface OCRResult {
   content: string; // Transcribed markdown text
   date: string | null; // ISO 8601
@@ -16,8 +20,164 @@ export interface OCRResult {
   rawExtraction?: string; // Debug info
 }
 
+interface TranscriptionResult {
+  content: string;
+  confidence: number;
+}
+
+interface MetadataResult {
+  date: string | null;
+  tickers: string[];
+  mood: EntryMood | null;
+  sentiment: 'positive' | 'negative' | 'neutral';
+}
+
 /**
- * Extract handwritten journal data from image using Claude Vision
+ * Pass 1: Pure transcription using Haiku Vision
+ * Focuses only on accurate text extraction - fast and reliable
+ */
+async function transcribeHandwriting(imageUrl: string): Promise<TranscriptionResult> {
+  const response = await anthropic.messages.create({
+    model: OCR_MODEL,
+    max_tokens: 1024,
+    messages: [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            source: {
+              type: 'url',
+              url: imageUrl,
+            },
+          },
+          {
+            type: 'text',
+            text: `Transcribe this handwritten text exactly as written. Focus only on accurate text extraction.
+
+**Trading journal context - expect these patterns:**
+- Dates: "10/24/24", "Oct 24", "September 19, 2025"
+- Tickers: $SPY, AAPL, QQQ (often with strike prices like "4500C", "450P")
+- P/L figures: "+$500", "-$10K", "up 2.5%"
+- Options terms: "iron butterfly", "OPEX", "theta decay", "delta", "strikes"
+- Common abbreviations: "mkt" (market), "vol" (volume/volatility), "avg" (average)
+
+**Instructions:**
+- Preserve line breaks, paragraph structure, and any section headers
+- Include strikethroughs as ~~text~~ if visible
+- Note unclear words with [unclear] but attempt your best reading
+- Preserve numbers exactly (prices, percentages, dates)
+
+**Return JSON:**
+{
+  "content": "Full transcribed text preserving structure...",
+  "confidence": 0.92
+}
+
+Return ONLY valid JSON.`,
+          },
+        ],
+      },
+    ],
+  });
+
+  const textContent = response.content.find((c) => c.type === 'text');
+  if (!textContent || textContent.type !== 'text') {
+    throw new Error('No text content in transcription response');
+  }
+
+  const jsonMatch = textContent.text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error('No valid JSON in transcription response');
+  }
+
+  const parsed = JSON.parse(jsonMatch[0]);
+  return {
+    content: parsed.content || '',
+    confidence: Math.min(1, Math.max(0, parsed.confidence || 0.5)),
+  };
+}
+
+/**
+ * Pass 2: Extract metadata from transcribed text using Haiku
+ * Fast text analysis - no vision needed
+ */
+async function extractMetadata(transcribedText: string): Promise<MetadataResult> {
+  const response = await anthropic.messages.create({
+    model: METADATA_MODEL,
+    max_tokens: 512,
+    messages: [
+      {
+        role: 'user',
+        content: `Extract trading journal metadata from this text:
+
+"""
+${transcribedText}
+"""
+
+**Extract:**
+1. Date (convert to YYYY-MM-DD format, use current year if not specified)
+2. Ticker symbols (normalize to uppercase, remove $ prefix)
+3. Mood based on emotional language
+4. Overall sentiment
+
+**Mood mapping:**
+- CONFIDENT: "conviction", "clear setup", "high probability", "knew it", "textbook"
+- NERVOUS: "anxious", "risky", "worried", "scared", "uncomfortable"
+- EXCITED: "pumped", "big opportunity", "amazing", "can't wait"
+- UNCERTAIN: "not sure", "maybe", "conflicted", "mixed signals", "unsure"
+- NEUTRAL: Objective observations, factual recounting without emotion
+
+**Return JSON:**
+{
+  "date": "2025-09-19" or null,
+  "tickers": ["SPY", "AAPL"],
+  "mood": "CONFIDENT" | "NERVOUS" | "EXCITED" | "UNCERTAIN" | "NEUTRAL" | null,
+  "sentiment": "positive" | "negative" | "neutral"
+}
+
+Return ONLY valid JSON.`,
+      },
+    ],
+  });
+
+  const textContent = response.content.find((c) => c.type === 'text');
+  if (!textContent || textContent.type !== 'text') {
+    throw new Error('No text content in metadata response');
+  }
+
+  const jsonMatch = textContent.text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error('No valid JSON in metadata response');
+  }
+
+  const parsed = JSON.parse(jsonMatch[0]);
+
+  // Normalize tickers
+  const tickers = (parsed.tickers || []).map((t: string) =>
+    t.replace(/^\$/, '').toUpperCase()
+  );
+
+  // Validate mood
+  const validMoods: EntryMood[] = ['CONFIDENT', 'NERVOUS', 'EXCITED', 'UNCERTAIN', 'NEUTRAL'];
+  const mood = parsed.mood && validMoods.includes(parsed.mood)
+    ? (parsed.mood as EntryMood)
+    : null;
+
+  return {
+    date: parsed.date || null,
+    tickers,
+    mood,
+    sentiment: parsed.sentiment || 'neutral',
+  };
+}
+
+/**
+ * Extract handwritten journal data from image using two-pass OCR
+ * Pass 1: Fast transcription with Haiku Vision (~3-5s)
+ * Pass 2: Metadata extraction from text with Haiku (~1-2s)
+ * Total: ~5-7s (down from 25-30s)
+ *
  * @param imageUrl - R2 URL of the journal page image
  * @returns Parsed journal data
  */
@@ -25,119 +185,33 @@ export async function extractJournalData(
   imageUrl: string
 ): Promise<OCRResult> {
   try {
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2048,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: {
-                type: 'url',
-                url: imageUrl,
-              },
-            },
-            {
-              type: 'text',
-              text: `You are analyzing a handwritten trading journal page. Extract the following information:
+    // Pass 1: Transcribe the handwriting (vision task)
+    const transcription = await transcribeHandwriting(imageUrl);
 
-**IMPORTANT INSTRUCTIONS:**
-1. Transcribe ALL handwritten text, preserving structure and formatting
-2. Identify the date (formats: "10/24/24", "Oct 24", "October 24, 2024", etc.)
-3. Extract all ticker symbols mentioned (formats: $AAPL, AAPL, aapl)
-4. Infer the trader's emotional state from tone and keywords
-5. Determine overall sentiment of the entry
-6. Provide a confidence score (0-1) for the transcription quality
-
-**Return response in this exact JSON format:**
-{
-  "content": "Full transcribed text in markdown...",
-  "date": "2024-10-24" or null,
-  "tickers": ["AAPL", "SPY"],
-  "mood": "CONFIDENT" | "NERVOUS" | "EXCITED" | "UNCERTAIN" | "NEUTRAL" | null,
-  "sentiment": "positive" | "negative" | "neutral",
-  "confidence": 0.92,
-  "reasoning": "Brief explanation of mood/sentiment inference"
-}
-
-**Mood mapping guidelines:**
-- CONFIDENT: Phrases like "strong conviction", "clear setup", "high probability"
-- NERVOUS: "anxious", "uncertain", "risky", "worried", "scared"
-- EXCITED: "pumped", "big opportunity", "can't wait", "amazing setup"
-- UNCERTAIN: "not sure", "maybe", "conflicted", "mixed signals"
-- NEUTRAL: Objective observations without emotional language
-
-**Important:**
-- If handwriting is unclear, do your best and lower the confidence score
-- If no date found, return null for date
-- If no tickers mentioned, return empty array
-- Extract tickers even if just referenced in text (e.g., "Apple is looking strong" → AAPL)
-- Preserve ALL trading-related details: prices, strikes, expirations, P/L, etc.
-
-Return ONLY valid JSON, no other text.`,
-            },
-          ],
-        },
-      ],
-    });
-
-    // Parse Claude's response
-    const textContent = response.content.find((c) => c.type === 'text');
-    if (!textContent || textContent.type !== 'text') {
-      throw new Error('No text content in Claude response');
-    }
-
-    // Extract JSON from response (Claude might wrap it in markdown)
-    const jsonMatch = textContent.text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('No valid JSON found in Claude response');
-    }
-
-    const parsed = JSON.parse(jsonMatch[0]);
-
-    // Normalize tickers to uppercase
-    const tickers = (parsed.tickers || []).map((t: string) =>
-      t.replace(/^\$/, '').toUpperCase()
-    );
-
-    // Validate mood enum
-    const validMoods: EntryMood[] = [
-      'CONFIDENT',
-      'NERVOUS',
-      'EXCITED',
-      'UNCERTAIN',
-      'NEUTRAL',
-    ];
-    const mood =
-      parsed.mood && validMoods.includes(parsed.mood)
-        ? (parsed.mood as EntryMood)
-        : null;
+    // Pass 2: Extract metadata from text (text-only task, runs in parallel potential)
+    const metadata = await extractMetadata(transcription.content);
 
     // Parse and validate date
     let isoDate: string | null = null;
-    if (parsed.date) {
+    if (metadata.date) {
       try {
-        // Try parsing the extracted date
-        const dateObj = parseISO(parsed.date);
+        const dateObj = parseISO(metadata.date);
         if (!isNaN(dateObj.getTime())) {
           isoDate = dateObj.toISOString();
         }
       } catch {
-        // If parsing fails, leave as null
-        console.warn('Failed to parse extracted date:', parsed.date);
+        console.warn('Failed to parse extracted date:', metadata.date);
       }
     }
 
     return {
-      content: parsed.content || '',
+      content: transcription.content,
       date: isoDate,
-      tickers,
-      mood,
-      sentiment: parsed.sentiment || 'neutral',
-      confidence: Math.min(1, Math.max(0, parsed.confidence || 0)),
-      rawExtraction: textContent.text,
+      tickers: metadata.tickers,
+      mood: metadata.mood,
+      sentiment: metadata.sentiment,
+      confidence: transcription.confidence,
+      rawExtraction: JSON.stringify({ transcription, metadata }),
     };
   } catch (error) {
     console.error('OCR extraction failed:', error);
