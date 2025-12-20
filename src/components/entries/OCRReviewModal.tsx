@@ -84,6 +84,7 @@ export default function OCRReviewModal({
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<string | null>(null); // Debug status
   const [showLinkSuggestions, setShowLinkSuggestions] = useState(
     linkSuggestions.length > 0
   );
@@ -98,6 +99,7 @@ export default function OCRReviewModal({
       setSelectedTradeId(null);
       setIsEditing(false);
       setSaveError(null);
+      setSaveStatus(null);
       setShowLinkSuggestions(linkSuggestions.length > 0);
     }
   }, [isOpen, ocrResult, linkSuggestions.length]);
@@ -105,19 +107,50 @@ export default function OCRReviewModal({
   const handleSave = async () => {
     setIsSaving(true);
     setSaveError(null);
+    setSaveStatus('Step 1: Starting save...');
+
+    // Debug: Check if onSave is actually a function
+    if (typeof onSave !== 'function') {
+      setSaveError('Internal error: Save function not available. Please close and try again.');
+      setSaveStatus('Error: onSave is not a function');
+      setIsSaving(false);
+      return;
+    }
+
+    setSaveStatus('Step 2: onSave is a function, preparing data...');
+
     try {
-      await onSave({
+      const saveData = {
         content,
         date: selectedDate,
         ticker: selectedTicker,
         mood: selectedMood,
         thesisTradeId: selectedTradeId,
         ocrConfidence: ocrResult.confidence,
-      });
+      };
+
+      setSaveStatus('Step 3: Calling onSave...');
+
+      // Call onSave and wait for it
+      await onSave(saveData);
+
+      setSaveStatus('Step 4: onSave completed successfully!');
+
+      // If we get here without error, onSave completed
       onClose();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to save entry:', error);
-      setSaveError(error instanceof Error ? error.message : 'Failed to save entry. Please try again.');
+      // Ensure we always show an error message
+      let errorMessage = 'Failed to save entry. Please try again.';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error && typeof error === 'object' && 'message' in error) {
+        errorMessage = String((error as { message: unknown }).message);
+      }
+      setSaveStatus(`Error caught: ${errorMessage}`);
+      setSaveError(errorMessage);
     } finally {
       setIsSaving(false);
     }
@@ -376,6 +409,12 @@ export default function OCRReviewModal({
 
         {/* Footer */}
         <div className="p-4 border-t space-y-3">
+          {/* Debug status - shows save progress */}
+          {saveStatus && (
+            <div className="p-2 rounded bg-blue-500/10 border border-blue-500/20">
+              <p className="text-xs text-blue-600 font-mono">{saveStatus}</p>
+            </div>
+          )}
           {saveError && (
             <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
               <div className="flex items-start gap-2">
