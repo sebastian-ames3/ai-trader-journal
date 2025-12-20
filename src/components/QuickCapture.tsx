@@ -231,9 +231,6 @@ export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
       thesisTradeId: string | null;
       ocrConfidence: number;
     }) => {
-      // DEBUG: On-screen alerts for mobile debugging
-      alert('[DEBUG 1] Starting save...\nocrImageUrl: ' + (ocrImageUrl || 'null'));
-
       const entryData = {
         content: data.content,
         type: 'REFLECTION' as const,
@@ -248,34 +245,21 @@ export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
         createdAt: data.date || undefined,
       };
 
-      alert('[DEBUG 2] Sending to API...\n' + JSON.stringify(entryData, null, 2).slice(0, 500));
+      const response = await fetch('/api/entries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(entryData),
+      });
 
-      try {
-        const response = await fetch('/api/entries', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(entryData),
-        });
-
-        alert('[DEBUG 3] Response status: ' + response.status);
-
-        if (!response.ok) {
-          const responseData = await response.json();
-          alert('[DEBUG 4] API Error: ' + JSON.stringify(responseData));
-          throw new Error(responseData.error || 'Failed to create entry');
-        }
-
-        const result = await response.json();
-        alert('[DEBUG 5] Success! Entry ID: ' + result.entry?.id);
-
-        // Close and redirect
-        onClose();
-        router.push('/journal');
-        router.refresh();
-      } catch (err) {
-        alert('[DEBUG ERROR] ' + (err instanceof Error ? err.message : String(err)));
-        throw err;
+      if (!response.ok) {
+        const responseData = await response.json();
+        throw new Error(responseData.error || 'Failed to create entry');
       }
+
+      // Close and redirect
+      onClose();
+      router.push('/journal');
+      router.refresh();
     },
     [ocrImageUrl, onClose, router]
   );
