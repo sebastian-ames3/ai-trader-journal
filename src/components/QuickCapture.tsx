@@ -230,36 +230,45 @@ export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
       mood: string | null;
       thesisTradeId: string | null;
       ocrConfidence: number;
-    }) => {
-      const entryData = {
-        content: data.content,
-        type: 'REFLECTION' as const,
-        mood: data.mood || 'NEUTRAL',
-        conviction: 'MEDIUM',
-        ticker: data.ticker || undefined,
-        imageUrls: ocrImageUrl ? [ocrImageUrl] : undefined,
-        captureMethod: 'JOURNAL_SCAN',
-        isOcrScanned: true,
-        ocrConfidence: data.ocrConfidence,
-        thesisTradeId: data.thesisTradeId || undefined,
-        createdAt: data.date || undefined,
-      };
+    }): Promise<void> => {
+      // Wrap everything in try-catch to ensure errors propagate
+      try {
+        const entryData = {
+          content: data.content,
+          type: 'REFLECTION' as const,
+          mood: data.mood || 'NEUTRAL',
+          conviction: 'MEDIUM',
+          ticker: data.ticker || undefined,
+          imageUrls: ocrImageUrl ? [ocrImageUrl] : undefined,
+          captureMethod: 'JOURNAL_SCAN',
+          isOcrScanned: true,
+          ocrConfidence: data.ocrConfidence,
+          thesisTradeId: data.thesisTradeId || undefined,
+          createdAt: data.date || undefined,
+        };
 
-      const response = await fetch('/api/entries', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(entryData),
-      });
+        const response = await fetch('/api/entries', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(entryData),
+        });
 
-      if (!response.ok) {
-        const responseData = await response.json();
-        throw new Error(responseData.error || 'Failed to create entry');
+        if (!response.ok) {
+          const responseData = await response.json();
+          throw new Error(responseData.error || 'Failed to create entry');
+        }
+
+        // Close and redirect
+        onClose();
+        router.push('/journal');
+        router.refresh();
+      } catch (err) {
+        // Re-throw with more context if it's not already an Error
+        if (err instanceof Error) {
+          throw err;
+        }
+        throw new Error(`Save failed: ${String(err)}`);
       }
-
-      // Close and redirect
-      onClose();
-      router.push('/journal');
-      router.refresh();
     },
     [ocrImageUrl, onClose, router]
   );

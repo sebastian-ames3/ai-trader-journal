@@ -69,6 +69,7 @@ enum CaptureMethod {
   VOICE // Voice memo with transcription
   SCREENSHOT // Image/screenshot with AI analysis
   QUICK_CAPTURE // Quick text with auto-inference
+  JOURNAL_SCAN // Physical journal photo with OCR
 }
 
 model Trade {
