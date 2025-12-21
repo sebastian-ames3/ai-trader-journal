@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Loader } from 'lucide-react';
+import { ArrowLeft, Loader, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { MoodSelector, MoodValue } from '@/components/ui/mood-selector';
+import { format } from 'date-fns';
 
 type EntryType = 'TRADE_IDEA' | 'TRADE' | 'REFLECTION' | 'OBSERVATION';
 type ConvictionLevel = 'LOW' | 'MEDIUM' | 'HIGH';
@@ -57,6 +58,8 @@ export default function EditEntryPage() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [entryDate, setEntryDate] = useState<string>('');
+  const [entryTime, setEntryTime] = useState<string>('');
 
   // Fetch entry data
   const fetchEntry = useCallback(async () => {
@@ -79,6 +82,10 @@ export default function EditEntryPage() {
       if (data.ticker) {
         setTickerInput(data.ticker);
       }
+      // Set date and time from createdAt
+      const createdDate = new Date(data.createdAt);
+      setEntryDate(format(createdDate, 'yyyy-MM-dd'));
+      setEntryTime(format(createdDate, 'HH:mm'));
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -132,6 +139,11 @@ export default function EditEntryPage() {
     setError('');
 
     try {
+      // Combine date and time into ISO string
+      const createdAt = entryDate && entryTime
+        ? new Date(`${entryDate}T${entryTime}`).toISOString()
+        : undefined;
+
       const response = await fetch(`/api/entries/${entryId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -141,6 +153,7 @@ export default function EditEntryPage() {
           mood,
           conviction,
           ticker: selectedTicker,
+          createdAt,
         }),
       });
 
@@ -211,12 +224,22 @@ export default function EditEntryPage() {
             Back
           </Button>
           <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Edit Entry</h1>
-          <div className="w-16" /> {/* Spacer for centering */}
+          <Button
+            onClick={handleSubmit}
+            disabled={submitting || !content.trim()}
+            className="bg-amber-500 hover:bg-amber-600 text-white min-h-[44px]"
+          >
+            {submitting ? (
+              <Loader className="h-4 w-4 animate-spin" />
+            ) : (
+              'Save'
+            )}
+          </Button>
         </div>
       </div>
 
       {/* Form Content */}
-      <div className="max-w-4xl mx-auto px-4 py-6 pb-24">
+      <div className="max-w-4xl mx-auto px-4 py-6 pb-8">
         {/* Entry Type Selector */}
         <div className="mb-6">
           <Label className="text-sm font-medium mb-3 block text-slate-700 dark:text-slate-200">Entry Type</Label>
@@ -234,6 +257,28 @@ export default function EditEntryPage() {
                 {type.label}
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* Date and Time */}
+        <div className="mb-6">
+          <Label className="text-sm font-medium mb-3 block text-slate-700 dark:text-slate-200">
+            <Calendar className="h-4 w-4 inline mr-2" />
+            Entry Date & Time
+          </Label>
+          <div className="flex gap-3">
+            <Input
+              type="date"
+              value={entryDate}
+              onChange={(e) => setEntryDate(e.target.value)}
+              className="flex-1 text-base rounded-xl border-slate-200 dark:border-slate-700 min-h-[44px]"
+            />
+            <Input
+              type="time"
+              value={entryTime}
+              onChange={(e) => setEntryTime(e.target.value)}
+              className="w-32 text-base rounded-xl border-slate-200 dark:border-slate-700 min-h-[44px]"
+            />
           </div>
         </div>
 
@@ -343,27 +388,6 @@ export default function EditEntryPage() {
             {error}
           </div>
         )}
-      </div>
-
-      {/* Fixed Submit Button */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-700/50 p-4 pb-safe shadow-lg">
-        <div className="max-w-4xl mx-auto">
-          <Button
-            onClick={handleSubmit}
-            disabled={submitting || !content.trim()}
-            size="lg"
-            className="w-full h-14 text-lg font-medium bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/30"
-          >
-            {submitting ? (
-              <>
-                <Loader className="mr-2 h-5 w-5 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              'Save Changes'
-            )}
-          </Button>
-        </div>
       </div>
     </div>
   );
