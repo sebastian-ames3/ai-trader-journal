@@ -168,6 +168,11 @@ export async function PUT(
       ? { thesisTradeId: body.thesisTradeId || null }
       : {};
 
+    // Handle createdAt update if provided
+    const createdAtUpdate = body.createdAt
+      ? { createdAt: new Date(body.createdAt) }
+      : {};
+
     // Update entry
     const entry = await prisma.entry.update({
       where: {
@@ -180,6 +185,7 @@ export async function PUT(
         conviction: body.conviction || null,
         ticker: body.ticker || null,
         ...thesisTradeUpdate,
+        ...createdAtUpdate,
         ...aiAnalysisData,
       },
       include: {
