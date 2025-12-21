@@ -21,6 +21,7 @@ interface Entry {
 interface VirtualizedEntryListProps {
   entries: Entry[];
   onEditEntry: (entry: Entry) => void;
+  onDeleteEntry?: (entryId: string) => void;
   className?: string;
 }
 
@@ -50,10 +51,11 @@ function estimateItemHeight(entry: Entry): number {
 interface ItemData {
   entries: Entry[];
   onEditEntry: (entry: Entry) => void;
+  onDeleteEntry?: (entryId: string) => void;
 }
 
 const Row = React.memo(function Row({ data, index, style }: ListChildComponentProps<ItemData>) {
-  const { entries, onEditEntry } = data;
+  const { entries, onEditEntry, onDeleteEntry } = data;
   const entry = entries[index];
 
   return (
@@ -68,6 +70,7 @@ const Row = React.memo(function Row({ data, index, style }: ListChildComponentPr
         createdAt={entry.createdAt}
         thesisName={entry.thesisName}
         onEdit={() => onEditEntry(entry)}
+        onDelete={onDeleteEntry ? () => onDeleteEntry(entry.id) : undefined}
       />
     </div>
   );
@@ -76,6 +79,7 @@ const Row = React.memo(function Row({ data, index, style }: ListChildComponentPr
 export function VirtualizedEntryList({
   entries,
   onEditEntry,
+  onDeleteEntry,
   className,
 }: VirtualizedEntryListProps) {
   const listRef = useRef<List<ItemData>>(null);
@@ -90,8 +94,8 @@ export function VirtualizedEntryList({
 
   // Memoize item data to prevent unnecessary re-renders
   const itemData = useMemo<ItemData>(
-    () => ({ entries, onEditEntry }),
-    [entries, onEditEntry]
+    () => ({ entries, onEditEntry, onDeleteEntry }),
+    [entries, onEditEntry, onDeleteEntry]
   );
 
   // Reset list cache when entries change
@@ -132,6 +136,7 @@ export function VirtualizedEntryList({
               createdAt={entry.createdAt}
               thesisName={entry.thesisName}
               onEdit={() => onEditEntry(entry)}
+              onDelete={onDeleteEntry ? () => onDeleteEntry(entry.id) : undefined}
             />
           ))}
         </div>
