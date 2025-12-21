@@ -193,7 +193,7 @@ function JournalContent() {
   // Handle saving edits with optimistic update
   const handleSaveEntry = useCallback(async (
     entryId: string,
-    updates: { content: string; mood: string | null; conviction: string | null }
+    updates: { content: string; mood: string | null; conviction: string | null; ticker: string | null }
   ) => {
     // Optimistic update - cast mood and conviction to Entry types
     const originalEntries = [...entries];
@@ -201,6 +201,7 @@ function JournalContent() {
       ...updates,
       mood: updates.mood as Entry['mood'],
       conviction: updates.conviction as Entry['conviction'],
+      ticker: updates.ticker,
     };
     setEntries(prev =>
       prev.map(e =>

@@ -31,7 +31,7 @@ interface InlineEditModalProps {
   entry: Entry | null;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (entryId: string, updates: { content: string; mood: string | null; conviction: string | null }) => Promise<void>;
+  onSave: (entryId: string, updates: { content: string; mood: string | null; conviction: string | null; ticker: string | null }) => Promise<void>;
 }
 
 const CONVICTION_LEVELS: ConvictionLevel[] = ["LOW", "MEDIUM", "HIGH"];
@@ -45,6 +45,7 @@ export function InlineEditModal({
   const [content, setContent] = React.useState("");
   const [mood, setMood] = React.useState<MoodValue | null>(null);
   const [conviction, setConviction] = React.useState<ConvictionLevel | null>(null);
+  const [ticker, setTicker] = React.useState<string>("");
   const [isSaving, setIsSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -54,6 +55,7 @@ export function InlineEditModal({
       setContent(entry.content);
       setMood((entry.mood as MoodValue) || null);
       setConviction((entry.conviction as ConvictionLevel) || null);
+      setTicker(entry.ticker || "");
       setError(null);
     }
   }, [entry]);
@@ -73,6 +75,7 @@ export function InlineEditModal({
         content: content.trim(),
         mood,
         conviction,
+        ticker: ticker.trim() || null,
       });
       onClose();
     } catch (err) {
@@ -85,7 +88,8 @@ export function InlineEditModal({
   const hasChanges = entry && (
     content !== entry.content ||
     mood !== entry.mood ||
-    conviction !== entry.conviction
+    conviction !== entry.conviction ||
+    ticker !== (entry.ticker || "")
   );
 
   if (!entry) return null;
@@ -124,6 +128,28 @@ export function InlineEditModal({
             />
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
               {content.length} characters
+            </p>
+          </div>
+
+          {/* Ticker Input */}
+          <div>
+            <Label
+              htmlFor="edit-ticker"
+              className="text-sm font-medium mb-2 block text-slate-700 dark:text-slate-200"
+            >
+              Ticker Symbol
+            </Label>
+            <input
+              id="edit-ticker"
+              type="text"
+              value={ticker}
+              onChange={(e) => setTicker(e.target.value.toUpperCase())}
+              className="w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-base font-mono uppercase placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+              placeholder="e.g., AAPL"
+              maxLength={5}
+            />
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+              Leave blank if no ticker applies
             </p>
           </div>
 

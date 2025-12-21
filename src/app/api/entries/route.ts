@@ -3,8 +3,39 @@ import { prisma } from '@/lib/prisma';
 import { EntryType, EntryMood, ConvictionLevel, CaptureMethod, Prisma } from '@prisma/client';
 import { updateStreakAfterEntry, getCelebrationMessage } from '@/lib/streakTracking';
 import { requireAuth } from '@/lib/auth';
+import { analyzeEntryText } from '@/lib/aiAnalysis';
+import { isClaudeConfigured } from '@/lib/claude';
 
 export const dynamic = 'force-dynamic';
+
+/**
+ * Async helper to analyze entry in background after creation
+ * This runs after the entry is saved, so tags are based on user-reviewed content
+ */
+async function analyzeEntryAsync(
+  entryId: string,
+  content: string,
+  mood: string | null,
+  conviction: string | null
+): Promise<void> {
+  try {
+    const analysis = await analyzeEntryText(content, mood || undefined, conviction || undefined);
+    await prisma.entry.update({
+      where: { id: entryId },
+      data: {
+        sentiment: analysis.sentiment,
+        emotionalKeywords: analysis.emotionalKeywords,
+        detectedBiases: analysis.detectedBiases,
+        convictionInferred: analysis.convictionInferred,
+        aiTags: analysis.aiTags,
+      },
+    });
+    console.log(`[AI Analysis] Entry ${entryId} analyzed successfully with ${analysis.aiTags.length} tags`);
+  } catch (error) {
+    console.error(`[AI Analysis] Failed to analyze entry ${entryId}:`, error);
+    throw error;
+  }
+}
 
 /**
  * GET /api/entries
@@ -300,6 +331,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Trigger async AI analysis for new entries (generates aiTags after save)
+    // This runs in the background so it doesn't block the response
+    // Tags are generated AFTER the user has reviewed and saved the content
+    if (body.content && body.content.length > 50 && isClaudeConfigured()) {
+      // Fire and forget - don't await
+      analyzeEntryAsync(entry.id, body.content, body.mood, body.conviction).catch(err => {
+        console.error('Background AI analysis failed:', err);
+      });
+    }
+
     return NextResponse.json({
       entry,
       streak: {
@@ -307,7 +348,8 @@ export async function POST(request: NextRequest) {
         longestStreak: streakData.longestStreak,
         totalEntries: streakData.totalEntries,
         celebrationMessage
-      }
+      },
+      aiAnalysisPending: body.content && body.content.length > 50 && isClaudeConfigured()
     }, { status: 201 });
   } catch (error) {
     console.error('Error creating entry:', error);

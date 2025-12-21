@@ -141,11 +141,13 @@ export async function PUT(
     }
 
     // Check if content changed significantly and re-run AI analysis
-    let aiAnalysisData = {};
+    // Only auto-analyze if aiTags weren't manually provided
+    let aiAnalysisData: Record<string, unknown> = {};
     const contentChanged = body.content && existingEntry.content !== body.content;
+    const aiTagsProvided = 'aiTags' in body;
 
-    if (contentChanged && isSignificantChange(existingEntry.content, body.content)) {
-      // Re-run AI analysis for significant content changes
+    if (!aiTagsProvided && contentChanged && isSignificantChange(existingEntry.content, body.content)) {
+      // Re-run AI analysis for significant content changes (only if aiTags not manually set)
       if (isClaudeConfigured()) {
         try {
           const analysis = await analyzeEntryText(body.content, body.mood, body.conviction);
@@ -161,6 +163,11 @@ export async function PUT(
           console.error('AI re-analysis failed:', error);
         }
       }
+    }
+
+    // Handle manual aiTags update
+    if (aiTagsProvided) {
+      aiAnalysisData.aiTags = Array.isArray(body.aiTags) ? body.aiTags : [];
     }
 
     // Handle thesisTradeId - explicitly allow null to unlink

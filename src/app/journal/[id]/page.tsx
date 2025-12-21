@@ -30,6 +30,9 @@ interface Entry {
   ticker: string | null;
   thesisTradeId: string | null;
   thesisTrade: LinkedTrade | null;
+  aiTags?: string[];
+  sentiment?: string | null;
+  detectedBiases?: string[];
   isOcrScanned?: boolean;
   ocrConfidence?: number;
   createdAt: string;
@@ -376,6 +379,34 @@ export default function EntryDetailPage() {
                       </span>
                     )}
                   </Badge>
+                </div>
+              )}
+
+              {/* AI Tags Section */}
+              {(entry.aiTags && entry.aiTags.length > 0) && (
+                <div className="mt-4 pt-4 border-t dark:border-gray-700">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">AI Tags</p>
+                  <div className="flex flex-wrap gap-2">
+                    {entry.aiTags.map((tag) => (
+                      <Badge key={tag} variant="secondary" className="text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Detected Biases Section */}
+              {(entry.detectedBiases && entry.detectedBiases.length > 0) && (
+                <div className="mt-4 pt-4 border-t dark:border-gray-700">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Detected Biases</p>
+                  <div className="flex flex-wrap gap-2">
+                    {entry.detectedBiases.map((bias) => (
+                      <Badge key={bias} variant="outline" className="text-xs text-amber-600 border-amber-300 dark:text-amber-400 dark:border-amber-600">
+                        {bias.replace(/_/g, ' ')}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
               )}
 
