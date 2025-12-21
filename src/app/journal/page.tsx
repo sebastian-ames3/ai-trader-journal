@@ -241,6 +241,45 @@ function JournalContent() {
     }
   }, [entries, toast]);
 
+  // Handle deleting an entry
+  const handleDeleteEntry = useCallback(async (entryId: string) => {
+    if (!confirm('Are you sure you want to delete this entry? This action cannot be undone.')) {
+      return;
+    }
+
+    // Optimistic update - remove entry from list
+    const originalEntries = [...entries];
+    setEntries(prev => prev.filter(e => e.id !== entryId));
+    setTotalCount(prev => prev - 1);
+
+    try {
+      const response = await fetch(`/api/entries/${entryId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete entry');
+      }
+
+      toast({
+        title: 'Entry deleted',
+        description: 'The entry has been removed.',
+        duration: 3000,
+      });
+    } catch (error) {
+      // Rollback on error
+      setEntries(originalEntries);
+      setTotalCount(prev => prev + 1);
+      toast({
+        title: 'Error',
+        description: (error as Error).message || 'Failed to delete entry',
+        variant: 'destructive',
+        duration: 5000,
+      });
+    }
+  }, [entries, toast]);
+
   // Pull-to-refresh handler
   const handleRefresh = useCallback(async () => {
     await fetchEntries();
@@ -334,6 +373,7 @@ function JournalContent() {
           <VirtualizedEntryList
             entries={entries}
             onEditEntry={handleEditEntry}
+            onDeleteEntry={handleDeleteEntry}
           />
         )}
       </div>
