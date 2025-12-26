@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Loader } from 'lucide-react';
+import { ArrowLeft, Loader, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -55,6 +55,7 @@ export default function EditEntryPage() {
   const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<TickerResult[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [entryDate, setEntryDate] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -79,6 +80,10 @@ export default function EditEntryPage() {
       if (data.ticker) {
         setTickerInput(data.ticker);
       }
+      // Set the entry date (format for datetime-local input)
+      const date = new Date(data.createdAt);
+      const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+      setEntryDate(localDate.toISOString().slice(0, 16));
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -141,6 +146,7 @@ export default function EditEntryPage() {
           mood,
           conviction,
           ticker: selectedTicker,
+          createdAt: entryDate ? new Date(entryDate).toISOString() : undefined,
         }),
       });
 
@@ -235,6 +241,26 @@ export default function EditEntryPage() {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Entry Date */}
+        <div className="mb-6">
+          <Label htmlFor="entryDate" className="text-sm font-medium mb-3 block text-slate-700 dark:text-slate-200">
+            <span className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Entry Date & Time
+            </span>
+          </Label>
+          <Input
+            id="entryDate"
+            type="datetime-local"
+            value={entryDate}
+            onChange={(e) => setEntryDate(e.target.value)}
+            className="text-base rounded-xl border-slate-200 dark:border-slate-700 min-h-[44px] max-w-xs"
+          />
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+            Change when this entry was recorded
+          </p>
         </div>
 
         {/* Main Content */}
@@ -346,7 +372,7 @@ export default function EditEntryPage() {
       </div>
 
       {/* Fixed Submit Button */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-700/50 p-4 pb-safe shadow-lg">
+      <div className="fixed bottom-0 left-0 right-0 z-20 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-700/50 p-4 pb-safe shadow-lg">
         <div className="max-w-4xl mx-auto">
           <Button
             onClick={handleSubmit}

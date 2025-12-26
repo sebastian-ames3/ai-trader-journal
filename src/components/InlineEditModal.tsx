@@ -2,11 +2,12 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Loader, ExternalLink } from "lucide-react";
+import { Loader, ExternalLink, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { MoodSelector, MoodValue } from "@/components/ui/mood-selector";
 import {
   Sheet,
@@ -25,13 +26,14 @@ interface Entry {
   conviction: string | null;
   type: string;
   ticker: string | null;
+  createdAt: string;
 }
 
 interface InlineEditModalProps {
   entry: Entry | null;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (entryId: string, updates: { content: string; mood: string | null; conviction: string | null }) => Promise<void>;
+  onSave: (entryId: string, updates: { content: string; mood: string | null; conviction: string | null; createdAt?: string }) => Promise<void>;
 }
 
 const CONVICTION_LEVELS: ConvictionLevel[] = ["LOW", "MEDIUM", "HIGH"];
@@ -45,6 +47,7 @@ export function InlineEditModal({
   const [content, setContent] = React.useState("");
   const [mood, setMood] = React.useState<MoodValue | null>(null);
   const [conviction, setConviction] = React.useState<ConvictionLevel | null>(null);
+  const [entryDate, setEntryDate] = React.useState("");
   const [isSaving, setIsSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -54,6 +57,10 @@ export function InlineEditModal({
       setContent(entry.content);
       setMood((entry.mood as MoodValue) || null);
       setConviction((entry.conviction as ConvictionLevel) || null);
+      // Set the entry date (format for datetime-local input)
+      const date = new Date(entry.createdAt);
+      const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+      setEntryDate(localDate.toISOString().slice(0, 16));
       setError(null);
     }
   }, [entry]);
@@ -73,6 +80,7 @@ export function InlineEditModal({
         content: content.trim(),
         mood,
         conviction,
+        createdAt: entryDate ? new Date(entryDate).toISOString() : undefined,
       });
       onClose();
     } catch (err) {
@@ -82,10 +90,18 @@ export function InlineEditModal({
     }
   };
 
+  // Helper to compare dates
+  const getFormattedDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return localDate.toISOString().slice(0, 16);
+  };
+
   const hasChanges = entry && (
     content !== entry.content ||
     mood !== entry.mood ||
-    conviction !== entry.conviction
+    conviction !== entry.conviction ||
+    entryDate !== getFormattedDate(entry.createdAt)
   );
 
   if (!entry) return null;
@@ -125,6 +141,26 @@ export function InlineEditModal({
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
               {content.length} characters
             </p>
+          </div>
+
+          {/* Entry Date */}
+          <div>
+            <Label
+              htmlFor="edit-date"
+              className="text-sm font-medium mb-2 block text-slate-700 dark:text-slate-200"
+            >
+              <span className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                Entry Date & Time
+              </span>
+            </Label>
+            <Input
+              id="edit-date"
+              type="datetime-local"
+              value={entryDate}
+              onChange={(e) => setEntryDate(e.target.value)}
+              className="text-base rounded-xl border-slate-200 dark:border-slate-700 min-h-[44px] max-w-xs"
+            />
           </div>
 
           {/* Mood Selector */}
