@@ -214,14 +214,14 @@ export default function SearchFilters({
                   Type
                 </label>
                 <Select
-                  value={filters.type}
-                  onValueChange={(value) => updateFilter('type', value)}
+                  value={filters.type || '_all'}
+                  onValueChange={(value) => updateFilter('type', value === '_all' ? '' : value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="All types" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All types</SelectItem>
+                    <SelectItem value="_all">All types</SelectItem>
                     {ENTRY_TYPES.map((type) => (
                       <SelectItem key={type.value} value={type.value}>
                         {type.label}
@@ -250,14 +250,14 @@ export default function SearchFilters({
                   Mood
                 </label>
                 <Select
-                  value={filters.mood}
-                  onValueChange={(value) => updateFilter('mood', value)}
+                  value={filters.mood || '_all'}
+                  onValueChange={(value) => updateFilter('mood', value === '_all' ? '' : value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="All moods" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All moods</SelectItem>
+                    <SelectItem value="_all">All moods</SelectItem>
                     {MOODS.map((mood) => (
                       <SelectItem key={mood.value} value={mood.value}>
                         {mood.label}
@@ -275,14 +275,14 @@ export default function SearchFilters({
                   Conviction
                 </label>
                 <Select
-                  value={filters.conviction}
-                  onValueChange={(value) => updateFilter('conviction', value)}
+                  value={filters.conviction || '_all'}
+                  onValueChange={(value) => updateFilter('conviction', value === '_all' ? '' : value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="All levels" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All levels</SelectItem>
+                    <SelectItem value="_all">All levels</SelectItem>
                     {CONVICTIONS.map((conviction) => (
                       <SelectItem key={conviction.value} value={conviction.value}>
                         {conviction.label}
@@ -297,14 +297,14 @@ export default function SearchFilters({
                   Sentiment
                 </label>
                 <Select
-                  value={filters.sentiment}
-                  onValueChange={(value) => updateFilter('sentiment', value)}
+                  value={filters.sentiment || '_all'}
+                  onValueChange={(value) => updateFilter('sentiment', value === '_all' ? '' : value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="All sentiments" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All sentiments</SelectItem>
+                    <SelectItem value="_all">All sentiments</SelectItem>
                     {SENTIMENTS.map((sentiment) => (
                       <SelectItem key={sentiment.value} value={sentiment.value}>
                         {sentiment.label}
