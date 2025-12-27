@@ -57,6 +57,7 @@
     "@types/lodash.debounce": "^4.0.9",
     "@types/papaparse": "^5.5.2",
     "@types/react-window": "^1.8.8",
+    "assemblyai": "^4.22.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
