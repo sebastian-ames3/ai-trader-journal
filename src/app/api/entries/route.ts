@@ -104,10 +104,16 @@ export async function GET(request: NextRequest) {
     if (dateFrom || dateTo) {
       where.createdAt = {};
       if (dateFrom) {
-        where.createdAt.gte = new Date(dateFrom);
+        // Start of day for dateFrom
+        const fromDate = new Date(dateFrom);
+        fromDate.setHours(0, 0, 0, 0);
+        where.createdAt.gte = fromDate;
       }
       if (dateTo) {
-        where.createdAt.lte = new Date(dateTo);
+        // End of day for dateTo (23:59:59.999)
+        const toDate = new Date(dateTo);
+        toDate.setHours(23, 59, 59, 999);
+        where.createdAt.lte = toDate;
       }
     }
 
