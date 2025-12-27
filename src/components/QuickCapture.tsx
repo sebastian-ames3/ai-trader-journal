@@ -27,6 +27,7 @@ const TICKER_REGEX = /\$([A-Z]{1,5})\b|\b([A-Z]{2,5})\b(?=\s*(call|put|spread|op
 interface QuickCaptureProps {
   isOpen: boolean;
   onClose: () => void;
+  initialMode?: 'text' | 'voice' | 'photo' | null;
 }
 
 interface InferredMetadata {
@@ -61,7 +62,7 @@ const CONVICTION_LABELS: Record<string, string> = {
 };
 
 // Also export as named export for flexibility
-export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
+export function QuickCapture({ isOpen, onClose, initialMode }: QuickCaptureProps) {
   const router = useRouter();
 
   // Form state
@@ -139,6 +140,22 @@ export function QuickCapture({ isOpen, onClose }: QuickCaptureProps) {
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
+
+  // Handle initial mode when modal opens
+  useEffect(() => {
+    if (isOpen && initialMode) {
+      if (initialMode === 'voice') {
+        setShowVoice(true);
+        setShowImage(false);
+        setShowJournalScanner(false);
+      } else if (initialMode === 'photo') {
+        setShowImage(true);
+        setShowVoice(false);
+        setShowJournalScanner(false);
+      }
+      // 'text' mode is the default - just focus on textarea
+    }
+  }, [isOpen, initialMode]);
 
   // Handle voice recording complete
   const handleRecordingComplete = useCallback(

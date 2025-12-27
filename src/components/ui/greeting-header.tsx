@@ -125,3 +125,56 @@ export function GreetingHeaderCompact({ className }: { className?: string }) {
     </div>
   );
 }
+
+// Simple greeting for the simplified homepage
+export function SimpleGreeting({ className }: { className?: string }) {
+  const [mounted, setMounted] = React.useState(false);
+  const [greeting, setGreeting] = React.useState("Good Morning");
+
+  React.useEffect(() => {
+    setMounted(true);
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) {
+      setGreeting("Good Morning");
+    } else if (hour >= 12 && hour < 17) {
+      setGreeting("Good Afternoon");
+    } else if (hour >= 17 && hour < 21) {
+      setGreeting("Good Evening");
+    } else {
+      setGreeting("Good Night");
+    }
+
+    // Update every minute
+    const interval = setInterval(() => {
+      const h = new Date().getHours();
+      if (h >= 5 && h < 12) {
+        setGreeting("Good Morning");
+      } else if (h >= 12 && h < 17) {
+        setGreeting("Good Afternoon");
+      } else if (h >= 17 && h < 21) {
+        setGreeting("Good Evening");
+      } else {
+        setGreeting("Good Night");
+      }
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <div className={cn("px-4 py-8", className)}>
+        <div className="h-12 w-64 skeleton rounded" />
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn("px-4 py-8", className)}>
+      <h1 className="text-3xl md:text-4xl font-serif italic text-slate-900 dark:text-white">
+        {greeting},<br />
+        Trader.
+      </h1>
+    </div>
+  );
+}
