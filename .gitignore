@@ -282,6 +282,11 @@ services/
 !process/
 !process/**
 
+# Allow specs/prd/ folder (product requirement documents - should be committed)
+!specs/
+!specs/prd/
+!specs/prd/**
+
 # Agent-OS slash commands (development tools)
 .claude/commands/agent-os/
 
