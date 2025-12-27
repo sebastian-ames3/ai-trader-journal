@@ -33,7 +33,6 @@ export function CalendarMonthView({
   onMonthChange,
 }: CalendarMonthViewProps) {
   const [currentMonth, setCurrentMonth] = React.useState(() => selectedDate);
-  const prevSelectedDateRef = React.useRef(selectedDate);
 
   // Generate all days to display (including padding days from adjacent months)
   const calendarDays = React.useMemo(() => {
@@ -63,16 +62,10 @@ export function CalendarMonthView({
     onMonthChange?.(today);
   };
 
-  // Only sync month when selectedDate changes from external source
-  // (not when navigating months with arrows)
+  // Update current month when selectedDate changes externally
   React.useEffect(() => {
-    const prevDate = prevSelectedDateRef.current;
-    if (!isSameDay(selectedDate, prevDate)) {
-      // selectedDate changed externally, sync the month view
-      if (!isSameMonth(selectedDate, currentMonth)) {
-        setCurrentMonth(selectedDate);
-      }
-      prevSelectedDateRef.current = selectedDate;
+    if (!isSameMonth(selectedDate, currentMonth)) {
+      setCurrentMonth(selectedDate);
     }
   }, [selectedDate, currentMonth]);
 
@@ -81,66 +74,48 @@ export function CalendarMonthView({
   return (
     <div className={cn("bg-slate-900", className)}>
       {/* Month navigation header */}
-      <div className="flex items-center justify-between px-2 py-3">
+      <div className="flex items-center justify-between px-4 py-3">
         <button
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            goToPrevMonth();
-          }}
+          onClick={goToPrevMonth}
           className={cn(
-            "h-12 w-12 rounded-full",
+            "h-10 w-10 rounded-full",
             "flex items-center justify-center",
             "text-slate-400 hover:text-slate-200",
             "hover:bg-slate-800",
             "transition-colors duration-200",
-            "active:scale-95",
-            "touch-manipulation"
+            "active:scale-95"
           )}
           aria-label="Previous month"
         >
-          <ChevronLeft className="h-6 w-6" />
+          <ChevronLeft className="h-5 w-5" />
         </button>
 
         <button
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            goToToday();
-          }}
+          onClick={goToToday}
           className={cn(
             "text-lg font-bold tracking-wide",
             "text-slate-100",
             "hover:text-amber-400",
             "transition-colors duration-200",
-            "uppercase",
-            "px-4 py-2"
+            "uppercase"
           )}
         >
           {format(currentMonth, "MMMM yyyy")}
         </button>
 
         <button
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            goToNextMonth();
-          }}
+          onClick={goToNextMonth}
           className={cn(
-            "h-12 w-12 rounded-full",
+            "h-10 w-10 rounded-full",
             "flex items-center justify-center",
             "text-slate-400 hover:text-slate-200",
             "hover:bg-slate-800",
             "transition-colors duration-200",
-            "active:scale-95",
-            "touch-manipulation"
+            "active:scale-95"
           )}
           aria-label="Next month"
         >
-          <ChevronRight className="h-6 w-6" />
+          <ChevronRight className="h-5 w-5" />
         </button>
       </div>
 
