@@ -87,10 +87,10 @@ export function PullToRefresh({
       {/* Pull indicator */}
       <div
         className={cn(
-          'absolute left-1/2 -translate-x-1/2 z-10',
+          'absolute left-1/2 -translate-x-1/2 z-20',
           'flex items-center justify-center',
           'transition-opacity duration-200',
-          pullDistance > 0 || isRefreshing ? 'opacity-100' : 'opacity-0'
+          pullDistance > 0 || isRefreshing ? 'opacity-100' : 'opacity-0 pointer-events-none'
         )}
         style={{
           top: Math.max(8, pullDistance - 40),
