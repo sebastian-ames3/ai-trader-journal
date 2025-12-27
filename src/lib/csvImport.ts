@@ -408,6 +408,30 @@ export function formatStrategyType(type: StrategyType): string {
     .join(' ');
 }
 
+/**
+ * Strategy type options for select dropdowns
+ */
+export const STRATEGY_TYPE_OPTIONS: { value: StrategyType; label: string }[] = [
+  { value: 'LONG_CALL', label: 'Long Call' },
+  { value: 'LONG_PUT', label: 'Long Put' },
+  { value: 'SHORT_CALL', label: 'Short Call' },
+  { value: 'SHORT_PUT', label: 'Short Put' },
+  { value: 'CALL_SPREAD', label: 'Call Spread' },
+  { value: 'PUT_SPREAD', label: 'Put Spread' },
+  { value: 'IRON_CONDOR', label: 'Iron Condor' },
+  { value: 'IRON_BUTTERFLY', label: 'Iron Butterfly' },
+  { value: 'BUTTERFLY', label: 'Butterfly' },
+  { value: 'STRADDLE', label: 'Straddle' },
+  { value: 'STRANGLE', label: 'Strangle' },
+  { value: 'CALENDAR', label: 'Calendar' },
+  { value: 'DIAGONAL', label: 'Diagonal' },
+  { value: 'RATIO', label: 'Ratio' },
+  { value: 'COVERED_CALL', label: 'Covered Call' },
+  { value: 'CASH_SECURED_PUT', label: 'Cash Secured Put' },
+  { value: 'STOCK', label: 'Stock' },
+  { value: 'CUSTOM', label: 'Custom' },
+];
+
 // ============================================
 // Cache Key Helpers
 // ============================================
