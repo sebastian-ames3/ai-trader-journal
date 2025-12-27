@@ -9,7 +9,7 @@ import SearchFilters, { FilterState } from '@/components/SearchFilters';
 import { EntryCardList, EntryCardSkeleton } from '@/components/ui/entry-card';
 import { VirtualizedEntryList } from '@/components/VirtualizedEntryList';
 import { InlineEditModal } from '@/components/InlineEditModal';
-import { CalendarWeekStrip } from '@/components/ui/calendar-week-strip';
+import { CalendarMonthView, CalendarSelectedDateHeader } from '@/components/ui/calendar-month-view';
 import { PullToRefresh } from '@/components/PullToRefresh';
 import BulkLinkingTool from '@/components/entries/BulkLinkingTool';
 import { useToast } from '@/hooks/use-toast';
@@ -37,7 +37,8 @@ function JournalContent() {
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [entryCounts] = useState<Record<string, number>>({});
+  const [entryCounts, setEntryCounts] = useState<Record<string, number>>({});
+  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
 
   // Inline edit state
   const [editingEntry, setEditingEntry] = useState<Entry | null>(null);
@@ -63,6 +64,28 @@ function JournalContent() {
     fetchEntries();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
+
+  // Fetch entry counts when month changes
+  const fetchEntryCounts = useCallback(async (month: Date) => {
+    try {
+      const monthStr = format(month, 'yyyy-MM-dd');
+      const response = await fetch(`/api/entries/counts?month=${monthStr}`);
+      if (!response.ok) throw new Error('Failed to fetch entry counts');
+      const data = await response.json();
+      setEntryCounts(data.counts);
+    } catch (error) {
+      console.error('Error fetching entry counts:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchEntryCounts(currentMonth);
+  }, [currentMonth, fetchEntryCounts]);
+
+  // Handle month change from calendar
+  const handleMonthChange = useCallback((date: Date) => {
+    setCurrentMonth(date);
+  }, []);
 
   const fetchEntries = async () => {
     setLoading(true);
@@ -268,6 +291,9 @@ function JournalContent() {
         description: 'The entry has been removed.',
         duration: 3000,
       });
+
+      // Refresh entry counts after deletion
+      fetchEntryCounts(currentMonth);
     } catch (error) {
       // Rollback on error
       setEntries(originalEntries);
@@ -279,25 +305,35 @@ function JournalContent() {
         duration: 5000,
       });
     }
-  }, [entries, toast]);
+  }, [entries, toast, currentMonth, fetchEntryCounts]);
 
   // Pull-to-refresh handler
   const handleRefresh = useCallback(async () => {
-    await fetchEntries();
+    await Promise.all([
+      fetchEntries(),
+      fetchEntryCounts(currentMonth),
+    ]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters]);
+  }, [filters, currentMonth, fetchEntryCounts]);
 
   return (
     <PullToRefresh
       onRefresh={handleRefresh}
       className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-20"
     >
-      {/* Calendar Week Strip */}
-      <CalendarWeekStrip
+      {/* Calendar Month View */}
+      <CalendarMonthView
         selectedDate={selectedDate}
         onSelectDate={handleDateSelect}
         entryCounts={entryCounts}
-        className="sticky top-0 z-10 shadow-sm"
+        onMonthChange={handleMonthChange}
+        className="sticky top-0 z-10 shadow-lg"
+      />
+
+      {/* Selected Date Header */}
+      <CalendarSelectedDateHeader
+        selectedDate={selectedDate}
+        entryCount={entryCounts[format(selectedDate, 'yyyy-MM-dd')] || 0}
       />
 
       {/* Search & Filters */}
