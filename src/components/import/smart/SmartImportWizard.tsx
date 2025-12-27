@@ -308,7 +308,7 @@ function TradeReviewStep() {
           <CheckCircle2 className="h-16 w-16 text-green-600 mb-4" />
           <h3 className="text-lg font-semibold mb-2">Review Complete!</h3>
           <p className="text-muted-foreground mb-6">
-            You've reviewed all {validTrades.length} trades.
+            You&apos;ve reviewed all {validTrades.length} trades.
             <br />
             {useSmartImportStore.getState().approvedCount} approved,{' '}
             {useSmartImportStore.getState().skippedCount} skipped.

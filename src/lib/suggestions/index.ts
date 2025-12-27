@@ -73,14 +73,6 @@ function daysBetween(date1: string, date2: string): number {
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }
 
-function parseLegs(legs?: string): string[] {
-  if (!legs) return [];
-  return legs
-    .split(/[\/,]/)
-    .map((l) => l.trim())
-    .filter(Boolean);
-}
-
 function getMonth(dateStr: string): string {
   const date = new Date(dateStr);
   return date.toLocaleString('en-US', { month: 'short' });
@@ -154,9 +146,6 @@ function detectRollPattern(trades: TradeForSuggestion[]): PatternResult | null {
   const sorted = [...trades].sort(
     (a, b) => new Date(a.openedAt).getTime() - new Date(b.openedAt).getTime()
   );
-
-  // Check legs for expiration patterns
-  const legsArr = sorted.map((t) => parseLegs(t.legs));
 
   // Simple heuristic: if legs contain similar strikes but different dates mentioned
   // this might be a roll

@@ -11,7 +11,6 @@ import {
   ChevronUp,
   Sparkles,
   X,
-  Search,
   Loader2,
   ArrowRight,
 } from 'lucide-react';
@@ -29,7 +28,6 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { formatStrategyType } from '@/lib/csvImport';
 import type {
   ParsedTrade,
   LinkGroup,
@@ -69,17 +67,6 @@ const DIRECTION_OPTIONS: { value: ThesisDirection; label: string; icon: string }
   { value: 'BEARISH', label: 'Bearish', icon: '📉' },
   { value: 'NEUTRAL', label: 'Neutral', icon: '↔️' },
   { value: 'VOLATILE', label: 'Volatile', icon: '📊' },
-];
-
-const ACTION_OPTIONS: { value: TradeAction; label: string }[] = [
-  { value: 'INITIAL', label: 'Initial' },
-  { value: 'ADD', label: 'Add' },
-  { value: 'REDUCE', label: 'Reduce' },
-  { value: 'ROLL', label: 'Roll' },
-  { value: 'CONVERT', label: 'Convert' },
-  { value: 'CLOSE', label: 'Close' },
-  { value: 'ASSIGNED', label: 'Assigned' },
-  { value: 'EXERCISED', label: 'Exercised' },
 ];
 
 // ============================================
