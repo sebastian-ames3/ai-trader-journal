@@ -14,16 +14,17 @@ import Anthropic from '@anthropic-ai/sdk';
 
 /**
  * Claude model constants with tiering strategy
+ * Using -latest aliases for automatic updates to newest versions
  */
 export const CLAUDE_MODELS = {
   /** Fast, cheap tasks - ticker validation, quick inference */
-  FAST: 'claude-3-5-haiku-latest',
+  FAST: 'claude-haiku-4-latest',
 
-  /** Balanced tasks - entry analysis, vision, insights */
-  BALANCED: 'claude-sonnet-4-20250514',
+  /** Balanced tasks - entry analysis, vision, insights, chart analysis */
+  BALANCED: 'claude-sonnet-4-latest',
 
   /** Deep analysis - complex patterns, monthly reports */
-  DEEP: 'claude-opus-4-5-20251101',
+  DEEP: 'claude-opus-4-latest',
 } as const;
 
 export type ClaudeModel = (typeof CLAUDE_MODELS)[keyof typeof CLAUDE_MODELS];

@@ -2,26 +2,20 @@
  * Image Analysis API Route
  *
  * POST /api/analyze/image
- * Analyzes chart screenshots and trading images using GPT-4o-mini vision.
+ * Analyzes chart screenshots and trading images using Claude Sonnet vision.
  *
  * Request: { imageUrl: string }
  * Response: ImageAnalysis object with extracted information
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
-
-// Lazy-initialize OpenAI client
-let openaiClient: OpenAI | null = null;
-
-function getOpenAIClient(): OpenAI {
-  if (!openaiClient) {
-    openaiClient = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY || '',
-    });
-  }
-  return openaiClient;
-}
+import {
+  getClaude,
+  CLAUDE_MODELS,
+  isClaudeConfigured,
+  parseJsonResponse,
+  handleClaudeError,
+} from '@/lib/claude';
 
 // Chart analysis prompt
 const CHART_ANALYSIS_PROMPT = `Analyze this trading chart or screenshot. Extract the following information if visible:
@@ -52,14 +46,29 @@ Return your analysis as JSON in this exact format:
     "resistance": 195
   },
   "summary": "Brief description of what the image shows"
-}`;
+}
+
+Return ONLY valid JSON, no markdown formatting.`;
+
+interface ChartAnalysis {
+  ticker: string | null;
+  chartType: string | null;
+  timeframe: string | null;
+  patterns: string[];
+  indicators: string[];
+  keyLevels: {
+    support?: number;
+    resistance?: number;
+  };
+  summary: string;
+}
 
 export async function POST(request: NextRequest) {
   try {
-    // Check for OpenAI API key
-    if (!process.env.OPENAI_API_KEY) {
+    // Check for Anthropic API key
+    if (!isClaudeConfigured()) {
       return NextResponse.json(
-        { error: 'OpenAI API key not configured' },
+        { error: 'Anthropic API key not configured' },
         { status: 503 }
       );
     }
@@ -85,88 +94,58 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get OpenAI client
-    const openai = getOpenAIClient();
+    // Get Claude client
+    const claude = getClaude();
 
-    // Call GPT-4o-mini with vision
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', // Good vision at balanced cost
+    // Call Claude Sonnet with vision
+    const response = await claude.messages.create({
+      model: CLAUDE_MODELS.BALANCED,
+      max_tokens: 1000,
       messages: [
         {
           role: 'user',
           content: [
             {
-              type: 'text',
-              text: CHART_ANALYSIS_PROMPT,
+              type: 'image',
+              source: {
+                type: 'url',
+                url: imageUrl,
+              },
             },
             {
-              type: 'image_url',
-              image_url: {
-                url: imageUrl,
-                detail: 'high', // Use high detail for better chart analysis
-              },
+              type: 'text',
+              text: CHART_ANALYSIS_PROMPT,
             },
           ],
         },
       ],
-      response_format: { type: 'json_object' },
-      max_tokens: 1000,
-      temperature: 0.3, // Lower temperature for more consistent analysis
     });
 
-    const content = response.choices[0]?.message?.content;
+    // Parse the JSON response
+    const analysis = parseJsonResponse<ChartAnalysis>(response);
 
-    if (!content) {
+    if (!analysis) {
       return NextResponse.json(
-        { error: 'No analysis generated' },
+        { error: 'Failed to parse analysis response' },
         { status: 500 }
       );
     }
 
-    // Parse and return the analysis
-    try {
-      const analysis = JSON.parse(content);
-      return NextResponse.json(analysis);
-    } catch {
-      // If parsing fails, return the raw content as summary
-      return NextResponse.json({
-        summary: content,
-        ticker: null,
-        chartType: null,
-        timeframe: null,
-        patterns: [],
-        indicators: [],
-        keyLevels: {},
-      });
-    }
+    // Return normalized response
+    return NextResponse.json({
+      ticker: analysis.ticker || null,
+      chartType: analysis.chartType || null,
+      timeframe: analysis.timeframe || null,
+      patterns: Array.isArray(analysis.patterns) ? analysis.patterns : [],
+      indicators: Array.isArray(analysis.indicators) ? analysis.indicators : [],
+      keyLevels: analysis.keyLevels || {},
+      summary: analysis.summary || '',
+    });
   } catch (error) {
     console.error('Image analysis error:', error);
 
-    // Handle specific OpenAI errors
-    if (error instanceof OpenAI.APIError) {
-      if (error.status === 401) {
-        return NextResponse.json(
-          { error: 'Invalid OpenAI API key' },
-          { status: 401 }
-        );
-      }
-      if (error.status === 429) {
-        return NextResponse.json(
-          { error: 'Rate limit exceeded. Please try again later.' },
-          { status: 429 }
-        );
-      }
-      if (error.status === 400) {
-        return NextResponse.json(
-          { error: 'Invalid image or request. Please try a different image.' },
-          { status: 400 }
-        );
-      }
-    }
-
-    return NextResponse.json(
-      { error: 'Failed to analyze image' },
-      { status: 500 }
-    );
+    // Use centralized error handler
+    const { status, message } = handleClaudeError(error);
+    return NextResponse.json({ error: message }, { status });
   }
 }
