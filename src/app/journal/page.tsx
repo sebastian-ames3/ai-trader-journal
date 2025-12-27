@@ -330,10 +330,10 @@ function JournalContent() {
         className="sticky top-0 z-10 shadow-lg"
       />
 
-      {/* Selected Date Header */}
+      {/* Selected Date Header - uses filtered entries count */}
       <CalendarSelectedDateHeader
         selectedDate={selectedDate}
-        entryCount={entryCounts[format(selectedDate, 'yyyy-MM-dd')] || 0}
+        entryCount={entries.length}
       />
 
       {/* Search & Filters */}

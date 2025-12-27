@@ -74,48 +74,66 @@ export function CalendarMonthView({
   return (
     <div className={cn("bg-slate-900", className)}>
       {/* Month navigation header */}
-      <div className="flex items-center justify-between px-4 py-3">
+      <div className="flex items-center justify-between px-2 py-3">
         <button
-          onClick={goToPrevMonth}
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            goToPrevMonth();
+          }}
           className={cn(
-            "h-10 w-10 rounded-full",
+            "h-12 w-12 rounded-full",
             "flex items-center justify-center",
             "text-slate-400 hover:text-slate-200",
             "hover:bg-slate-800",
             "transition-colors duration-200",
-            "active:scale-95"
+            "active:scale-95",
+            "touch-manipulation"
           )}
           aria-label="Previous month"
         >
-          <ChevronLeft className="h-5 w-5" />
+          <ChevronLeft className="h-6 w-6" />
         </button>
 
         <button
-          onClick={goToToday}
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            goToToday();
+          }}
           className={cn(
             "text-lg font-bold tracking-wide",
             "text-slate-100",
             "hover:text-amber-400",
             "transition-colors duration-200",
-            "uppercase"
+            "uppercase",
+            "px-4 py-2"
           )}
         >
           {format(currentMonth, "MMMM yyyy")}
         </button>
 
         <button
-          onClick={goToNextMonth}
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            goToNextMonth();
+          }}
           className={cn(
-            "h-10 w-10 rounded-full",
+            "h-12 w-12 rounded-full",
             "flex items-center justify-center",
             "text-slate-400 hover:text-slate-200",
             "hover:bg-slate-800",
             "transition-colors duration-200",
-            "active:scale-95"
+            "active:scale-95",
+            "touch-manipulation"
           )}
           aria-label="Next month"
         >
-          <ChevronRight className="h-5 w-5" />
+          <ChevronRight className="h-6 w-6" />
         </button>
       </div>
 
