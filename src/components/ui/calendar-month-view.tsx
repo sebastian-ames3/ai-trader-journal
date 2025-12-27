@@ -33,6 +33,7 @@ export function CalendarMonthView({
   onMonthChange,
 }: CalendarMonthViewProps) {
   const [currentMonth, setCurrentMonth] = React.useState(() => selectedDate);
+  const prevSelectedDateRef = React.useRef(selectedDate);
 
   // Generate all days to display (including padding days from adjacent months)
   const calendarDays = React.useMemo(() => {
@@ -63,11 +64,14 @@ export function CalendarMonthView({
   };
 
   // Update current month when selectedDate changes externally
+  // Uses ref to track previous selectedDate so we only sync when it actually changes,
+  // not when currentMonth changes from user navigation
   React.useEffect(() => {
-    if (!isSameMonth(selectedDate, currentMonth)) {
+    if (!isSameDay(selectedDate, prevSelectedDateRef.current)) {
+      prevSelectedDateRef.current = selectedDate;
       setCurrentMonth(selectedDate);
     }
-  }, [selectedDate, currentMonth]);
+  }, [selectedDate]);
 
   const weekDayHeaders = ["S", "M", "T", "W", "T", "F", "S"];
 
