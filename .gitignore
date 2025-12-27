@@ -302,3 +302,6 @@ PRD-*.md
 
 # Local design folder
 design/
+
+# Playwright test artifacts
+playwright/screenshots/
