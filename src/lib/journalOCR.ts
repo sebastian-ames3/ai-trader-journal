@@ -1,10 +1,6 @@
-import Anthropic from '@anthropic-ai/sdk';
 import { EntryMood } from '@prisma/client';
 import { parseISO } from 'date-fns';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
-});
+import { getClaude, CLAUDE_MODELS } from '@/lib/claude';
 
 export interface OCRResult {
   content: string; // Transcribed markdown text
@@ -25,8 +21,9 @@ export async function extractJournalData(
   imageUrl: string
 ): Promise<OCRResult> {
   try {
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+    const claude = getClaude();
+    const response = await claude.messages.create({
+      model: CLAUDE_MODELS.BALANCED,
       max_tokens: 2048,
       messages: [
         {
