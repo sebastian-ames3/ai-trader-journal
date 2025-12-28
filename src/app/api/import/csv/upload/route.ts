@@ -42,10 +42,11 @@ export async function POST(request: NextRequest) {
     const parseResult = parseOptionStratCSV(csvContent);
 
     if (!parseResult.success) {
+      console.log('[CSV Import] Parse failed:', parseResult.errors);
       return NextResponse.json(
         {
           success: false,
-          error: 'Failed to parse CSV',
+          error: parseResult.errors.join('; ') || 'Failed to parse CSV',
           errors: parseResult.errors,
         },
         { status: 400 }
