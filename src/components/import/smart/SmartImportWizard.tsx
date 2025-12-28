@@ -22,9 +22,6 @@ import { cn } from '@/lib/utils';
 import { useRef } from 'react';
 import {
   useSmartImportStore,
-  selectCurrentTrade,
-  selectProgress,
-  selectIsReviewComplete,
   type ParsedTrade,
   type ImportSummary,
 } from '@/stores/smartImportStore';
@@ -221,6 +218,9 @@ function TradeReviewStep() {
     trades,
     currentReviewIndex,
     reviewHistory,
+    approvedCount,
+    skippedCount,
+    pendingCount,
     approveTrade,
     skipTrade,
     undoLast,
@@ -229,11 +229,14 @@ function TradeReviewStep() {
     setSuggestions,
   } = useSmartImportStore();
 
-  const currentTrade = useSmartImportStore(selectCurrentTrade);
-  const progress = useSmartImportStore(selectProgress);
-  const isComplete = useSmartImportStore(selectIsReviewComplete);
-
   const validTrades = trades.filter((t) => t.isValid && !t.isDuplicate);
+  const currentTrade = validTrades[currentReviewIndex] || null;
+
+  // Compute progress inline to avoid selector returning new objects
+  const total = approvedCount + skippedCount + pendingCount;
+  const completed = approvedCount + skippedCount;
+  const progress = { total, completed, percentage: total > 0 ? (completed / total) * 100 : 0 };
+  const isComplete = pendingCount === 0 && trades.length > 0;
 
   // Fetch suggestions when review is complete
   const handleContinue = useCallback(async () => {
@@ -301,11 +304,11 @@ function TradeReviewStep() {
       <div className="flex items-center justify-center gap-4">
         <Badge variant="default" className="gap-1">
           <Check className="h-3 w-3" />
-          {useSmartImportStore.getState().approvedCount} approved
+          {approvedCount} approved
         </Badge>
         <Badge variant="secondary" className="gap-1">
           <X className="h-3 w-3" />
-          {useSmartImportStore.getState().skippedCount} skipped
+          {skippedCount} skipped
         </Badge>
       </div>
 
@@ -321,8 +324,7 @@ function TradeReviewStep() {
           <p className="text-muted-foreground mb-6">
             You&apos;ve reviewed all {validTrades.length} trades.
             <br />
-            {useSmartImportStore.getState().approvedCount} approved,{' '}
-            {useSmartImportStore.getState().skippedCount} skipped.
+            {approvedCount} approved, {skippedCount} skipped.
           </p>
           <Button onClick={handleContinue} className="gap-2">
             Continue to Linking

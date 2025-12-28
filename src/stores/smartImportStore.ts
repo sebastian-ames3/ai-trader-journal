@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
 import { StrategyType, ThesisDirection } from '@prisma/client';
 
 // ============================================
@@ -230,9 +229,8 @@ const initialState: SmartImportState = {
 // ============================================
 
 export const useSmartImportStore = create<SmartImportStore>()(
-  persist(
-    (set, get) => ({
-      ...initialState,
+  (set, get) => ({
+    ...initialState,
 
       // Navigation
       setStep: (step) => set({ currentStep: step }),
@@ -511,29 +509,7 @@ export const useSmartImportStore = create<SmartImportStore>()(
           description: decision.edits.description ?? trade.description,
         };
       },
-    }),
-    {
-      name: 'smart-import-storage',
-      version: 2, // Increment to invalidate old corrupted data
-      storage: createJSONStorage(() => sessionStorage),
-      partialize: (state) => ({
-        // Only persist essential data, not File objects
-        batchId: state.batchId,
-        fileName: state.fileName,
-        trades: state.trades,
-        summary: state.summary,
-        currentStep: state.currentStep,
-        currentReviewIndex: state.currentReviewIndex,
-        decisions: state.decisions,
-        reviewHistory: state.reviewHistory,
-        linkGroups: state.linkGroups,
-        suggestions: state.suggestions,
-        approvedCount: state.approvedCount,
-        skippedCount: state.skippedCount,
-        pendingCount: state.pendingCount,
-      }),
-    }
-  )
+    })
 );
 
 // ============================================
