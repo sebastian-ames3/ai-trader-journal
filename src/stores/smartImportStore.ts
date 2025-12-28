@@ -514,6 +514,7 @@ export const useSmartImportStore = create<SmartImportStore>()(
     }),
     {
       name: 'smart-import-storage',
+      version: 2, // Increment to invalidate old corrupted data
       storage: createJSONStorage(() => sessionStorage),
       partialize: (state) => ({
         // Only persist essential data, not File objects
@@ -531,6 +532,13 @@ export const useSmartImportStore = create<SmartImportStore>()(
         skippedCount: state.skippedCount,
         pendingCount: state.pendingCount,
       }),
+      migrate: (persistedState, version) => {
+        // If version mismatch, return fresh state
+        if (version < 2) {
+          return initialState;
+        }
+        return persistedState as SmartImportState;
+      },
     }
   )
 );
