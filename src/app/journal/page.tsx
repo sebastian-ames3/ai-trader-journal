@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense, useCallback } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Plus, Link2 } from 'lucide-react';
+import { Plus, Link2, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import SearchFilters, { FilterState } from '@/components/SearchFilters';
 import { EntryCardList, EntryCardSkeleton } from '@/components/ui/entry-card';
@@ -344,7 +344,17 @@ function JournalContent() {
       />
 
       {/* Quick Actions */}
-      <div className="max-w-4xl mx-auto px-4 py-2">
+      <div className="max-w-4xl mx-auto px-4 py-2 flex gap-2">
+        <Link href="/journal/import/smart">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+          >
+            <Upload className="h-4 w-4" />
+            Import Trades
+          </Button>
+        </Link>
         <Button
           variant="outline"
           size="sm"
