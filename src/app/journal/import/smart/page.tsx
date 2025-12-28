@@ -1,14 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileSpreadsheet, ArrowLeft } from 'lucide-react';
+import { FileSpreadsheet, ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import SmartImportWizard from '@/components/import/smart/SmartImportWizard';
+import { useSmartImportStore } from '@/stores/smartImportStore';
 
 export default function SmartImportPage() {
   const router = useRouter();
   const [isWizardOpen, setIsWizardOpen] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Ensure client-side only rendering and reset store on mount
+  useEffect(() => {
+    useSmartImportStore.getState().reset();
+    setIsMounted(true);
+  }, []);
 
   const handleClose = () => {
     setIsWizardOpen(false);
@@ -18,6 +26,15 @@ export default function SmartImportPage() {
   const handleComplete = (result: { imported: number; thesesCreated: number }) => {
     console.log('[Smart Import] Complete:', result);
   };
+
+  // Show loading until client is mounted
+  if (!isMounted) {
+    return (
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-muted/30">
