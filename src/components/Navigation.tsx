@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, BookOpen, BarChart3 } from 'lucide-react';
+import { Home, BookOpen, BarChart3, TrendingUp } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 
 export default function Navigation() {
@@ -86,6 +86,18 @@ export default function Navigation() {
             >
               <BookOpen className="h-5 w-5" />
               <span className="hidden sm:inline">Journal</span>
+            </Link>
+
+            <Link
+              href="/theses"
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 min-h-[44px] ${
+                isActive('/theses')
+                  ? 'bg-amber-500 text-white shadow-md'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              <TrendingUp className="h-5 w-5" />
+              <span className="hidden sm:inline">Theses</span>
             </Link>
 
             <Link
