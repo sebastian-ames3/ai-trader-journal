@@ -514,6 +514,7 @@ export const useSmartImportStore = create<SmartImportStore>()(
     }),
     {
       name: 'smart-import-storage',
+      version: 2, // Increment to invalidate old corrupted data
       storage: createJSONStorage(() => sessionStorage),
       partialize: (state) => ({
         // Only persist essential data, not File objects
