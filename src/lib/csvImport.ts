@@ -13,12 +13,24 @@ import { parseISO, parse, isValid } from 'date-fns';
 // ============================================
 
 export interface OptionStratCSVRow {
-  Date: string;
-  Symbol: string;
-  Strategy: string;
-  Legs: string;
-  'P/L': string;
-  Status: string;
+  // New OptionStrat format
+  Name?: string;
+  'Total Return %'?: string;
+  'Total Return $'?: string;
+  'Created At'?: string;
+  Expiration?: string;
+  'Net Debit/Credit'?: string;
+  'Max Loss'?: string;
+  'Max Profit'?: string;
+  // Legacy format support
+  Date?: string;
+  Symbol?: string;
+  Strategy?: string;
+  Legs?: string;
+  'P/L'?: string;
+  Status?: string;
+  // Allow any other fields
+  [key: string]: string | undefined;
 }
 
 export interface ParsedTrade {
@@ -30,6 +42,9 @@ export interface ParsedTrade {
   legs: string;
   realizedPL: number | null;
   status: ThesisTradeStatus;
+  expiration?: string;
+  maxLoss?: number;
+  maxProfit?: number;
   rawRow: OptionStratCSVRow;
   warnings: string[];
   isValid: boolean;
@@ -79,6 +94,12 @@ const STRATEGY_MAP: Record<string, StrategyType> = {
   butterfly: StrategyType.BUTTERFLY,
   stock: StrategyType.STOCK,
 
+  // Plural variations (OptionStrat uses these)
+  'long calls': StrategyType.LONG_CALL,
+  'long puts': StrategyType.LONG_PUT,
+  'short calls': StrategyType.SHORT_CALL,
+  'short puts': StrategyType.SHORT_PUT,
+
   // OptionStrat variations
   ic: StrategyType.IRON_CONDOR,
   'bull call spread': StrategyType.CALL_SPREAD,
@@ -93,11 +114,95 @@ const STRATEGY_MAP: Record<string, StrategyType> = {
   cc: StrategyType.COVERED_CALL,
   'naked put': StrategyType.SHORT_PUT,
   'naked call': StrategyType.SHORT_CALL,
+
+  // Butterfly variations
+  'long call butterfly': StrategyType.BUTTERFLY,
+  'long put butterfly': StrategyType.BUTTERFLY,
+  'call butterfly': StrategyType.BUTTERFLY,
+  'put butterfly': StrategyType.BUTTERFLY,
 };
 
 // ============================================
 // Parsing Functions
 // ============================================
+
+/**
+ * Detect which format the CSV is in
+ */
+function detectCSVFormat(headers: string[]): 'optionstrat' | 'legacy' | 'unknown' {
+  // OptionStrat format has "Name" and "Created At" columns
+  if (headers.includes('Name') && (headers.includes('Created At') || headers.includes('Total Return $'))) {
+    return 'optionstrat';
+  }
+  // Legacy format has "Date", "Symbol", "Strategy" columns
+  if (headers.includes('Date') && headers.includes('Symbol') && headers.includes('Strategy')) {
+    return 'legacy';
+  }
+  return 'unknown';
+}
+
+/**
+ * Check if a row is a leg row (child) vs a trade row (parent) in OptionStrat format
+ * Leg rows have symbols starting with "." and no Name value
+ */
+function isLegRow(row: OptionStratCSVRow): boolean {
+  const symbol = row.Symbol || '';
+  const name = row.Name || '';
+  // Leg rows typically have a symbol starting with "." and empty or minimal Name
+  return symbol.startsWith('.') || (symbol.length > 0 && name.length === 0);
+}
+
+/**
+ * Extract ticker and strategy from OptionStrat "Name" field
+ * e.g., "ASPI Apr 17th '26 20 Long Call" -> { ticker: "ASPI", strategy: "Long Call" }
+ */
+function parseOptionStratName(name: string): { ticker: string; strategy: string; expiration: string } {
+  if (!name) {
+    return { ticker: '', strategy: '', expiration: '' };
+  }
+
+  // Pattern: "TICKER Month Day 'YY Strike Strategy"
+  // Examples:
+  // "ASPI Apr 17th '26 20 Long Call"
+  // "CRCL Apr 17th '26 100/150 Bull Call Spread"
+  // "META Mar 20th '26 695/700/705 Long Call Butterfly"
+
+  const parts = name.trim().split(/\s+/);
+  if (parts.length < 2) {
+    return { ticker: name, strategy: '', expiration: '' };
+  }
+
+  const ticker = parts[0].toUpperCase();
+
+  // Find where the strategy starts (after strike prices)
+  // Strategy keywords: Long, Short, Bull, Bear, Iron, Covered, Cash, Naked, Call, Put, Spread, Condor, etc.
+  const strategyKeywords = ['long', 'short', 'bull', 'bear', 'iron', 'covered', 'cash', 'naked', 'straddle', 'strangle', 'calendar', 'diagonal', 'butterfly', 'condor', 'ratio'];
+
+  let strategyStartIdx = -1;
+  for (let i = 1; i < parts.length; i++) {
+    const partLower = parts[i].toLowerCase();
+    if (strategyKeywords.some(kw => partLower.startsWith(kw))) {
+      strategyStartIdx = i;
+      break;
+    }
+  }
+
+  // Extract expiration (month, day, year between ticker and strategy)
+  let expiration = '';
+  if (strategyStartIdx > 1) {
+    // Look for month/day/year pattern
+    const expParts = parts.slice(1, strategyStartIdx).filter(p => {
+      // Filter out strike prices (numbers, slashes)
+      return !/^[\d\/]+$/.test(p);
+    });
+    expiration = expParts.join(' ');
+  }
+
+  // Extract strategy
+  const strategy = strategyStartIdx > 0 ? parts.slice(strategyStartIdx).join(' ') : '';
+
+  return { ticker, strategy, expiration };
+}
 
 /**
  * Parse OptionStrat CSV content into trades
@@ -121,13 +226,19 @@ export function parseOptionStratCSV(csvContent: string): CSVParseResult {
     });
   }
 
-  // Validate headers
-  const requiredHeaders = ['Date', 'Symbol', 'Strategy', 'Status'];
   const headers = parseResult.meta.fields || [];
-  const missingHeaders = requiredHeaders.filter((h) => !headers.includes(h));
+  const format = detectCSVFormat(headers);
 
-  if (missingHeaders.length > 0) {
-    errors.push(`Missing required columns: ${missingHeaders.join(', ')}`);
+  if (format === 'unknown') {
+    // Try to provide helpful error message
+    const hasName = headers.includes('Name');
+    const hasDate = headers.includes('Date');
+    errors.push(
+      `Unrecognized CSV format. Found columns: ${headers.slice(0, 5).join(', ')}${headers.length > 5 ? '...' : ''}`
+    );
+    if (!hasName && !hasDate) {
+      errors.push('Expected either "Name" column (OptionStrat format) or "Date" column (legacy format)');
+    }
     return {
       success: false,
       trades: [],
@@ -142,15 +253,30 @@ export function parseOptionStratCSV(csvContent: string): CSVParseResult {
     };
   }
 
-  // Process rows
-  parseResult.data.forEach((row, index) => {
-    const parsed = parseTradeRow(row, index);
-    trades.push(parsed);
+  // Process rows based on format
+  if (format === 'optionstrat') {
+    // Filter out leg rows (child rows) - we only want parent trade rows
+    const tradeRows = parseResult.data.filter(row => !isLegRow(row) && row.Name && row.Name.length > 0);
 
-    if (!parsed.isValid) {
-      parsed.warnings.forEach((w) => warnings.push(`Row ${index + 2}: ${w}`));
-    }
-  });
+    tradeRows.forEach((row, index) => {
+      const parsed = parseOptionStratRow(row, index);
+      trades.push(parsed);
+
+      if (!parsed.isValid) {
+        parsed.warnings.forEach((w) => warnings.push(`Row ${index + 2}: ${w}`));
+      }
+    });
+  } else {
+    // Legacy format
+    parseResult.data.forEach((row, index) => {
+      const parsed = parseLegacyRow(row, index);
+      trades.push(parsed);
+
+      if (!parsed.isValid) {
+        parsed.warnings.forEach((w) => warnings.push(`Row ${index + 2}: ${w}`));
+      }
+    });
+  }
 
   // Check for duplicates
   const duplicateCount = markDuplicates(trades);
@@ -159,7 +285,7 @@ export function parseOptionStratCSV(csvContent: string): CSVParseResult {
   const invalidCount = trades.filter((t) => !t.isValid).length;
 
   return {
-    success: errors.length === 0,
+    success: errors.length === 0 && validCount > 0,
     trades,
     errors,
     warnings,
@@ -173,14 +299,112 @@ export function parseOptionStratCSV(csvContent: string): CSVParseResult {
 }
 
 /**
- * Parse a single CSV row into a trade
+ * Parse an OptionStrat format row
  */
-function parseTradeRow(row: OptionStratCSVRow, index: number): ParsedTrade {
+function parseOptionStratRow(row: OptionStratCSVRow, index: number): ParsedTrade {
+  const warnings: string[] = [];
+  let isValid = true;
+
+  // Parse Name field to extract ticker and strategy
+  const { ticker, strategy, expiration: nameExpiration } = parseOptionStratName(row.Name || '');
+
+  if (!ticker) {
+    warnings.push('Could not extract ticker from Name');
+    isValid = false;
+  }
+
+  // Parse date from "Created At" field (format: "12/10/25 9:34" or "12/10/2025 9:34")
+  const createdAt = row['Created At'] || '';
+  const date = parseTradeDate(createdAt);
+  if (!date) {
+    warnings.push(`Invalid date format: ${createdAt}`);
+    isValid = false;
+  }
+
+  // Parse strategy type
+  const { strategyType, strategyName } = parseStrategy(strategy);
+  if (!strategyType && strategy) {
+    warnings.push(`Unknown strategy type: ${strategy}`);
+  }
+
+  // Parse P/L from "Total Return $"
+  const realizedPL = parsePL(row['Total Return $'] || '');
+
+  // Parse expiration date
+  const expiration = row.Expiration || nameExpiration || '';
+
+  // Parse max loss/profit
+  const maxLoss = parsePL(row['Max Loss'] || '');
+  const maxProfit = parsePL(row['Max Profit'] || '');
+
+  // Determine status - if there's a close price or P/L and trade is past expiration, it's closed
+  const returnPercent = parseFloat((row['Total Return %'] || '0').replace('%', ''));
+  const status = determineTradeStatus(expiration, returnPercent);
+
+  return {
+    id: `import-${index}-${Date.now()}`,
+    date: date || new Date(),
+    symbol: ticker,
+    strategyType,
+    strategyName: row.Name || strategyName || 'Unknown',
+    legs: '', // Legs are in child rows, could aggregate if needed
+    realizedPL,
+    status,
+    expiration,
+    maxLoss: maxLoss ?? undefined,
+    maxProfit: maxProfit ?? undefined,
+    rawRow: row,
+    warnings,
+    isValid,
+  };
+}
+
+/**
+ * Determine trade status based on expiration and return
+ */
+function determineTradeStatus(expiration: string, returnPercent: number): ThesisTradeStatus {
+  if (!expiration) {
+    return ThesisTradeStatus.OPEN;
+  }
+
+  // Try to parse expiration date
+  const expDate = parseExpirationDate(expiration);
+  if (expDate && expDate < new Date()) {
+    return ThesisTradeStatus.EXPIRED;
+  }
+
+  // If return is exactly 0 or very small, likely still open
+  if (Math.abs(returnPercent) < 0.01) {
+    return ThesisTradeStatus.OPEN;
+  }
+
+  return ThesisTradeStatus.OPEN;
+}
+
+/**
+ * Parse expiration date from various formats
+ * e.g., "4/17/2026 16:00", "4/17/26 16:00", "Apr 17th '26"
+ */
+function parseExpirationDate(expStr: string): Date | null {
+  if (!expStr) return null;
+
+  // Remove time portion
+  const dateOnly = expStr.split(' ')[0];
+
+  // Try parsing as date
+  const date = parseTradeDate(dateOnly);
+  return date;
+}
+
+/**
+ * Parse a legacy format CSV row into a trade
+ */
+function parseLegacyRow(row: OptionStratCSVRow, index: number): ParsedTrade {
   const warnings: string[] = [];
   let isValid = true;
 
   // Parse date
-  const date = parseTradeDate(row.Date);
+  const date = parseTradeDate(row.Date || '');
   if (!date) {
     warnings.push('Invalid date format');
     isValid = false;
@@ -194,16 +418,16 @@ function parseTradeRow(row: OptionStratCSVRow, index: number): ParsedTrade {
   }
 
   // Parse strategy
-  const { strategyType, strategyName } = parseStrategy(row.Strategy);
+  const { strategyType, strategyName } = parseStrategy(row.Strategy || '');
   if (!strategyType) {
     warnings.push(`Unknown strategy: ${row.Strategy}`);
   }
 
   // Parse P/L
-  const realizedPL = parsePL(row['P/L']);
+  const realizedPL = parsePL(row['P/L'] || '');
 
   // Parse status
-  const status = parseStatus(row.Status);
+  const status = parseStatus(row.Status || '');
 
   return {
     id: `import-${index}-${Date.now()}`,
@@ -226,14 +450,25 @@ function parseTradeRow(row: OptionStratCSVRow, index: number): ParsedTrade {
 function parseTradeDate(dateStr: string): Date | null {
   if (!dateStr) return null;
 
+  // Remove time portion for parsing (e.g., "12/10/25 9:34" -> "12/10/25")
+  const dateOnly = dateStr.split(' ')[0];
+
   // Try ISO format first (2024-01-15)
-  let date = parseISO(dateStr);
+  let date = parseISO(dateOnly);
   if (isValid(date)) return date;
 
   // Try common formats
   const formats = [
-    'MM/dd/yyyy',
+    // With time
+    'M/d/yy H:mm',
+    'M/d/yyyy H:mm',
+    'MM/dd/yy H:mm',
+    'MM/dd/yyyy H:mm',
+    // Without time
+    'M/d/yy',
     'M/d/yyyy',
+    'MM/dd/yy',
+    'MM/dd/yyyy',
     'MM-dd-yyyy',
     'M-d-yyyy',
     'yyyy/MM/dd',
@@ -243,7 +478,12 @@ function parseTradeDate(dateStr: string): Date | null {
 
   for (const format of formats) {
     try {
+      // Try with full string first (includes time)
       date = parse(dateStr, format, new Date());
+      if (isValid(date)) return date;
+
+      // Try with date only
+      date = parse(dateOnly, format, new Date());
       if (isValid(date)) return date;
     } catch {
       // Continue trying other formats
