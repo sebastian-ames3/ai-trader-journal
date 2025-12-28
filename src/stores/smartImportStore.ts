@@ -325,7 +325,8 @@ export const useSmartImportStore = create<SmartImportStore>()(
 
         const lastTradeId = reviewHistory[reviewHistory.length - 1];
         const lastDecision = decisions[lastTradeId];
-        const { [lastTradeId]: _, ...newDecisions } = decisions;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { [lastTradeId]: _removed, ...newDecisions } = decisions;
 
         set({
           decisions: newDecisions,
