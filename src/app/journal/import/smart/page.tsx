@@ -1,53 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileSpreadsheet, ArrowLeft, AlertTriangle, RefreshCw } from 'lucide-react';
+import { FileSpreadsheet, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import SmartImportWizard from '@/components/import/smart/SmartImportWizard';
 
-// Error fallback component
-function ErrorFallback({ error, onReset }: { error: Error; onReset: () => void }) {
-  return (
-    <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-background rounded-xl border shadow-lg p-6 space-y-4">
-        <div className="flex items-center gap-3 text-destructive">
-          <AlertTriangle className="h-6 w-6" />
-          <h2 className="text-lg font-semibold">Something went wrong</h2>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          {error.message || 'An unexpected error occurred while loading the import wizard.'}
-        </p>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => window.history.back()}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Go Back
-          </Button>
-          <Button onClick={onReset}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Try Again
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SmartImportContent() {
+export default function SmartImportPage() {
   const router = useRouter();
   const [isWizardOpen, setIsWizardOpen] = useState(true);
-  const [isReady, setIsReady] = useState(false);
-
-  // Clear potentially corrupted storage and wait for client hydration
-  useEffect(() => {
-    try {
-      // Clear the smart-import-storage to start fresh
-      sessionStorage.removeItem('smart-import-storage');
-    } catch {
-      // Ignore storage errors
-    }
-    setIsReady(true);
-  }, []);
 
   const handleClose = () => {
     setIsWizardOpen(false);
@@ -57,18 +18,6 @@ function SmartImportContent() {
   const handleComplete = (result: { imported: number; thesesCreated: number }) => {
     console.log('[Smart Import] Complete:', result);
   };
-
-  // Show loading until client is ready
-  if (!isReady) {
-    return (
-      <div className="min-h-screen bg-muted/30 flex items-center justify-center">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <RefreshCw className="h-5 w-5 animate-spin" />
-          <span>Loading...</span>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -101,34 +50,4 @@ function SmartImportContent() {
       />
     </div>
   );
-}
-
-export default function SmartImportPage() {
-  const [error, setError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    const handleError = (event: ErrorEvent) => {
-      event.preventDefault();
-      setError(event.error || new Error(event.message));
-    };
-
-    window.addEventListener('error', handleError);
-    return () => window.removeEventListener('error', handleError);
-  }, []);
-
-  const handleReset = () => {
-    try {
-      sessionStorage.removeItem('smart-import-storage');
-    } catch {
-      // Ignore
-    }
-    setError(null);
-    window.location.reload();
-  };
-
-  if (error) {
-    return <ErrorFallback error={error} onReset={handleReset} />;
-  }
-
-  return <SmartImportContent />;
 }
