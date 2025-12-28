@@ -127,15 +127,69 @@ const STRATEGY_MAP: Record<string, StrategyType> = {
 // ============================================
 
 /**
+ * Normalize a header name for comparison
+ * Handles variations in spacing, capitalization, and special characters
+ */
+function normalizeHeader(header: string): string {
+  return header
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ')  // Normalize multiple spaces
+    .replace(/[^\w\s$%]/g, '');  // Remove special chars except $ and %
+}
+
+/**
+ * Check if a header contains a target (fuzzy match)
+ */
+function hasHeader(headers: string[], target: string): boolean {
+  const normalizedTarget = normalizeHeader(target);
+  return headers.some(h => {
+    const normalized = normalizeHeader(h);
+    return normalized === normalizedTarget ||
+           normalized.includes(normalizedTarget) ||
+           normalizedTarget.includes(normalized);
+  });
+}
+
+/**
+ * Find the actual header name that matches a target
+ */
+function findHeader(headers: string[], target: string): string | undefined {
+  const normalizedTarget = normalizeHeader(target);
+  return headers.find(h => {
+    const normalized = normalizeHeader(h);
+    return normalized === normalizedTarget ||
+           normalized.includes(normalizedTarget) ||
+           normalizedTarget.includes(normalized);
+  });
+}
+
+/**
  * Detect which format the CSV is in
  */
 function detectCSVFormat(headers: string[]): 'optionstrat' | 'legacy' | 'unknown' {
-  // OptionStrat format has "Name" and "Created At" columns
-  if (headers.includes('Name') && (headers.includes('Created At') || headers.includes('Total Return $'))) {
+  console.log('[CSV Import] Detecting format. Headers:', headers.slice(0, 10));
+
+  // OptionStrat format has "Name" and "Created At" or "Total Return" columns
+  const hasName = hasHeader(headers, 'Name');
+  const hasCreatedAt = hasHeader(headers, 'Created At') || hasHeader(headers, 'Created');
+  const hasTotalReturn = hasHeader(headers, 'Total Return') || hasHeader(headers, 'Return $') || hasHeader(headers, 'Return');
+  const hasExpiration = hasHeader(headers, 'Expiration');
+
+  console.log('[CSV Import] OptionStrat check:', { hasName, hasCreatedAt, hasTotalReturn, hasExpiration });
+
+  if (hasName && (hasCreatedAt || hasTotalReturn || hasExpiration)) {
     return 'optionstrat';
   }
+
   // Legacy format has "Date", "Symbol", "Strategy" columns
-  if (headers.includes('Date') && headers.includes('Symbol') && headers.includes('Strategy')) {
+  const hasDate = hasHeader(headers, 'Date');
+  const hasSymbol = hasHeader(headers, 'Symbol');
+  const hasStrategy = hasHeader(headers, 'Strategy');
+
+  console.log('[CSV Import] Legacy check:', { hasDate, hasSymbol, hasStrategy });
+
+  if (hasDate && hasSymbol && hasStrategy) {
     return 'legacy';
   }
   return 'unknown';
@@ -205,6 +259,24 @@ function parseOptionStratName(name: string): { ticker: string; strategy: string;
 }
 
 /**
+ * Remove BOM (Byte Order Mark) from CSV content
+ */
+function removeBOM(content: string): string {
+  // Remove UTF-8 BOM
+  if (content.charCodeAt(0) === 0xFEFF) {
+    return content.slice(1);
+  }
+  // Remove other common BOMs
+  const boms = ['\uFEFF', '\uFFFE', '\u0000'];
+  for (const bom of boms) {
+    if (content.startsWith(bom)) {
+      return content.slice(bom.length);
+    }
+  }
+  return content;
+}
+
+/**
  * Parse OptionStrat CSV content into trades
  */
 export function parseOptionStratCSV(csvContent: string): CSVParseResult {
@@ -212,8 +284,13 @@ export function parseOptionStratCSV(csvContent: string): CSVParseResult {
   const warnings: string[] = [];
   const trades: ParsedTrade[] = [];
 
+  // Remove BOM if present
+  const cleanedContent = removeBOM(csvContent.trim());
+
+  console.log('[CSV Import] Parsing CSV, first 200 chars:', cleanedContent.slice(0, 200));
+
   // Parse CSV
-  const parseResult = Papa.parse<OptionStratCSVRow>(csvContent, {
+  const parseResult = Papa.parse<OptionStratCSVRow>(cleanedContent, {
     header: true,
     skipEmptyLines: true,
     transformHeader: (header) => header.trim(),
@@ -255,11 +332,22 @@ export function parseOptionStratCSV(csvContent: string): CSVParseResult {
 
   // Process rows based on format
   if (format === 'optionstrat') {
+    // Find the actual Name header (handles variations)
+    const nameHeader = findHeader(headers, 'Name') || 'Name';
+    console.log('[CSV Import] Using name header:', nameHeader);
+
     // Filter out leg rows (child rows) - we only want parent trade rows
-    const tradeRows = parseResult.data.filter(row => !isLegRow(row) && row.Name && row.Name.length > 0);
+    const tradeRows = parseResult.data.filter(row => {
+      const nameValue = row[nameHeader] || row.Name || '';
+      const hasName = nameValue && nameValue.length > 0;
+      const isLeg = isLegRow(row);
+      return hasName && !isLeg;
+    });
+
+    console.log('[CSV Import] Found', tradeRows.length, 'trade rows out of', parseResult.data.length, 'total rows');
 
     tradeRows.forEach((row, index) => {
-      const parsed = parseOptionStratRow(row, index);
+      const parsed = parseOptionStratRow(row, index, headers);
       trades.push(parsed);
 
       if (!parsed.isValid) {
@@ -299,25 +387,46 @@ export function parseOptionStratCSV(csvContent: string): CSVParseResult {
 }
 
 /**
+ * Get a value from a row using fuzzy header matching
+ */
+function getRowValue(row: OptionStratCSVRow, headers: string[], target: string): string {
+  // First try direct access
+  if (row[target] !== undefined) {
+    return row[target] || '';
+  }
+
+  // Try to find the actual header name
+  const actualHeader = findHeader(headers, target);
+  if (actualHeader && row[actualHeader] !== undefined) {
+    return row[actualHeader] || '';
+  }
+
+  return '';
+}
+
+/**
  * Parse an OptionStrat format row
  */
-function parseOptionStratRow(row: OptionStratCSVRow, index: number): ParsedTrade {
+function parseOptionStratRow(row: OptionStratCSVRow, index: number, headers: string[] = []): ParsedTrade {
   const warnings: string[] = [];
   let isValid = true;
 
+  // Get Name value (handles column name variations)
+  const nameValue = getRowValue(row, headers, 'Name') || row.Name || '';
+
   // Parse Name field to extract ticker and strategy
-  const { ticker, strategy, expiration: nameExpiration } = parseOptionStratName(row.Name || '');
+  const { ticker, strategy, expiration: nameExpiration } = parseOptionStratName(nameValue);
 
   if (!ticker) {
-    warnings.push('Could not extract ticker from Name');
+    warnings.push(`Could not extract ticker from Name: "${nameValue}"`);
     isValid = false;
   }
 
   // Parse date from "Created At" field (format: "12/10/25 9:34" or "12/10/2025 9:34")
-  const createdAt = row['Created At'] || '';
+  const createdAt = getRowValue(row, headers, 'Created At') || getRowValue(row, headers, 'Created') || row['Created At'] || '';
   const date = parseTradeDate(createdAt);
   if (!date) {
-    warnings.push(`Invalid date format: ${createdAt}`);
+    warnings.push(`Invalid date format: "${createdAt}"`);
     isValid = false;
   }
 
@@ -327,15 +436,19 @@ function parseOptionStratRow(row: OptionStratCSVRow, index: number): ParsedTrade
     warnings.push(`Unknown strategy type: ${strategy}`);
   }
 
-  // Parse P/L from "Total Return $"
-  const realizedPL = parsePL(row['Total Return $'] || '');
+  // Parse P/L from "Total Return $" or similar
+  const totalReturn = getRowValue(row, headers, 'Total Return $') || getRowValue(row, headers, 'Total Return') || row['Total Return $'] || '';
+  const realizedPL = parsePL(totalReturn);
 
   // Parse expiration date
-  const expiration = row.Expiration || nameExpiration || '';
+  const expirationValue = getRowValue(row, headers, 'Expiration') || row.Expiration || nameExpiration || '';
+  const expiration = expirationValue;
 
   // Parse max loss/profit
-  const maxLoss = parsePL(row['Max Loss'] || '');
-  const maxProfit = parsePL(row['Max Profit'] || '');
+  const maxLossValue = getRowValue(row, headers, 'Max Loss') || row['Max Loss'] || '';
+  const maxProfitValue = getRowValue(row, headers, 'Max Profit') || row['Max Profit'] || '';
+  const maxLoss = parsePL(maxLossValue);
+  const maxProfit = parsePL(maxProfitValue);
 
   // Determine status - if there's a close price or P/L and trade is past expiration, it's closed
   const returnPercent = parseFloat((row['Total Return %'] || '0').replace('%', ''));
