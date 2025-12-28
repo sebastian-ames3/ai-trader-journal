@@ -178,10 +178,21 @@ function FileUploadStep() {
 
       {/* CSV format info */}
       <div className="p-3 rounded-lg bg-muted/50">
-        <p className="text-xs text-muted-foreground mb-2">Expected CSV format:</p>
-        <code className="text-xs block p-2 bg-background rounded border overflow-x-auto">
-          Date,Symbol,Strategy,Legs,P/L,Status
-        </code>
+        <p className="text-xs text-muted-foreground mb-2">Supported CSV formats:</p>
+        <div className="space-y-2">
+          <div>
+            <p className="text-xs text-muted-foreground">OptionStrat export:</p>
+            <code className="text-xs block p-2 bg-background rounded border overflow-x-auto">
+              Name,Total Return $,Created At,Expiration,...
+            </code>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Legacy format:</p>
+            <code className="text-xs block p-2 bg-background rounded border overflow-x-auto">
+              Date,Symbol,Strategy,Legs,P/L,Status
+            </code>
+          </div>
+        </div>
       </div>
 
       <Button
@@ -400,7 +411,7 @@ function ConfirmStep({ onConfirm }: { onConfirm: () => void }) {
 
     try {
       // Build request payload
-      const tradeDecisions = Array.from(decisions.entries())
+      const tradeDecisions = Object.entries(decisions)
         .filter(([, d]) => d.action === 'approve')
         .map(([tradeId, decision]) => ({
           tradeId,

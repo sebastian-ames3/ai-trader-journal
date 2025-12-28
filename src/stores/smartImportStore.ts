@@ -108,6 +108,9 @@ export interface ImportResult {
   errors?: { tradeId: string; error: string }[];
 }
 
+// Use Record instead of Map for JSON serialization compatibility
+type DecisionsRecord = Record<string, TradeDecision>;
+
 // ============================================
 // Store State
 // ============================================
@@ -129,7 +132,7 @@ interface SmartImportState {
 
   // Review phase
   currentReviewIndex: number;
-  decisions: Map<string, TradeDecision>;
+  decisions: DecisionsRecord;
   reviewHistory: string[]; // For undo
 
   // Linking phase
@@ -209,7 +212,7 @@ const initialState: SmartImportState = {
   trades: [],
   summary: null,
   currentReviewIndex: 0,
-  decisions: new Map(),
+  decisions: {},
   reviewHistory: [],
   linkGroups: [],
   suggestions: [],
@@ -263,7 +266,7 @@ export const useSmartImportStore = create<SmartImportStore>()(
           uploadError: null,
           currentStep: 'review',
           currentReviewIndex: 0,
-          decisions: new Map(),
+          decisions: {},
           reviewHistory: [],
           pendingCount: validTrades.length,
           approvedCount: 0,
@@ -276,12 +279,14 @@ export const useSmartImportStore = create<SmartImportStore>()(
       // Review
       approveTrade: (tradeId, edits, notes) => {
         const { decisions, reviewHistory, currentReviewIndex, trades, approvedCount, pendingCount } = get();
-        const newDecisions = new Map(decisions);
-        newDecisions.set(tradeId, {
-          action: 'approve',
-          edits,
-          notes,
-        });
+        const newDecisions = {
+          ...decisions,
+          [tradeId]: {
+            action: 'approve' as const,
+            edits,
+            notes,
+          },
+        };
 
         const validTrades = trades.filter((t) => t.isValid && !t.isDuplicate);
         const nextIndex = Math.min(currentReviewIndex + 1, validTrades.length - 1);
@@ -297,8 +302,10 @@ export const useSmartImportStore = create<SmartImportStore>()(
 
       skipTrade: (tradeId) => {
         const { decisions, reviewHistory, currentReviewIndex, trades, skippedCount, pendingCount } = get();
-        const newDecisions = new Map(decisions);
-        newDecisions.set(tradeId, { action: 'skip' });
+        const newDecisions = {
+          ...decisions,
+          [tradeId]: { action: 'skip' as const },
+        };
 
         const validTrades = trades.filter((t) => t.isValid && !t.isDuplicate);
         const nextIndex = Math.min(currentReviewIndex + 1, validTrades.length - 1);
@@ -317,9 +324,9 @@ export const useSmartImportStore = create<SmartImportStore>()(
         if (reviewHistory.length === 0) return;
 
         const lastTradeId = reviewHistory[reviewHistory.length - 1];
-        const lastDecision = decisions.get(lastTradeId);
-        const newDecisions = new Map(decisions);
-        newDecisions.delete(lastTradeId);
+        const lastDecision = decisions[lastTradeId];
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { [lastTradeId]: _removed, ...newDecisions } = decisions;
 
         set({
           decisions: newDecisions,
@@ -391,51 +398,61 @@ export const useSmartImportStore = create<SmartImportStore>()(
         const { linkGroups, decisions } = get();
 
         // Update link group
-        set({
-          linkGroups: linkGroups.map((g) =>
-            g.id === groupId
-              ? { ...g, tradeIds: [...g.tradeIds, tradeId] }
-              : g
-          ),
-        });
+        const newLinkGroups = linkGroups.map((g) =>
+          g.id === groupId
+            ? { ...g, tradeIds: [...g.tradeIds, tradeId] }
+            : g
+        );
 
         // Update decision if action provided
         if (action) {
-          const newDecisions = new Map(decisions);
-          const existing = newDecisions.get(tradeId);
+          const existing = decisions[tradeId];
           if (existing) {
-            newDecisions.set(tradeId, {
-              ...existing,
-              linkedGroupId: groupId,
-              tradeAction: action,
+            set({
+              linkGroups: newLinkGroups,
+              decisions: {
+                ...decisions,
+                [tradeId]: {
+                  ...existing,
+                  linkedGroupId: groupId,
+                  tradeAction: action,
+                },
+              },
             });
-            set({ decisions: newDecisions });
+            return;
           }
         }
+
+        set({ linkGroups: newLinkGroups });
       },
 
       removeTradeFromGroup: (groupId, tradeId) => {
         const { linkGroups, decisions } = get();
 
-        set({
-          linkGroups: linkGroups.map((g) =>
-            g.id === groupId
-              ? { ...g, tradeIds: g.tradeIds.filter((id) => id !== tradeId) }
-              : g
-          ),
-        });
+        const newLinkGroups = linkGroups.map((g) =>
+          g.id === groupId
+            ? { ...g, tradeIds: g.tradeIds.filter((id) => id !== tradeId) }
+            : g
+        );
 
         // Clear link from decision
-        const newDecisions = new Map(decisions);
-        const existing = newDecisions.get(tradeId);
+        const existing = decisions[tradeId];
         if (existing && existing.linkedGroupId === groupId) {
-          newDecisions.set(tradeId, {
-            ...existing,
-            linkedGroupId: undefined,
-            tradeAction: undefined,
+          set({
+            linkGroups: newLinkGroups,
+            decisions: {
+              ...decisions,
+              [tradeId]: {
+                ...existing,
+                linkedGroupId: undefined,
+                tradeAction: undefined,
+              },
+            },
           });
-          set({ decisions: newDecisions });
+          return;
         }
+
+        set({ linkGroups: newLinkGroups });
       },
 
       // Confirm
@@ -456,7 +473,7 @@ export const useSmartImportStore = create<SmartImportStore>()(
       // Helpers
       getApprovedTrades: () => {
         const { trades, decisions } = get();
-        return trades.filter((t) => decisions.get(t.id)?.action === 'approve');
+        return trades.filter((t) => decisions[t.id]?.action === 'approve');
       },
 
       getUnlinkedTrades: () => {
@@ -464,13 +481,13 @@ export const useSmartImportStore = create<SmartImportStore>()(
         const linkedTradeIds = new Set(linkGroups.flatMap((g) => g.tradeIds));
         return trades.filter(
           (t) =>
-            decisions.get(t.id)?.action === 'approve' &&
+            decisions[t.id]?.action === 'approve' &&
             !linkedTradeIds.has(t.id)
         );
       },
 
       getTradeDecision: (tradeId) => {
-        return get().decisions.get(tradeId);
+        return get().decisions[tradeId];
       },
 
       getTradeWithEdits: (tradeId) => {
@@ -478,7 +495,7 @@ export const useSmartImportStore = create<SmartImportStore>()(
         const trade = trades.find((t) => t.id === tradeId);
         if (!trade) return null;
 
-        const decision = decisions.get(tradeId);
+        const decision = decisions[tradeId];
         if (!decision?.edits) return trade;
 
         return {
@@ -506,8 +523,7 @@ export const useSmartImportStore = create<SmartImportStore>()(
         summary: state.summary,
         currentStep: state.currentStep,
         currentReviewIndex: state.currentReviewIndex,
-        // Convert Map to array for serialization
-        decisions: Array.from(state.decisions.entries()),
+        decisions: state.decisions,
         reviewHistory: state.reviewHistory,
         linkGroups: state.linkGroups,
         suggestions: state.suggestions,
@@ -515,12 +531,6 @@ export const useSmartImportStore = create<SmartImportStore>()(
         skippedCount: state.skippedCount,
         pendingCount: state.pendingCount,
       }),
-      onRehydrateStorage: () => (state) => {
-        // Convert decisions array back to Map
-        if (state && Array.isArray(state.decisions)) {
-          state.decisions = new Map(state.decisions as [string, TradeDecision][]);
-        }
-      },
     }
   )
 );
