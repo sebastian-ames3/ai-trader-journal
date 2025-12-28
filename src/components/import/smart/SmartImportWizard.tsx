@@ -400,7 +400,7 @@ function ConfirmStep({ onConfirm }: { onConfirm: () => void }) {
 
     try {
       // Build request payload
-      const tradeDecisions = Array.from(decisions.entries())
+      const tradeDecisions = Object.entries(decisions)
         .filter(([, d]) => d.action === 'approve')
         .map(([tradeId, decision]) => ({
           tradeId,
