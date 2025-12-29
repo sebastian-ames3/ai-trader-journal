@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { StrategyType } from '@prisma/client';
@@ -16,7 +16,7 @@ function formatStrategyType(type: StrategyType): string {
  * POST /api/admin/migrate-thesis-names
  * Updates thesis names from "TICKER Mon YYYY Trade" to include strategy type
  */
-export async function POST(_request: NextRequest) {
+export async function POST() {
   try {
     const auth = await requireAuth();
     if (auth.error) return auth.error;
