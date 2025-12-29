@@ -51,26 +51,44 @@ export async function POST(request: NextRequest) {
       try {
         result = await extractJournalData(imageUrl);
       } catch (error) {
-        console.error('[OCR] Extraction failed:', error);
+        // Enhanced error logging with full details
+        const errorDetails = {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          type: error?.constructor?.name,
+          cause: error instanceof Error ? (error as Error & { cause?: unknown }).cause : undefined,
+          imageUrl: imageUrl.substring(0, 100) + '...', // Truncate for logging
+        };
+        console.error('[OCR] Extraction failed:', JSON.stringify(errorDetails, null, 2));
 
         // Check if it's a Claude API error
         if (error instanceof Error) {
-          if (error.message.includes('rate limit')) {
+          const msg = error.message.toLowerCase();
+          if (msg.includes('rate limit')) {
             return NextResponse.json(
-              { error: 'Rate limit exceeded. Please try again in a moment.' },
+              { error: 'Rate limit exceeded. Please try again in a moment.', debug: errorDetails },
               { status: 429 }
             );
           }
-          if (error.message.includes('overloaded')) {
+          if (msg.includes('overloaded')) {
             return NextResponse.json(
-              { error: 'OCR service temporarily unavailable. Please try again.' },
+              { error: 'OCR service temporarily unavailable. Please try again.', debug: errorDetails },
               { status: 503 }
+            );
+          }
+          if (msg.includes('could not process') || msg.includes('download') || msg.includes('fetch')) {
+            return NextResponse.json(
+              { error: 'Could not access the uploaded image. The image URL may not be publicly accessible.', debug: errorDetails },
+              { status: 502 }
             );
           }
         }
 
+        // Return detailed error for debugging
         return NextResponse.json(
-          { error: 'Failed to extract journal data. Please try again.' },
+          {
+            error: 'Failed to extract journal data. Please try again.',
+            debug: process.env.NODE_ENV === 'development' ? errorDetails : { message: errorDetails.message }
+          },
           { status: 500 }
         );
       }
