@@ -239,7 +239,7 @@ export async function POST(request: NextRequest) {
           const thesis = await prisma.tradingThesis.create({
             data: {
               userId: user.id,
-              name: `${ticker} ${new Date(openedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })} ${formatStrategyType(strategyType)}`,
+              name: `${ticker} ${new Date(openedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })} ${strategyType ? formatStrategyType(strategyType) : 'Trade'}`,
               ticker: ticker.toUpperCase(),
               direction: 'BULLISH', // Default
               originalThesis: `Imported via Smart Import Wizard`,
