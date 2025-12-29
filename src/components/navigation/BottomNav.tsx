@@ -98,7 +98,7 @@ export function BottomNav() {
               "pb-safe"
             )}
           >
-            <div className="flex items-center h-16 max-w-md mx-auto">
+            <div className="flex items-center w-full h-16 px-4">
               {navItems.map((item) => (
                 <NavItem
                   key={item.href}
