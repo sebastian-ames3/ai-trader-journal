@@ -10,6 +10,7 @@ import {
   Settings,
   Plus,
   LucideIcon,
+  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { QuickCapture } from "@/components/QuickCapture";
@@ -59,6 +60,7 @@ export function BottomNav() {
     { icon: Home, label: "Home", href: "/" },
     { icon: BookOpen, label: "Journal", href: "/journal" },
     // Center FAB placeholder
+    { icon: TrendingUp, label: "Theses", href: "/theses" },
     { icon: BarChart3, label: "Insights", href: "/insights" },
     { icon: Settings, label: "Settings", href: "/settings" },
   ];
