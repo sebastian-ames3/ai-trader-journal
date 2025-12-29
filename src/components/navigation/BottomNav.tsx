@@ -28,7 +28,7 @@ function NavItem({ icon: Icon, label, href, isActive }: NavItemProps) {
       href={href}
       className={cn(
         "flex flex-col items-center justify-center",
-        "h-full px-3 min-w-[56px]",
+        "flex-1 h-full",
         "transition-all duration-200",
         isActive
           ? "text-amber-500"
@@ -59,7 +59,6 @@ export function BottomNav() {
   const navItems = [
     { icon: Home, label: "Home", href: "/" },
     { icon: BookOpen, label: "Journal", href: "/journal" },
-    // Center FAB placeholder
     { icon: TrendingUp, label: "Theses", href: "/theses" },
     { icon: BarChart3, label: "Insights", href: "/insights" },
     { icon: Settings, label: "Settings", href: "/settings" },
@@ -99,24 +98,8 @@ export function BottomNav() {
               "pb-safe"
             )}
           >
-            <div className="flex items-center justify-around h-16 max-w-md mx-auto">
-              {navItems.slice(0, 2).map((item) => (
-                <NavItem
-                  key={item.href}
-                  icon={item.icon}
-                  label={item.label}
-                  href={item.href}
-                  isActive={
-                    pathname === item.href ||
-                    (item.href !== "/" && pathname.startsWith(item.href))
-                  }
-                />
-              ))}
-
-              {/* Spacer for center FAB */}
-              <div className="w-14" aria-hidden="true" />
-
-              {navItems.slice(2).map((item) => (
+            <div className="flex items-center h-16 max-w-md mx-auto">
+              {navItems.map((item) => (
                 <NavItem
                   key={item.href}
                   icon={item.icon}
