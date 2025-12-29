@@ -16,7 +16,7 @@ function formatStrategyType(type: StrategyType): string {
  * POST /api/admin/migrate-thesis-names
  * Updates thesis names from "TICKER Mon YYYY Trade" to include strategy type
  */
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     const auth = await requireAuth();
     if (auth.error) return auth.error;
