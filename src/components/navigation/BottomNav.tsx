@@ -70,7 +70,7 @@ export function BottomNav() {
         {/* Backdrop blur container */}
         <div className="relative">
           {/* Center FAB - positioned above the bar */}
-          <div className="absolute left-1/2 -translate-x-1/2 -top-7 z-50">
+          <div className="absolute left-1/2 -translate-x-1/2 -top-14 z-50">
             <button
               onClick={() => setIsQuickCaptureOpen(true)}
               className={cn(
