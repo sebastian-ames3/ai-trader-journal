@@ -7,6 +7,7 @@ import {
   mapToTradeAction,
   generateTradeDescription,
   getImportCacheKey,
+  formatStrategyType,
 } from '@/lib/csvImport';
 import { ThesisDirection, StrategyType, ThesisTradeStatus } from '@prisma/client';
 
@@ -238,7 +239,7 @@ export async function POST(request: NextRequest) {
           const thesis = await prisma.tradingThesis.create({
             data: {
               userId: user.id,
-              name: `${ticker} ${new Date(openedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })} Trade`,
+              name: `${ticker} ${new Date(openedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })} ${formatStrategyType(strategyType)}`,
               ticker: ticker.toUpperCase(),
               direction: 'BULLISH', // Default
               originalThesis: `Imported via Smart Import Wizard`,
