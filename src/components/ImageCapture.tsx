@@ -122,6 +122,10 @@ export default function ImageCapture({
 
           if (!ocrResponse.ok) {
             const data = await ocrResponse.json();
+            // Log debug info for troubleshooting
+            if (data.debug) {
+              console.error('[ImageCapture] OCR failed with debug info:', data.debug);
+            }
             throw new Error(data.error || 'Failed to scan journal page');
           }
 

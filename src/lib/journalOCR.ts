@@ -137,10 +137,29 @@ Return ONLY valid JSON, no other text.`,
       rawExtraction: textContent.text,
     };
   } catch (error) {
-    console.error('OCR extraction failed:', error);
-    throw new Error(
-      `Failed to extract journal data: ${error instanceof Error ? error.message : 'Unknown error'}`
-    );
+    // Extract Anthropic API error details if available
+    const apiErrorDetails = error && typeof error === 'object' && 'status' in error
+      ? {
+          status: (error as { status?: number }).status,
+          headers: (error as { headers?: unknown }).headers,
+          apiError: (error as { error?: unknown }).error,
+        }
+      : {};
+
+    // Enhanced error logging for debugging
+    console.error('OCR extraction failed:', {
+      error,
+      errorType: error?.constructor?.name,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      ...apiErrorDetails,
+    });
+
+    // Re-throw with original error details preserved
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const enhancedError = new Error(`Failed to extract journal data: ${errorMessage}`);
+    (enhancedError as Error & { cause?: unknown }).cause = error;
+    throw enhancedError;
   }
 }
 
