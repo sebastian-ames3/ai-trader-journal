@@ -10,6 +10,7 @@ import {
   Settings,
   Plus,
   LucideIcon,
+  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { QuickCapture } from "@/components/QuickCapture";
@@ -55,13 +56,11 @@ export function BottomNav() {
     return null;
   }
 
-  // Navigation items split evenly around center FAB (2-2 layout)
-  const leftNavItems = [
+  const navItems = [
     { icon: Home, label: "Home", href: "/" },
     { icon: BookOpen, label: "Journal", href: "/journal" },
-  ];
-
-  const rightNavItems = [
+    // Center FAB placeholder
+    { icon: TrendingUp, label: "Theses", href: "/theses" },
     { icon: BarChart3, label: "Insights", href: "/insights" },
     { icon: Settings, label: "Settings", href: "/settings" },
   ];
@@ -100,8 +99,8 @@ export function BottomNav() {
               "pb-safe"
             )}
           >
-            <div className="flex items-center justify-evenly h-16 max-w-md mx-auto">
-              {leftNavItems.map((item) => (
+            <div className="flex items-center justify-around h-16 max-w-md mx-auto">
+              {navItems.slice(0, 2).map((item) => (
                 <NavItem
                   key={item.href}
                   icon={item.icon}
@@ -117,7 +116,7 @@ export function BottomNav() {
               {/* Spacer for center FAB */}
               <div className="w-14" aria-hidden="true" />
 
-              {rightNavItems.map((item) => (
+              {navItems.slice(2).map((item) => (
                 <NavItem
                   key={item.href}
                   icon={item.icon}
