@@ -21,7 +21,7 @@ export const CLAUDE_MODELS = {
   FAST: 'claude-sonnet-4-20250514',
 
   /** Balanced tasks - entry analysis, vision, insights, chart analysis */
-  BALANCED: 'claude-sonnet-4-5-20241022',
+  BALANCED: 'claude-sonnet-4-5-20250929',
 
   /** Deep analysis - complex patterns, monthly reports */
   DEEP: 'claude-opus-4-5-20251101',
