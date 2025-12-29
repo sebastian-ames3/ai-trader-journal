@@ -18,13 +18,13 @@ import Anthropic from '@anthropic-ai/sdk';
  */
 export const CLAUDE_MODELS = {
   /** Fast, cheap tasks - ticker validation, quick inference */
-  FAST: 'claude-haiku-4-latest',
+  FAST: 'claude-3-5-haiku-latest',
 
   /** Balanced tasks - entry analysis, vision, insights, chart analysis */
-  BALANCED: 'claude-sonnet-4-latest',
+  BALANCED: 'claude-sonnet-4-20250514',
 
   /** Deep analysis - complex patterns, monthly reports */
-  DEEP: 'claude-opus-4-latest',
+  DEEP: 'claude-3-5-sonnet-latest',
 } as const;
 
 export type ClaudeModel = (typeof CLAUDE_MODELS)[keyof typeof CLAUDE_MODELS];
