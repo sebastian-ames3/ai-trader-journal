@@ -44,6 +44,7 @@ export default function EditEntryPage() {
   const params = useParams();
   const entryId = params.id as string;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const tickerSectionRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -58,6 +59,13 @@ export default function EditEntryPage() {
   const [entryDate, setEntryDate] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  // Scroll ticker section into view when input is focused (helps with mobile keyboard)
+  const scrollTickerIntoView = useCallback(() => {
+    setTimeout(() => {
+      tickerSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+  }, []);
 
   // Fetch entry data
   const fetchEntry = useCallback(async () => {
@@ -221,8 +229,8 @@ export default function EditEntryPage() {
         </div>
       </div>
 
-      {/* Form Content */}
-      <div className="max-w-4xl mx-auto px-4 py-6 pb-24">
+      {/* Form Content - with extra bottom padding for fixed save button above nav */}
+      <div className="max-w-4xl mx-auto px-4 py-6 pb-48">
         {/* Entry Type Selector */}
         <div className="mb-6">
           <Label className="text-sm font-medium mb-3 block text-slate-700 dark:text-slate-200">Entry Type</Label>
@@ -314,7 +322,7 @@ export default function EditEntryPage() {
         </div>
 
         {/* Ticker (Optional) */}
-        <div className="mb-6">
+        <div className="mb-6" ref={tickerSectionRef}>
           <Label htmlFor="ticker" className="text-sm font-medium mb-3 block text-slate-700 dark:text-slate-200">
             Ticker Symbol (Optional)
           </Label>
@@ -334,31 +342,71 @@ export default function EditEntryPage() {
             </div>
           ) : (
             <div className="relative">
-              <Input
-                id="ticker"
-                type="text"
-                value={tickerInput}
-                onChange={(e) => setTickerInput(e.target.value.toUpperCase())}
-                placeholder="Search for ticker (e.g., AAPL)"
-                className="text-base rounded-xl border-slate-200 dark:border-slate-700 min-h-[44px]"
-                autoCapitalize="characters"
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="ticker"
+                  type="text"
+                  value={tickerInput}
+                  onChange={(e) => setTickerInput(e.target.value.toUpperCase())}
+                  onBlur={() => {
+                    // Delay hiding to allow click on suggestions
+                    setTimeout(() => setShowSuggestions(false), 200);
+                  }}
+                  onFocus={() => {
+                    scrollTickerIntoView();
+                    if (tickerInput.length >= 1 && suggestions.length > 0) {
+                      setShowSuggestions(true);
+                    }
+                  }}
+                  placeholder="Type ticker (e.g., AAPL)"
+                  className="text-base rounded-xl border-slate-200 dark:border-slate-700 min-h-[44px] flex-1"
+                  autoCapitalize="characters"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                />
+                {/* Manual ticker confirmation button */}
+                {tickerInput.trim().length >= 1 && (
+                  <Button
+                    type="button"
+                    onClick={() => handleTickerSelect(tickerInput.trim())}
+                    className="min-h-[44px] px-4 bg-amber-500 hover:bg-amber-600 text-white font-medium whitespace-nowrap"
+                  >
+                    Use {tickerInput.trim()}
+                  </Button>
+                )}
+              </div>
 
-              {/* Suggestions Dropdown */}
+              {/* Suggestions Dropdown - scrollable with max items visible */}
               {showSuggestions && suggestions.length > 0 && (
-                <div className="absolute z-20 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg max-h-60 overflow-auto">
-                  {suggestions.map((suggestion) => (
-                    <button
-                      key={suggestion.symbol}
-                      onClick={() => handleTickerSelect(suggestion.symbol)}
-                      className="w-full px-4 py-3 text-left hover:bg-slate-100 dark:hover:bg-slate-700 first:rounded-t-xl last:rounded-b-xl min-h-[44px]"
-                    >
-                      <div className="font-medium text-slate-900 dark:text-slate-200">{suggestion.symbol}</div>
-                      <div className="text-sm text-slate-500 dark:text-slate-400">{suggestion.name}</div>
-                    </button>
-                  ))}
+                <div className="absolute z-30 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg overflow-hidden">
+                  <div className="max-h-48 overflow-y-auto overscroll-contain">
+                    {suggestions.slice(0, 5).map((suggestion) => (
+                      <button
+                        key={suggestion.symbol}
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => handleTickerSelect(suggestion.symbol)}
+                        className="w-full px-4 py-3 text-left hover:bg-slate-100 dark:hover:bg-slate-700 min-h-[44px] border-b border-slate-100 dark:border-slate-700 last:border-b-0"
+                      >
+                        <div className="font-medium text-slate-900 dark:text-slate-200">{suggestion.symbol}</div>
+                        <div className="text-sm text-slate-500 dark:text-slate-400 truncate">{suggestion.name}</div>
+                      </button>
+                    ))}
+                  </div>
+                  {/* Show count if more results available */}
+                  {suggestions.length > 5 && (
+                    <div className="px-4 py-2 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/50 text-center border-t border-slate-200 dark:border-slate-700">
+                      Type more to narrow results ({suggestions.length} matches)
+                    </div>
+                  )}
                 </div>
               )}
+
+              {/* Help text for manual entry */}
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                Type any ticker symbol and click the button to use it, or select from suggestions
+              </p>
             </div>
           )}
         </div>
@@ -371,14 +419,14 @@ export default function EditEntryPage() {
         )}
       </div>
 
-      {/* Fixed Submit Button */}
-      <div className="fixed bottom-0 left-0 right-0 z-20 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-700/50 p-4 pb-safe shadow-lg">
-        <div className="max-w-4xl mx-auto">
+      {/* Fixed Submit Button - positioned above bottom navigation */}
+      <div className="fixed bottom-20 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-700/50 shadow-[0_-4px_20px_rgba(0,0,0,0.1)]">
+        <div className="max-w-4xl mx-auto p-4">
           <Button
             onClick={handleSubmit}
             disabled={submitting || !content.trim()}
             size="lg"
-            className="w-full h-14 text-lg font-medium bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/30"
+            className="w-full h-14 text-lg font-medium bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/30 active:scale-[0.98] transition-transform"
           >
             {submitting ? (
               <>
