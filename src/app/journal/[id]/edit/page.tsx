@@ -229,8 +229,8 @@ export default function EditEntryPage() {
         </div>
       </div>
 
-      {/* Form Content - with extra bottom padding for fixed save button */}
-      <div className="max-w-4xl mx-auto px-4 py-6 pb-32">
+      {/* Form Content - with extra bottom padding for fixed save button above nav */}
+      <div className="max-w-4xl mx-auto px-4 py-6 pb-48">
         {/* Entry Type Selector */}
         <div className="mb-6">
           <Label className="text-sm font-medium mb-3 block text-slate-700 dark:text-slate-200">Entry Type</Label>
@@ -419,9 +419,9 @@ export default function EditEntryPage() {
         )}
       </div>
 
-      {/* Fixed Submit Button - always visible at bottom */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-700/50 shadow-[0_-4px_20px_rgba(0,0,0,0.1)]">
-        <div className="max-w-4xl mx-auto p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      {/* Fixed Submit Button - positioned above bottom navigation */}
+      <div className="fixed bottom-20 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-700/50 shadow-[0_-4px_20px_rgba(0,0,0,0.1)]">
+        <div className="max-w-4xl mx-auto p-4">
           <Button
             onClick={handleSubmit}
             disabled={submitting || !content.trim()}
