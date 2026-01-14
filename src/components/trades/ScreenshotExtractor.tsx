@@ -147,12 +147,12 @@ export default function ScreenshotExtractor({
         });
       }
 
-      const response = await fetch('/api/trades/extract-screenshot', {
+      const response = await fetch('/api/trades/extract', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          image: base64Image,
-          imageUrl: imageUrl,
+          imageData: base64Image,
+          attachmentUrl: imageUrl,
         }),
       });
 
@@ -161,43 +161,54 @@ export default function ScreenshotExtractor({
         throw new Error(errorData.error || 'Failed to extract data from screenshot');
       }
 
-      const data = await response.json();
+      const responseData = await response.json();
+
+      // API returns { success: true, data: {...}, processingTimeMs }
+      const extracted = responseData.data || responseData;
+      const overallConfidence = extracted.confidence ?? 0.5;
+
+      // Format strikes array as string for display
+      const strikesString = extracted.strikes?.length > 0
+        ? extracted.strikes.map((s: { strike: number; type: string; action: string }) =>
+            `${s.action} ${s.strike} ${s.type}`
+          ).join(' / ')
+        : undefined;
 
       // Convert response to extraction result with confidence scores
       const result: ExtractionResult = {
         ticker: {
-          value: data.ticker,
-          confidence: data.confidence?.ticker ?? 0.5,
+          value: extracted.ticker,
+          confidence: overallConfidence,
           source: 'extracted',
         },
         strategyType: {
-          value: data.strategyType,
-          confidence: data.confidence?.strategyType ?? 0.5,
+          value: extracted.strategyType,
+          confidence: overallConfidence,
           source: 'extracted',
         },
         strikes: {
-          value: data.strikes,
-          confidence: data.confidence?.strikes ?? 0.5,
+          value: strikesString,
+          confidence: overallConfidence,
           source: 'extracted',
         },
         expiration: {
-          value: data.expiration,
-          confidence: data.confidence?.expiration ?? 0.5,
+          value: extracted.expiration,
+          confidence: overallConfidence,
           source: 'extracted',
         },
         quantity: {
-          value: data.quantity,
-          confidence: data.confidence?.quantity ?? 0.5,
+          value: extracted.quantity,
+          confidence: overallConfidence,
           source: 'extracted',
         },
         debitCredit: {
-          value: data.debitCredit,
-          confidence: data.confidence?.debitCredit ?? 0.5,
+          value: extracted.premium,
+          confidence: overallConfidence,
           source: 'extracted',
         },
         action: {
-          value: data.action,
-          confidence: data.confidence?.action ?? 0.5,
+          value: extracted.premiumType === 'DEBIT' ? 'INITIAL' : 'INITIAL',
+          confidence: overallConfidence,
           source: 'extracted',
         },
       };
