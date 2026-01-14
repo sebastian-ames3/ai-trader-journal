@@ -279,12 +279,13 @@ export default function CoachChat({
           setMessages((prev) => [...prev, response]);
         }
       } else {
-        // Default mock response for development
+        // Fallback when component is used without onSendMessage handler (e.g., Storybook, testing)
+        // In production, onSendMessage should always be provided by the parent page
         await new Promise((resolve) => setTimeout(resolve, 1500));
         const coachMessage: Message = {
           id: `coach-${Date.now()}`,
           role: 'coach',
-          content: `I received your message: "${trimmedMessage}". Let me analyze your trading patterns and provide personalized insights.`,
+          content: `I received your message: "${trimmedMessage}". This is a placeholder response - please configure the AI coach API.`,
           timestamp: new Date(),
         };
         setMessages((prev) => [...prev, coachMessage]);
