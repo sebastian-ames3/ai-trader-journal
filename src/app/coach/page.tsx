@@ -171,43 +171,73 @@ function CoachPageContent() {
     }
   }, [messages, sessionId]);
 
-  // Fetch goals
+  // Fetch goals from API
   useEffect(() => {
     async function fetchGoals() {
       setGoalsLoading(true);
       try {
-        // For now, use mock data until API is implemented
-        // const response = await fetch('/api/coach/goals');
-        // const data = await response.json();
-        // setGoals(data.goals);
+        const response = await fetch('/api/coach/goals?status=ACTIVE&limit=5');
 
-        // Mock data for development
-        setGoals([
-          {
-            id: '1',
-            type: 'JOURNALING_STREAK',
-            name: 'Daily Journaling',
-            description: 'Journal every trading day',
-            targetValue: 7,
-            currentValue: 4,
-            unit: 'days',
-            status: 'ACTIVE',
-            streakDays: 4,
-            startDate: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-          },
-          {
-            id: '2',
-            type: 'PRE_TRADE_CHECKS',
-            name: 'Pre-Trade Checklist',
-            targetValue: 10,
-            currentValue: 6,
-            unit: 'checks',
-            status: 'ACTIVE',
-            startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          },
-        ]);
+        if (!response.ok) {
+          throw new Error('Failed to fetch goals');
+        }
+
+        const data = await response.json();
+
+        // Transform API goals to frontend format
+        const transformedGoals: Goal[] = data.goals.map((apiGoal: {
+          id: string;
+          goal: string;
+          description: string | null;
+          metricType: string | null;
+          targetValue: number | null;
+          currentValue: number | null;
+          progress: number;
+          status: string;
+          startDate: string;
+          endDate: string | null;
+          completedAt: string | null;
+        }) => {
+          // Map metricType to frontend GoalType
+          const typeMap: Record<string, Goal['type']> = {
+            streak: 'JOURNALING_STREAK',
+            bias_count: 'BIAS_REDUCTION',
+            win_rate: 'WIN_RATE',
+            compliance: 'PRE_TRADE_CHECKS',
+            count: 'ENTRIES_PER_WEEK',
+          };
+
+          const unitMap: Record<string, string> = {
+            streak: 'days',
+            bias_count: 'occurrences',
+            win_rate: '%',
+            compliance: 'checks',
+            count: 'entries',
+          };
+
+          const goalType = typeMap[apiGoal.metricType || ''] || 'CUSTOM';
+          const unit = unitMap[apiGoal.metricType || ''] || 'progress';
+
+          return {
+            id: apiGoal.id,
+            type: goalType,
+            name: apiGoal.goal,
+            description: apiGoal.description || undefined,
+            targetValue: apiGoal.targetValue || 100,
+            currentValue: apiGoal.currentValue || Math.round((apiGoal.progress / 100) * (apiGoal.targetValue || 100)),
+            unit,
+            status: apiGoal.status as Goal['status'],
+            startDate: apiGoal.startDate,
+            endDate: apiGoal.endDate || undefined,
+            completedAt: apiGoal.completedAt || undefined,
+          };
+        });
+
+        setGoals(transformedGoals);
       } catch (error) {
         console.error('Error fetching goals:', error);
+        // Keep empty goals on error rather than showing mock data
+        setGoals([]);
       } finally {
         setGoalsLoading(false);
       }
