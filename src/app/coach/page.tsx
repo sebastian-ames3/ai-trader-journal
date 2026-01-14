@@ -5,12 +5,13 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronDown, ChevronUp, Target, HelpCircle, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import CoachChat, { Message, EntryReference } from '@/components/coach/CoachChat';
+import CoachChat, { Message } from '@/components/coach/CoachChat';
 import GoalProgress, { Goal, GoalProgressSkeleton } from '@/components/coach/GoalProgress';
 import { cn } from '@/lib/utils';
 
 // Session storage key for chat history
 const CHAT_STORAGE_KEY = 'coach-chat-session';
+const SESSION_ID_KEY = 'coach-session-id';
 
 // Default welcome message
 const WELCOME_MESSAGE: Message = {
@@ -122,7 +123,9 @@ function CoachPageContent() {
   const [goalsLoading, setGoalsLoading] = useState(true);
   const [goalsExpanded, setGoalsExpanded] = useState(false);
   const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
-  const [sessionId] = useState(() => `session-${Date.now()}`);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [apiSuggestions, setApiSuggestions] = useState<string[]>([]);
+  const [coachError, setCoachError] = useState<string | null>(null);
 
   // Load saved chat session from storage
   useEffect(() => {
@@ -139,6 +142,11 @@ function CoachPageContent() {
           setMessages(restoredMessages);
         }
       }
+      // Restore session ID if available
+      const savedSessionId = localStorage.getItem(SESSION_ID_KEY);
+      if (savedSessionId) {
+        setSessionId(savedSessionId);
+      }
     } catch (error) {
       console.error('Error loading chat session:', error);
     }
@@ -150,11 +158,14 @@ function CoachPageContent() {
       localStorage.setItem(
         CHAT_STORAGE_KEY,
         JSON.stringify({
-          sessionId,
           messages,
           lastUpdated: new Date().toISOString(),
         })
       );
+      // Save session ID separately
+      if (sessionId) {
+        localStorage.setItem(SESSION_ID_KEY, sessionId);
+      }
     } catch (error) {
       console.error('Error saving chat session:', error);
     }
@@ -212,98 +223,90 @@ function CoachPageContent() {
     }
   }, [initialPrompt, messages.length, router]);
 
-  // Send message handler
+  // Send message handler - calls real AI coach API
   const handleSendMessage = useCallback(async (messageText: string): Promise<Message | null> => {
+    // Clear any previous error
+    setCoachError(null);
+
     try {
-      // For now, use mock response until API is implemented
-      // const response = await fetch('/api/coach/chat', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ message: messageText, sessionId }),
-      // });
-      // const data = await response.json();
-      // return data.message;
+      const response = await fetch('/api/coach/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: messageText,
+          sessionId: sessionId || undefined,
+        }),
+      });
 
-      // Mock response for development
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || 'Failed to get response from coach';
 
-      // Generate mock response based on message content
-      let responseContent = '';
-      let entryReferences: EntryReference[] = [];
+        // Handle specific error cases
+        if (response.status === 503) {
+          setCoachError('AI coach is currently unavailable. Please try again later.');
+        } else if (response.status === 429) {
+          setCoachError('Too many requests. Please wait a moment before trying again.');
+        } else {
+          setCoachError(errorMessage);
+        }
 
-      if (messageText.toLowerCase().includes('bias') || messageText.toLowerCase().includes('pattern')) {
-        responseContent = `Based on your recent journal entries, I've noticed a few patterns:
-
-1. **Confirmation Bias** - You tend to seek information that confirms your existing thesis, especially with tech stocks.
-
-2. **Overconfidence** - Your conviction levels have been high even when your analysis shows mixed signals.
-
-3. **Recency Bias** - Your last few entries show heavy weighting on recent market moves.
-
-Would you like me to show you specific entries where these patterns appeared?`;
-
-        entryReferences = [
-          {
-            id: 'mock-1',
-            type: 'TRADE_IDEA',
-            content: 'Looking at NVDA for a long position. The AI narrative is strong and recent earnings were solid.',
-            ticker: 'NVDA',
-            createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          },
-        ];
-      } else if (messageText.toLowerCase().includes('pre-trade') || messageText.toLowerCase().includes('checklist')) {
-        responseContent = `Here's your pre-trade checklist:
-
-- What is your thesis for this trade?
-- What's your risk/reward ratio?
-- What would invalidate this trade?
-- Are you trading with or against the trend?
-- What's your position size relative to your account?
-- How does this fit with your current portfolio?
-- Are you emotional about this trade?
-
-Would you like to walk through this checklist for a specific trade you're considering?`;
-      } else if (messageText.toLowerCase().includes('week') || messageText.toLowerCase().includes('review')) {
-        responseContent = `Here's your weekly review summary:
-
-**Activity:** 8 journal entries this week (up from 5 last week!)
-
-**Sentiment:** Mostly positive, with some uncertainty around market volatility
-
-**Top Emotions:** Confident, Cautious, Excited
-
-**Key Insight:** You've been more consistent with journaling this week. Keep it up!
-
-Your dominant bias this week was **anchoring** - you mentioned your entry prices frequently when evaluating positions.`;
-      } else {
-        responseContent = `I understand you're asking about "${messageText}". Let me analyze your recent journal entries to give you personalized insights.
-
-Based on your trading history, I can help you:
-- Identify patterns in your decision-making
-- Review specific trades or theses
-- Prepare pre-trade checklists
-- Track your psychological progress
-
-What specific aspect would you like to explore?`;
+        throw new Error(errorMessage);
       }
 
+      const data = await response.json();
+
+      // Store the session ID for subsequent messages
+      if (data.sessionId) {
+        setSessionId(data.sessionId);
+      }
+
+      // Store suggestions for follow-up prompts
+      if (data.response?.suggestions && data.response.suggestions.length > 0) {
+        setApiSuggestions(data.response.suggestions);
+      }
+
+      // Transform API response to Message format
       const coachMessage: Message = {
         id: `coach-${Date.now()}`,
         role: 'coach',
-        content: responseContent,
+        content: data.response?.content || 'I apologize, but I could not generate a response. Please try again.',
         timestamp: new Date(),
-        entryReferences: entryReferences.length > 0 ? entryReferences : undefined,
+        // Transform API references to component format
+        // Note: API returns { entryId, excerpt, date, relevance }
+        // Component expects { id, type, content, ticker?, createdAt }
+        entryReferences: data.response?.references?.map((ref: { entryId: string; excerpt: string; date: string }) => ({
+          id: ref.entryId,
+          type: 'REFLECTION' as const, // Default type since API doesn't return it
+          content: ref.excerpt,
+          createdAt: ref.date,
+        })),
       };
 
       return coachMessage;
     } catch (error) {
       console.error('Error sending message:', error);
-      return null;
+
+      // Return an error message from the coach
+      const errorMessage: Message = {
+        id: `coach-error-${Date.now()}`,
+        role: 'coach',
+        content: coachError || 'Sorry, I encountered an error processing your request. Please try again.',
+        timestamp: new Date(),
+      };
+
+      return errorMessage;
     }
-  }, []);
+  }, [sessionId, coachError]);
 
   // Get suggested prompts based on context
   const getSuggestedPrompts = (): string[] => {
+    // Use API suggestions if available (after a response)
+    if (apiSuggestions.length > 0) {
+      return apiSuggestions;
+    }
+
+    // Default prompts for initial state
     if (messages.length <= 1) {
       return [
         'How was my trading week?',
@@ -312,7 +315,8 @@ What specific aspect would you like to explore?`;
         'Review my emotions',
       ];
     }
-    // After conversation starts, show follow-up prompts
+
+    // Fallback follow-up prompts
     return [
       'Tell me more',
       'Show examples',
@@ -359,10 +363,19 @@ What specific aspect would you like to explore?`;
         onToggle={() => setGoalsExpanded(!goalsExpanded)}
       />
 
+      {/* Error banner */}
+      {coachError && (
+        <div className="px-4 py-3 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800">
+          <p className="text-sm text-red-700 dark:text-red-300">
+            {coachError}
+          </p>
+        </div>
+      )}
+
       {/* Chat interface */}
       <div className="flex-1 overflow-hidden relative">
         <CoachChat
-          sessionId={sessionId}
+          sessionId={sessionId || undefined}
           initialMessages={messages}
           onSendMessage={handleSendMessage}
           suggestedPrompts={getSuggestedPrompts()}
