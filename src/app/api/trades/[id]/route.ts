@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ThesisTradeStatus, StrategyType, Prisma } from '@prisma/client';
+import { requireAuth } from '@/lib/auth';
 
 /**
  * GET /api/trades/[id]
@@ -11,6 +12,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Authentication check
+    const { user, error: authError } = await requireAuth();
+    if (authError) return authError;
+
     const { id } = await params;
     const trade = await prisma.thesisTrade.findUnique({
       where: { id },
@@ -29,7 +34,7 @@ export async function GET(
       }
     });
 
-    if (!trade) {
+    if (!trade || trade.userId !== user.id) {
       return NextResponse.json(
         { error: 'Trade not found' },
         { status: 404 }
@@ -55,15 +60,19 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Authentication check
+    const { user, error: authError } = await requireAuth();
+    if (authError) return authError;
+
     const { id } = await params;
     const body = await request.json();
 
-    // Check if trade exists
+    // Check if trade exists and verify ownership
     const existingTrade = await prisma.thesisTrade.findUnique({
       where: { id }
     });
 
-    if (!existingTrade) {
+    if (!existingTrade || existingTrade.userId !== user.id) {
       return NextResponse.json(
         { error: 'Trade not found' },
         { status: 404 }
@@ -175,13 +184,17 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Authentication check
+    const { user, error: authError } = await requireAuth();
+    if (authError) return authError;
+
     const { id } = await params;
-    // Check if trade exists and get thesis ID
+    // Check if trade exists, get thesis ID, and verify ownership
     const existingTrade = await prisma.thesisTrade.findUnique({
       where: { id }
     });
 
-    if (!existingTrade) {
+    if (!existingTrade || existingTrade.userId !== user.id) {
       return NextResponse.json(
         { error: 'Trade not found' },
         { status: 404 }

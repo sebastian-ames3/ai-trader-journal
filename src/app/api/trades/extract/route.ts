@@ -4,6 +4,8 @@ import {
   extractTradeDataFromBase64,
   ExtractionResult,
 } from '@/lib/tradeExtraction';
+import { requireAuth } from '@/lib/auth';
+import { rateLimiters, checkRateLimit } from '@/lib/rateLimit';
 
 /**
  * POST /api/trades/extract
@@ -17,6 +19,14 @@ import {
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
+    // Authentication check
+    const { user, error: authError } = await requireAuth();
+    if (authError) return authError;
+
+    // Check rate limit
+    const rateLimitError = checkRateLimit(rateLimiters.tradeExtraction, user.id);
+    if (rateLimitError) return rateLimitError;
+
     const contentType = request.headers.get('content-type') || '';
 
     let result: ExtractionResult;

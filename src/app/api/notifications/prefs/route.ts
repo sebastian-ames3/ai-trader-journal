@@ -10,12 +10,18 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireAuth } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 // GET - Get notification preferences
 export async function GET() {
   try {
+    // Authentication check
+    const { error: authError } = await requireAuth();
+    if (authError) return authError;
+
+    // Note: Currently uses 'default' ID - should be per-user in future
     let prefs = await prisma.userNotificationPrefs.findFirst({
       where: { id: 'default' },
     });
@@ -40,6 +46,10 @@ export async function GET() {
 // PUT - Update notification preferences
 export async function PUT(request: NextRequest) {
   try {
+    // Authentication check
+    const { error: authError } = await requireAuth();
+    if (authError) return authError;
+
     const body = await request.json();
 
     // Validate input types

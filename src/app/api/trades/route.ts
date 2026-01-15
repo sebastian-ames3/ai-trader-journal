@@ -18,6 +18,11 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
+    // Authentication check
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const { user } = auth;
+
     const { searchParams } = new URL(request.url);
 
     // Parse filter parameters
@@ -27,8 +32,10 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
-    // Build where clause
-    const where: Prisma.ThesisTradeWhereInput = {};
+    // Build where clause - filter by user
+    const where: Prisma.ThesisTradeWhereInput = {
+      userId: user.id,
+    };
 
     if (thesisId) {
       where.thesisId = thesisId;

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ThesisOutcome, ThesisStatus, ThesisTradeStatus } from '@prisma/client';
 import { analyzeThesisPatterns, findSimilarTheses } from '@/lib/thesisPatterns';
+import { requireAuth } from '@/lib/auth';
 
 /**
  * POST /api/theses/[id]/close
@@ -15,6 +16,10 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Authentication check
+    const { user, error: authError } = await requireAuth();
+    if (authError) return authError;
+
     const { id } = await params;
     const body = await request.json();
 
@@ -34,7 +39,7 @@ export async function POST(
       );
     }
 
-    // Check if thesis exists
+    // Check if thesis exists and verify ownership
     const existingThesis = await prisma.tradingThesis.findUnique({
       where: { id },
       include: {
@@ -42,7 +47,7 @@ export async function POST(
       }
     });
 
-    if (!existingThesis) {
+    if (!existingThesis || existingThesis.userId !== user.id) {
       return NextResponse.json(
         { error: 'Thesis not found' },
         { status: 404 }
