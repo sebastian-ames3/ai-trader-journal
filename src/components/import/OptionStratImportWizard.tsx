@@ -97,10 +97,6 @@ function clearPersistedState(): void {
   localStorage.removeItem(WIZARD_STORAGE_KEY);
 }
 
-function hasPersistedState(): boolean {
-  return loadPersistedState() !== null;
-}
-
 // ============================================
 // Types
 // ============================================

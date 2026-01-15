@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ThesisTradeStatus, StrategyType, Prisma } from '@prisma/client';
 import { requireAuth } from '@/lib/auth';
+import { calculateTotalPL, calculateCapitalDeployed } from '@/lib/money';
 
 /**
  * GET /api/trades/[id]
@@ -141,17 +142,9 @@ export async function PATCH(
           where: { thesisId: existingTrade.thesisId }
         });
 
-        let totalRealizedPL = 0;
-        let totalCapitalDeployed = 0;
-
-        for (const t of allTrades) {
-          if (t.realizedPL !== null) {
-            totalRealizedPL += t.realizedPL;
-          }
-          if (t.debitCredit < 0) {
-            totalCapitalDeployed += Math.abs(t.debitCredit);
-          }
-        }
+        // Use precise decimal arithmetic for P/L calculations
+        const totalRealizedPL = calculateTotalPL(allTrades);
+        const totalCapitalDeployed = calculateCapitalDeployed(allTrades);
 
         await tx.tradingThesis.update({
           where: { id: existingTrade.thesisId },
@@ -216,17 +209,9 @@ export async function DELETE(
           where: { thesisId }
         });
 
-        let totalRealizedPL = 0;
-        let totalCapitalDeployed = 0;
-
-        for (const t of remainingTrades) {
-          if (t.realizedPL !== null) {
-            totalRealizedPL += t.realizedPL;
-          }
-          if (t.debitCredit < 0) {
-            totalCapitalDeployed += Math.abs(t.debitCredit);
-          }
-        }
+        // Use precise decimal arithmetic for P/L calculations
+        const totalRealizedPL = calculateTotalPL(remainingTrades);
+        const totalCapitalDeployed = calculateCapitalDeployed(remainingTrades);
 
         await tx.tradingThesis.update({
           where: { id: thesisId },

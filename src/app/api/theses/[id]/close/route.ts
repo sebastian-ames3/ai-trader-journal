@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { ThesisOutcome, ThesisStatus, ThesisTradeStatus } from '@prisma/client';
 import { analyzeThesisPatterns, findSimilarTheses } from '@/lib/thesisPatterns';
 import { requireAuth } from '@/lib/auth';
+import { calculateTotalPL } from '@/lib/money';
 
 /**
  * POST /api/theses/[id]/close
@@ -62,13 +63,8 @@ export async function POST(
       );
     }
 
-    // Calculate final P/L from all trades
-    let totalRealizedPL = 0;
-    for (const trade of existingThesis.thesisTrades) {
-      if (trade.realizedPL !== null) {
-        totalRealizedPL += trade.realizedPL;
-      }
-    }
+    // Calculate final P/L from all trades using precise decimal arithmetic
+    const totalRealizedPL = calculateTotalPL(existingThesis.thesisTrades);
 
     // Close thesis and all open trades in a transaction
     const thesis = await prisma.$transaction(async (tx) => {
