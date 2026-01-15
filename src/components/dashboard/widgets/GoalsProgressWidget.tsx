@@ -42,7 +42,7 @@ export function GoalsProgressWidget({
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Target className="h-5 w-5 text-blue-500" />
+          <Target className="h-5 w-5 text-blue-600 dark:text-blue-400" />
           <h3 className="font-semibold text-slate-900 dark:text-slate-100">
             Goals
           </h3>

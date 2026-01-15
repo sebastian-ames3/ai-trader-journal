@@ -128,11 +128,11 @@ export default function TickerContextPanel({
   const getSentimentColor = (trend: string) => {
     switch (trend) {
       case 'bullish':
-        return 'text-green-500';
+        return 'text-green-600 dark:text-green-400';
       case 'bearish':
-        return 'text-red-500';
+        return 'text-red-600 dark:text-red-400';
       case 'mixed':
-        return 'text-yellow-500';
+        return 'text-yellow-600 dark:text-yellow-400';
       default:
         return 'text-muted-foreground';
     }
@@ -184,8 +184,8 @@ export default function TickerContextPanel({
                       className={cn(
                         'flex items-center text-sm font-medium',
                         context.market.changePercent >= 0
-                          ? 'text-green-500'
-                          : 'text-red-500'
+                          ? 'text-green-600 dark:text-green-400'
+                          : 'text-red-600 dark:text-red-400'
                       )}
                     >
                       {context.market.changePercent >= 0 ? (
@@ -239,7 +239,7 @@ export default function TickerContextPanel({
                                 <span
                                   className={cn(
                                     'ml-1',
-                                    context.market.ivPremium > 0 ? 'text-green-500' : 'text-red-500'
+                                    context.market.ivPremium > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                                   )}
                                 >
                                   {context.market.ivPremium > 0 ? '+' : ''}
@@ -312,8 +312,8 @@ export default function TickerContextPanel({
                                 variant="outline"
                                 className={cn(
                                   'text-[10px]',
-                                  entry.sentiment === 'positive' && 'text-green-500 border-green-500/30',
-                                  entry.sentiment === 'negative' && 'text-red-500 border-red-500/30'
+                                  entry.sentiment === 'positive' && 'text-green-600 dark:text-green-400 border-green-500/30',
+                                  entry.sentiment === 'negative' && 'text-red-600 dark:text-red-400 border-red-500/30'
                                 )}
                               >
                                 {entry.sentiment}

@@ -197,7 +197,7 @@ export default function PatternRemindersPanel({
             <div className="grid grid-cols-3 gap-2 mb-3">
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1">
-                  <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+                  <CheckCircle className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
                   <span className="font-semibold text-green-600 dark:text-green-400">
                     {tickerHistory.winCount}
                   </span>
@@ -206,7 +206,7 @@ export default function PatternRemindersPanel({
               </div>
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1">
-                  <XCircle className="h-3.5 w-3.5 text-red-500" />
+                  <XCircle className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
                   <span className="font-semibold text-red-600 dark:text-red-400">
                     {tickerHistory.lossCount}
                   </span>

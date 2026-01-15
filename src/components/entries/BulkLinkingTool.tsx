@@ -5,6 +5,7 @@ import { Link2, Loader2, CheckCircle2, X, AlertTriangle, ChevronUp } from 'lucid
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { HelpTooltip } from '@/components/ui/help-tooltip';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
@@ -156,8 +157,12 @@ export default function BulkLinkingTool({
           <div className="flex items-center gap-2">
             <Link2 className="h-5 w-5 text-primary" />
             <h2 className="text-lg font-semibold">Bulk Link Entries</h2>
+            <HelpTooltip
+              content="Automatically link journal entries to matching trades based on ticker symbols and timing. This helps track your thoughts and decisions alongside actual trades."
+              side="bottom"
+            />
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose}>
+          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close">
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -178,7 +183,7 @@ export default function BulkLinkingTool({
             </div>
           ) : entries.length === 0 ? (
             <div className="text-center py-12">
-              <CheckCircle2 className="h-8 w-8 text-green-500 mx-auto mb-2" />
+              <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400 mx-auto mb-2" />
               <p className="text-lg font-medium">All entries are linked!</p>
               <p className="text-sm text-muted-foreground mt-1">
                 No unlinked entries found
@@ -200,7 +205,7 @@ export default function BulkLinkingTool({
                     <CheckCircle2
                       className={cn(
                         'h-5 w-5',
-                        result.linked > 0 ? 'text-green-500' : 'text-slate-400'
+                        result.linked > 0 ? 'text-green-600 dark:text-green-400' : 'text-slate-400'
                       )}
                     />
                     <span>

@@ -104,7 +104,7 @@ export default function ManualIvForm({ selectedTicker, onIvSaved }: ManualIvForm
           <span className="text-muted-foreground">%</span>
         </div>
         {error && (
-          <p id="iv-error" className="text-sm text-red-500" role="alert" aria-live="polite">
+          <p id="iv-error" className="text-sm text-red-600 dark:text-red-400" role="alert" aria-live="polite">
             {error}
           </p>
         )}

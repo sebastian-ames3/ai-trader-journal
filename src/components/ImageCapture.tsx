@@ -323,6 +323,7 @@ export default function ImageCapture({
             size="icon"
             className="absolute top-1 right-1 h-6 w-6"
             onClick={handleCancel}
+            aria-label="Cancel image"
           >
             <X className="h-3 w-3" />
           </Button>

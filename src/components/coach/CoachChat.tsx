@@ -162,7 +162,7 @@ function MessageBubble({ message }: { message: Message }) {
 // Typing indicator
 function TypingIndicator() {
   return (
-    <div className="flex gap-3 justify-start">
+    <div className="flex gap-3 justify-start" role="status" aria-live="polite">
       <div
         className={cn(
           'flex-shrink-0 w-10 h-10 rounded-full',
@@ -181,10 +181,11 @@ function TypingIndicator() {
           'border border-slate-200/50 dark:border-slate-700/50'
         )}
       >
-        <div className="flex gap-1.5 items-center" aria-label="Coach is typing">
-          <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-          <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-          <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+        <div className="flex gap-1.5 items-center">
+          <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '0ms' }} aria-hidden="true" />
+          <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '150ms' }} aria-hidden="true" />
+          <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '300ms' }} aria-hidden="true" />
+          <span className="sr-only">Coach is typing...</span>
         </div>
       </div>
     </div>
@@ -333,7 +334,13 @@ export default function CoachChat({
       )}
     >
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+      <div
+        className="flex-1 overflow-y-auto px-4 py-4 space-y-4"
+        role="log"
+        aria-label="Conversation with trading coach"
+        aria-live="polite"
+        aria-atomic="false"
+      >
         {messages.length === 0 ? (
           // Empty state
           <div className="flex flex-col items-center justify-center h-full text-center py-8">

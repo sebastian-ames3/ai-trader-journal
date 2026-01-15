@@ -69,12 +69,12 @@ const PATTERN_TYPE_ICONS: Record<string, typeof Brain> = {
 };
 
 const PATTERN_TYPE_COLORS: Record<string, string> = {
-  TIMING: 'bg-blue-500/10 text-blue-500 border-blue-500/30',
-  CONVICTION: 'bg-purple-500/10 text-purple-500 border-purple-500/30',
-  EMOTIONAL: 'bg-red-500/10 text-red-500 border-red-500/30',
-  MARKET_CONDITION: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30',
-  STRATEGY: 'bg-green-500/10 text-green-500 border-green-500/30',
-  BIAS_FREQUENCY: 'bg-orange-500/10 text-orange-500 border-orange-500/30',
+  TIMING: 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/30',
+  CONVICTION: 'bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/30',
+  EMOTIONAL: 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/30',
+  MARKET_CONDITION: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/30',
+  STRATEGY: 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/30',
+  BIAS_FREQUENCY: 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/30',
 };
 
 const TREND_ICONS = {
@@ -237,6 +237,7 @@ export default function PatternsPage() {
               size="icon"
               onClick={() => router.back()}
               className="h-10 w-10"
+              aria-label="Go back"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
@@ -311,8 +312,8 @@ export default function PatternsPage() {
                         <div
                           className={cn(
                             'flex items-center gap-1 text-xs',
-                            pattern.trend === 'INCREASING' && 'text-red-500',
-                            pattern.trend === 'DECREASING' && 'text-green-500',
+                            pattern.trend === 'INCREASING' && 'text-red-600 dark:text-red-400',
+                            pattern.trend === 'DECREASING' && 'text-green-600 dark:text-green-400',
                             pattern.trend === 'STABLE' && 'text-muted-foreground'
                           )}
                         >
@@ -324,6 +325,7 @@ export default function PatternsPage() {
                           size="icon"
                           className="h-6 w-6"
                           onClick={() => dismissPattern(pattern.id)}
+                          aria-label="Dismiss pattern"
                         >
                           <X className="h-3 w-3" />
                         </Button>
@@ -341,8 +343,8 @@ export default function PatternsPage() {
                         <span
                           className={cn(
                             pattern.outcomeData.winRate < 0.5
-                              ? 'text-red-500'
-                              : 'text-green-500'
+                              ? 'text-red-600 dark:text-red-400'
+                              : 'text-green-600 dark:text-green-400'
                           )}
                         >
                           {Math.round(pattern.outcomeData.winRate * 100)}% win rate
@@ -383,6 +385,7 @@ export default function PatternsPage() {
                 size="icon"
                 className="h-8 w-8"
                 onClick={goToPreviousMonth}
+                aria-label="Previous month"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -395,6 +398,7 @@ export default function PatternsPage() {
                 className="h-8 w-8"
                 onClick={goToNextMonth}
                 disabled={isNextMonthDisabled()}
+                aria-label="Next month"
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -445,7 +449,7 @@ export default function PatternsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <TrendingUp className="h-4 w-4 text-green-500" />
+                      <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
                       <span className="text-sm">Up Days</span>
                     </div>
                     <p className="text-lg font-semibold">
@@ -457,7 +461,7 @@ export default function PatternsPage() {
                   </div>
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <TrendingDown className="h-4 w-4 text-red-500" />
+                      <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
                       <span className="text-sm">Down Days</span>
                     </div>
                     <p className="text-lg font-semibold">

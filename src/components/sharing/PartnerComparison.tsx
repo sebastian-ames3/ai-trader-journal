@@ -143,9 +143,9 @@ function ComparisonBar({
         {userValue === partnerValue ? (
           <Minus className="h-4 w-4 text-slate-400" />
         ) : userWins ? (
-          <TrendingUp className="h-4 w-4 text-green-500" />
+          <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
         ) : (
-          <TrendingDown className="h-4 w-4 text-red-500" />
+          <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
         )}
       </div>
 

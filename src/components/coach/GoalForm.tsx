@@ -55,7 +55,7 @@ const GOAL_TEMPLATES: GoalTemplate[] = [
     defaultTarget: 7,
     unit: 'days',
     icon: Flame,
-    color: 'text-orange-500',
+    color: 'text-orange-600 dark:text-orange-400',
   },
   {
     type: 'ENTRIES_PER_WEEK',
@@ -64,7 +64,7 @@ const GOAL_TEMPLATES: GoalTemplate[] = [
     defaultTarget: 5,
     unit: 'entries',
     icon: Target,
-    color: 'text-blue-500',
+    color: 'text-blue-600 dark:text-blue-400',
   },
   {
     type: 'PRE_TRADE_CHECKS',
@@ -73,7 +73,7 @@ const GOAL_TEMPLATES: GoalTemplate[] = [
     defaultTarget: 10,
     unit: 'checks',
     icon: CheckCircle,
-    color: 'text-green-500',
+    color: 'text-green-600 dark:text-green-400',
   },
   {
     type: 'BIAS_REDUCTION',
@@ -82,7 +82,7 @@ const GOAL_TEMPLATES: GoalTemplate[] = [
     defaultTarget: 50,
     unit: '% reduction',
     icon: Target,
-    color: 'text-purple-500',
+    color: 'text-purple-600 dark:text-purple-400',
   },
   {
     type: 'WIN_RATE',

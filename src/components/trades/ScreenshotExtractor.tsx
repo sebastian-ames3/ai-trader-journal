@@ -309,15 +309,23 @@ export default function ScreenshotExtractor({
 
         {/* Loading State */}
         {isExtracting && (
-          <div className="flex items-center justify-center gap-2 py-4 text-slate-500 dark:text-slate-400">
-            <Loader2 className="h-5 w-5 animate-spin" />
+          <div
+            className="flex items-center justify-center gap-2 py-4 text-slate-500 dark:text-slate-400"
+            role="status"
+            aria-live="polite"
+          >
+            <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
             <span className="text-sm">Analyzing screenshot...</span>
           </div>
         )}
 
         {/* Error State */}
         {extractionError && (
-          <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300">
+          <div
+            className="flex items-center gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300"
+            role="alert"
+            aria-live="assertive"
+          >
             <AlertCircle className="h-5 w-5 flex-shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-medium">Extraction failed</p>
@@ -338,9 +346,9 @@ export default function ScreenshotExtractor({
 
         {/* Extracted Fields */}
         {extractionResult && !isExtracting && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 mb-2">
-              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+          <div className="space-y-3" role="region" aria-label="Extracted trade data">
+            <div className="flex items-center gap-2 mb-2" role="status" aria-live="polite">
+              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" aria-hidden="true" />
               <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 Data extracted - review and edit if needed
               </span>
