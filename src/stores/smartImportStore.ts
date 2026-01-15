@@ -323,6 +323,7 @@ export const useSmartImportStore = create<SmartImportStore>()(
 
         const lastTradeId = reviewHistory[reviewHistory.length - 1];
         const lastDecision = decisions[lastTradeId];
+        // _removed is intentionally unused - destructuring pattern to remove a property from object
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { [lastTradeId]: _removed, ...newDecisions } = decisions;
 

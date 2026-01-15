@@ -139,6 +139,7 @@ export function QuickCapture({ isOpen, onClose, initialMode }: QuickCaptureProps
       }, 300);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [isOpen]);
 
   // Handle initial mode when modal opens
@@ -604,6 +605,7 @@ export function QuickCapture({ isOpen, onClose, initialMode }: QuickCaptureProps
             <div className="flex flex-wrap gap-2">
               {imageUrls.map((url, index) => (
                 <div key={url} className="relative group">
+                  {/* Using native img for blob URL preview - Next/Image requires explicit dimensions and doesn't support blob URLs */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={url}

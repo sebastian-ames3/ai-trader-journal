@@ -123,6 +123,7 @@ export default function ScreenshotExtractor({
     } else if (imageUrl) {
       setPreviewUrl(imageUrl);
     }
+    return undefined;
   }, [imageFile, imageUrl]);
 
   // Extract data from screenshot using Claude vision API

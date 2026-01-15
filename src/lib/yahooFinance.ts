@@ -345,6 +345,7 @@ export async function getOptionsExpirations(ticker: string): Promise<Date[] | nu
     }
 
     // Convert timestamps to Date objects
+    // External Yahoo Finance API response type is untyped - explicit any needed for type assertion
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const expirations = (result.expirationDates as any[]).map((timestamp: number) => new Date(timestamp * 1000));
 
