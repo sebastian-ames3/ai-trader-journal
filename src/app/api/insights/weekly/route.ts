@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateWeeklyInsights } from '@/lib/weeklyInsights';
+import { requireAuth } from '@/lib/auth';
 
 // Force dynamic rendering (uses searchParams)
 export const dynamic = 'force-dynamic';
@@ -13,6 +14,10 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
+    // Authentication check
+    const { user, error: authError } = await requireAuth();
+    if (authError) return authError;
+
     const searchParams = request.nextUrl.searchParams;
     const weekParam = searchParams.get('week');
     const weekOffset = weekParam ? parseInt(weekParam, 10) : 0;
@@ -25,8 +30,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Generate insights
-    const insights = await generateWeeklyInsights(weekOffset);
+    // Generate insights filtered by user
+    const insights = await generateWeeklyInsights(weekOffset, user.id);
 
     return NextResponse.json(insights);
 

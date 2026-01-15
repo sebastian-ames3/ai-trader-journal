@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { EntryType, EntryMood, ConvictionLevel } from '@prisma/client';
 import { analyzeEntryText } from '@/lib/aiAnalysis';
 import { isClaudeConfigured } from '@/lib/claude';
+import { requireAuth } from '@/lib/auth';
 
 /**
  * Calculate similarity between two strings using word-based Jaccard index
@@ -52,6 +53,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Authentication check
+    const { user, error: authError } = await requireAuth();
+    if (authError) return authError;
+
     const { id } = await params;
     const entry = await prisma.entry.findUnique({
       where: {
@@ -75,7 +80,7 @@ export async function GET(
       }
     });
 
-    if (!entry) {
+    if (!entry || entry.userId !== user.id) {
       return NextResponse.json(
         { error: 'Entry not found' },
         { status: 404 }
@@ -101,15 +106,19 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Authentication check
+    const { user, error: authError } = await requireAuth();
+    if (authError) return authError;
+
     const { id } = await params;
     const body = await request.json();
 
-    // Check if entry exists
+    // Check if entry exists and verify ownership
     const existingEntry = await prisma.entry.findUnique({
       where: { id }
     });
 
-    if (!existingEntry) {
+    if (!existingEntry || existingEntry.userId !== user.id) {
       return NextResponse.json(
         { error: 'Entry not found' },
         { status: 404 }
@@ -224,13 +233,17 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Authentication check
+    const { user, error: authError } = await requireAuth();
+    if (authError) return authError;
+
     const { id } = await params;
-    // Check if entry exists
+    // Check if entry exists and verify ownership
     const existingEntry = await prisma.entry.findUnique({
       where: { id }
     });
 
-    if (!existingEntry) {
+    if (!existingEntry || existingEntry.userId !== user.id) {
       return NextResponse.json(
         { error: 'Entry not found' },
         { status: 404 }

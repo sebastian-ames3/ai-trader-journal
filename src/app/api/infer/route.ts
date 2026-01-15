@@ -24,6 +24,7 @@ import {
   isClaudeConfigured,
   handleClaudeError,
 } from '@/lib/claude';
+import { requireAuth } from '@/lib/auth';
 
 // Response type
 export interface InferenceResult {
@@ -77,6 +78,10 @@ Entry:`;
 
 export async function POST(request: NextRequest) {
   try {
+    // Authentication check
+    const { error: authError } = await requireAuth();
+    if (authError) return authError;
+
     // Check for Anthropic API key
     if (!isClaudeConfigured()) {
       return NextResponse.json(

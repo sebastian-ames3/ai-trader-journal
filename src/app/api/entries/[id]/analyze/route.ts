@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { analyzeEntryText, SAFE_ANALYSIS_DEFAULTS } from '@/lib/aiAnalysis';
 import { isClaudeConfigured } from '@/lib/claude';
+import { requireAuth } from '@/lib/auth';
+import { rateLimiters, checkRateLimit } from '@/lib/rateLimit';
 
 /**
  * POST /api/entries/[id]/analyze
@@ -17,14 +19,30 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Authentication check
+    const { user, error: authError } = await requireAuth();
+    if (authError) return authError;
+
+    // Check rate limit
+    const rateLimitError = checkRateLimit(rateLimiters.aiAnalysis, user.id);
+    if (rateLimitError) return rateLimitError;
+
     const { id } = await params;
 
-    // Fetch the entry
+    // Fetch the entry and verify ownership
     const entry = await prisma.entry.findUnique({
       where: { id }
     });
 
     if (!entry) {
+      return NextResponse.json(
+        { error: 'Entry not found' },
+        { status: 404 }
+      );
+    }
+
+    // Verify the entry belongs to the authenticated user
+    if (entry.userId !== user.id) {
       return NextResponse.json(
         { error: 'Entry not found' },
         { status: 404 }

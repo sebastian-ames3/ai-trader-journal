@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import {
   Upload,
   FileSpreadsheet,
@@ -33,6 +33,69 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { formatStrategyType } from '@/lib/csvImport';
 import { StrategyType, ThesisDirection } from '@prisma/client';
+
+// ============================================
+// Persistence
+// ============================================
+
+const WIZARD_STORAGE_KEY = 'optionstrat-import-wizard';
+const WIZARD_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+interface PersistedWizardState {
+  currentStep: WizardStep;
+  batchId: string | null;
+  trades: ParsedTrade[];
+  existingTheses: Record<string, ExistingThesis[]>;
+  summary: UploadResponse['data']['summary'] | null;
+  selections: Array<[string, TradeSelection]>;
+  timestamp: number;
+}
+
+function loadPersistedState(): PersistedWizardState | null {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const stored = localStorage.getItem(WIZARD_STORAGE_KEY);
+    if (!stored) return null;
+
+    const parsed: PersistedWizardState = JSON.parse(stored);
+
+    // Check TTL
+    if (Date.now() - parsed.timestamp > WIZARD_TTL_MS) {
+      localStorage.removeItem(WIZARD_STORAGE_KEY);
+      return null;
+    }
+
+    // Don't restore if we're at upload step (no actual data to restore)
+    if (parsed.currentStep === 'upload' || !parsed.batchId) {
+      return null;
+    }
+
+    return parsed;
+  } catch {
+    localStorage.removeItem(WIZARD_STORAGE_KEY);
+    return null;
+  }
+}
+
+function savePersistedState(state: Omit<PersistedWizardState, 'timestamp'>): void {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const toStore: PersistedWizardState = {
+      ...state,
+      timestamp: Date.now(),
+    };
+    localStorage.setItem(WIZARD_STORAGE_KEY, JSON.stringify(toStore));
+  } catch (error) {
+    console.error('Failed to persist wizard state:', error);
+  }
+}
+
+function clearPersistedState(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(WIZARD_STORAGE_KEY);
+}
 
 // ============================================
 // Types
@@ -137,6 +200,57 @@ export default function OptionStratImportWizard({
   const [importResult, setImportResult] = useState<ConfirmResponse['data'] | null>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
 
+  // Resume state
+  const [showResumePrompt, setShowResumePrompt] = useState(false);
+  const [hasCheckedPersistedState, setHasCheckedPersistedState] = useState(false);
+
+  // Check for persisted state on mount
+  useEffect(() => {
+    if (!isOpen || hasCheckedPersistedState) return;
+
+    const persisted = loadPersistedState();
+    if (persisted) {
+      setShowResumePrompt(true);
+    }
+    setHasCheckedPersistedState(true);
+  }, [isOpen, hasCheckedPersistedState]);
+
+  // Persist state when it changes (only after initial load)
+  useEffect(() => {
+    if (!hasCheckedPersistedState) return;
+    if (currentStep === 'upload' || currentStep === 'complete') return;
+    if (!batchId) return;
+
+    savePersistedState({
+      currentStep,
+      batchId,
+      trades,
+      existingTheses,
+      summary,
+      selections: Array.from(selections.entries()),
+    });
+  }, [currentStep, batchId, trades, existingTheses, summary, selections, hasCheckedPersistedState]);
+
+  // Resume from persisted state
+  const handleResume = useCallback(() => {
+    const persisted = loadPersistedState();
+    if (persisted) {
+      setCurrentStep(persisted.currentStep);
+      setBatchId(persisted.batchId);
+      setTrades(persisted.trades);
+      setExistingTheses(persisted.existingTheses);
+      setSummary(persisted.summary);
+      setSelections(new Map(persisted.selections));
+    }
+    setShowResumePrompt(false);
+  }, []);
+
+  // Start fresh (clear persisted state)
+  const handleStartFresh = useCallback(() => {
+    clearPersistedState();
+    setShowResumePrompt(false);
+  }, []);
+
   // Reset wizard state
   const resetWizard = useCallback(() => {
     setCurrentStep('upload');
@@ -151,6 +265,7 @@ export default function OptionStratImportWizard({
     setIsConfirming(false);
     setImportResult(null);
     setConfirmError(null);
+    clearPersistedState();
   }, []);
 
   // Handle file selection
@@ -313,6 +428,7 @@ export default function OptionStratImportWizard({
 
       setImportResult(result.data);
       setCurrentStep('complete');
+      clearPersistedState(); // Clear saved state on successful completion
       onComplete?.(result.data);
     } catch (error) {
       setConfirmError(error instanceof Error ? error.message : 'Import failed');
@@ -349,6 +465,29 @@ export default function OptionStratImportWizard({
         aria-modal="true"
         aria-labelledby="import-wizard-title"
       >
+        {/* Resume prompt */}
+        {showResumePrompt && (
+          <div className="p-4 bg-amber-500/10 border-b border-amber-500/20">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-medium">Resume previous import?</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  You have an unfinished import from earlier. Would you like to continue where you left off?
+                </p>
+                <div className="flex gap-2 mt-3">
+                  <Button size="sm" onClick={handleResume}>
+                    Resume Import
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={handleStartFresh}>
+                    Start Fresh
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-2">
@@ -357,15 +496,28 @@ export default function OptionStratImportWizard({
               Import OptionStrat CSV
             </h2>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="h-8 w-8"
-            aria-label="Close"
-          >
-            <X className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            {currentStep !== 'upload' && currentStep !== 'complete' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={resetWizard}
+                className="text-muted-foreground"
+              >
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Start Over
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="h-8 w-8"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         {/* Step indicator */}

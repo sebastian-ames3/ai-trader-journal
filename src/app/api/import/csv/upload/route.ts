@@ -4,6 +4,7 @@ import { parseOptionStratCSV, getImportCacheKey } from '@/lib/csvImport';
 import { prisma } from '@/lib/prisma';
 import { cache, CacheTTL } from '@/lib/cache';
 import { createHash } from 'crypto';
+import { rateLimiters, checkRateLimit } from '@/lib/rateLimit';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +22,10 @@ export async function POST(request: NextRequest) {
     if (auth.error) return auth.error;
     const { user } = auth;
 
+    // Check rate limit
+    const rateLimitError = checkRateLimit(rateLimiters.csvImport, user.id);
+    if (rateLimitError) return rateLimitError;
+
     // Parse request body
     const body = await request.json();
     const { csvContent } = body;
@@ -35,6 +40,33 @@ export async function POST(request: NextRequest) {
     // Validate content is not empty
     if (csvContent.trim().length === 0) {
       return NextResponse.json({ error: 'CSV content is empty' }, { status: 400 });
+    }
+
+    // Validate file size (max 5MB)
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB in bytes
+    const contentSize = new TextEncoder().encode(csvContent).length;
+    if (contentSize > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        {
+          error: 'CSV file too large',
+          message: `File size (${(contentSize / 1024 / 1024).toFixed(2)}MB) exceeds maximum of 5MB.`,
+        },
+        { status: 413 }
+      );
+    }
+
+    // Quick row count validation (before parsing)
+    const MAX_ROWS = 1000;
+    const lineCount = csvContent.split('\n').filter((line) => line.trim().length > 0).length;
+    if (lineCount > MAX_ROWS + 1) {
+      // +1 for header row
+      return NextResponse.json(
+        {
+          error: 'CSV has too many rows',
+          message: `File contains approximately ${lineCount} rows. Maximum is ${MAX_ROWS} trades.`,
+        },
+        { status: 413 }
+      );
     }
 
     // Parse CSV content

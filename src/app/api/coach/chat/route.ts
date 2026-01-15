@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { processCoachMessage, CoachContext } from '@/lib/coach';
 import { handleClaudeError, isClaudeConfigured } from '@/lib/claude';
 import { requireAuth } from '@/lib/auth';
+import { rateLimiters, checkRateLimit } from '@/lib/rateLimit';
 
 /**
  * POST /api/coach/chat
@@ -20,6 +21,10 @@ export async function POST(request: NextRequest) {
   try {
     const { user, error } = await requireAuth();
     if (error) return error;
+
+    // Check rate limit
+    const rateLimitError = checkRateLimit(rateLimiters.coachChat, user.id);
+    if (rateLimitError) return rateLimitError;
 
     // Check if Claude is configured
     if (!isClaudeConfigured()) {
@@ -47,10 +52,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate message length
-    if (body.message.length > 10000) {
+    // Validate message length (max 2000 characters)
+    const MAX_MESSAGE_LENGTH = 2000;
+    if (body.message.length > MAX_MESSAGE_LENGTH) {
       return NextResponse.json(
-        { error: 'Message exceeds maximum length of 10000 characters' },
+        { error: `Message exceeds maximum length of ${MAX_MESSAGE_LENGTH} characters` },
         { status: 400 }
       );
     }

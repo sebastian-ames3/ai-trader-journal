@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth';
 import { TradeAction, StrategyType, ThesisTradeStatus, Prisma } from '@prisma/client';
+import { calculateTotalPL, calculateCapitalDeployed } from '@/lib/money';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,11 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
+    // Authentication check
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const { user } = auth;
+
     const { searchParams } = new URL(request.url);
 
     // Parse filter parameters
@@ -27,8 +33,10 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
-    // Build where clause
-    const where: Prisma.ThesisTradeWhereInput = {};
+    // Build where clause - filter by user
+    const where: Prisma.ThesisTradeWhereInput = {
+      userId: user.id,
+    };
 
     if (thesisId) {
       where.thesisId = thesisId;
@@ -173,18 +181,9 @@ export async function POST(request: NextRequest) {
           where: { thesisId: body.thesisId }
         });
 
-        let totalRealizedPL = 0;
-        let totalCapitalDeployed = 0;
-
-        for (const t of allTrades) {
-          if (t.realizedPL !== null) {
-            totalRealizedPL += t.realizedPL;
-          }
-          // Capital deployed is sum of debits (negative debitCredit values)
-          if (t.debitCredit < 0) {
-            totalCapitalDeployed += Math.abs(t.debitCredit);
-          }
-        }
+        // Use precise decimal arithmetic for P/L calculations
+        const totalRealizedPL = calculateTotalPL(allTrades);
+        const totalCapitalDeployed = calculateCapitalDeployed(allTrades);
 
         await tx.tradingThesis.update({
           where: { id: body.thesisId },

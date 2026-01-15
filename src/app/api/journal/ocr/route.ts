@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth';
 import { extractJournalData, validateOCRResult, OCRResult } from '@/lib/journalOCR';
 import { cache, CacheKeys, CacheTTL } from '@/lib/cache';
 import { createHash } from 'crypto';
+import { rateLimiters, checkRateLimit } from '@/lib/rateLimit';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +16,10 @@ export async function POST(request: NextRequest) {
     // Authentication check
     const auth = await requireAuth();
     if (auth.error) return auth.error;
+
+    // Check rate limit
+    const rateLimitError = checkRateLimit(rateLimiters.ocr, auth.user.id);
+    if (rateLimitError) return rateLimitError;
 
     // Parse request body
     const body = await request.json();
