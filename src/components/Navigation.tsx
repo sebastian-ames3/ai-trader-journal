@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, BookOpen, BarChart3, TrendingUp } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
+import GlobalSearch from './GlobalSearch';
 
 export default function Navigation() {
   const pathname = usePathname();
@@ -63,6 +64,7 @@ export default function Navigation() {
           </div>
 
           <div className="flex items-center gap-2">
+            <GlobalSearch />
             <ThemeToggle />
             <Link
               href="/"
