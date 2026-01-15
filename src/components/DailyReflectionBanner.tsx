@@ -127,7 +127,7 @@ export default function DailyReflectionBanner({ className }: DailyReflectionBann
         title: `Tough day (SPY ${spyChange.toFixed(1)}%)`,
         subtitle: 'This is when journals are most valuable',
         icon: TrendingDown,
-        iconColor: 'text-red-500',
+        iconColor: 'text-red-600 dark:text-red-400',
       };
     }
 
@@ -136,7 +136,7 @@ export default function DailyReflectionBanner({ className }: DailyReflectionBann
         title: `Great day (SPY +${spyChange.toFixed(1)}%)`,
         subtitle: 'Feeling euphoric? Worth noting',
         icon: TrendingUp,
-        iconColor: 'text-green-500',
+        iconColor: 'text-green-600 dark:text-green-400',
       };
     }
 

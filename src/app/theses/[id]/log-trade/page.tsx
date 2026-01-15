@@ -522,7 +522,7 @@ export default function LogTradePage() {
               aria-describedby={getFieldError(validationErrors, 'description') ? 'description-error' : undefined}
             />
             {getFieldError(validationErrors, 'description') && (
-              <p id="description-error" className="text-sm text-red-500 mt-1">
+              <p id="description-error" className="text-sm text-red-600 dark:text-red-400 mt-1">
                 {getFieldError(validationErrors, 'description')}
               </p>
             )}
@@ -553,7 +553,7 @@ export default function LogTradePage() {
                 aria-describedby={getFieldError(validationErrors, 'debitCredit') ? 'debitCredit-error' : 'debitCredit-hint'}
               />
               {getFieldError(validationErrors, 'debitCredit') ? (
-                <p id="debitCredit-error" className="text-sm text-red-500">
+                <p id="debitCredit-error" className="text-sm text-red-600 dark:text-red-400">
                   {getFieldError(validationErrors, 'debitCredit')}
                 </p>
               ) : (
@@ -586,7 +586,7 @@ export default function LogTradePage() {
                 aria-describedby={getFieldError(validationErrors, 'quantity') ? 'quantity-error' : 'quantity-hint'}
               />
               {getFieldError(validationErrors, 'quantity') ? (
-                <p id="quantity-error" className="text-sm text-red-500">
+                <p id="quantity-error" className="text-sm text-red-600 dark:text-red-400">
                   {getFieldError(validationErrors, 'quantity')}
                 </p>
               ) : (
@@ -619,7 +619,7 @@ export default function LogTradePage() {
               aria-describedby={getFieldError(validationErrors, 'expiration') ? 'expiration-error' : undefined}
             />
             {getFieldError(validationErrors, 'expiration') && (
-              <p id="expiration-error" className="text-sm text-red-500 mt-1">
+              <p id="expiration-error" className="text-sm text-red-600 dark:text-red-400 mt-1">
                 {getFieldError(validationErrors, 'expiration')}
               </p>
             )}

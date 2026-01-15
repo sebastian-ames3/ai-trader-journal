@@ -390,7 +390,7 @@ export default function GoalsPage() {
                             onClick={() => handleCompleteGoal(goal.id)}
                             className="min-h-[44px]"
                           >
-                            <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
+                            <CheckCircle className="h-4 w-4 mr-2 text-green-600 dark:text-green-400" />
                             Mark as Completed
                           </DropdownMenuItem>
                           <DropdownMenuItem

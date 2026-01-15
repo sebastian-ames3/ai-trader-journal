@@ -119,6 +119,7 @@ export default function TradeLinkSuggestions({
             size="icon"
             className="h-6 w-6"
             onClick={() => setIsExpanded(false)}
+            aria-label="Collapse suggestions"
           >
             <X className="h-3 w-3" />
           </Button>

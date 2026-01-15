@@ -422,7 +422,7 @@ export default function EntryDetailPage() {
                         size="icon"
                         onClick={handleOpenLinkPanel}
                         className="h-8 w-8"
-                        title="Change link"
+                        aria-label="Change trade link"
                       >
                         <ChevronRight className="h-4 w-4" />
                       </Button>

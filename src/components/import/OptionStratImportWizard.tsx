@@ -32,6 +32,7 @@ import {
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { formatStrategyType } from '@/lib/csvImport';
+import { HelpTooltip } from '@/components/ui/help-tooltip';
 import { StrategyType, ThesisDirection } from '@prisma/client';
 
 // ============================================
@@ -555,9 +556,15 @@ export default function OptionStratImportWizard({
           {/* Upload Step */}
           {currentStep === 'upload' && (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Upload your OptionStrat CSV export file to import trades.
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-muted-foreground">
+                  Upload your OptionStrat CSV export file to import trades.
+                </p>
+                <HelpTooltip
+                  content="Export your trade history from OptionStrat as a CSV file. The importer will automatically detect the format and parse your trades."
+                  side="right"
+                />
+              </div>
 
               {/* Drop zone */}
               <div
@@ -620,14 +627,28 @@ export default function OptionStratImportWizard({
             <div className="space-y-4">
               {/* Summary */}
               {summary && (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="outline">{summary.totalRows} total</Badge>
                   <Badge variant="default">{summary.validTrades} valid</Badge>
                   {summary.duplicates > 0 && (
-                    <Badge variant="secondary">{summary.duplicates} duplicates</Badge>
+                    <div className="flex items-center gap-1">
+                      <Badge variant="secondary">{summary.duplicates} duplicates</Badge>
+                      <HelpTooltip
+                        content="Duplicates are trades that already exist in your journal. They are automatically skipped to prevent importing the same trade twice."
+                        side="top"
+                        iconClassName="h-3 w-3"
+                      />
+                    </div>
                   )}
                   {summary.invalidTrades > 0 && (
-                    <Badge variant="destructive">{summary.invalidTrades} invalid</Badge>
+                    <div className="flex items-center gap-1">
+                      <Badge variant="destructive">{summary.invalidTrades} invalid</Badge>
+                      <HelpTooltip
+                        content="Invalid trades have missing or malformed data and cannot be imported. Check that your CSV file is properly formatted."
+                        side="top"
+                        iconClassName="h-3 w-3"
+                      />
+                    </div>
                   )}
                 </div>
               )}

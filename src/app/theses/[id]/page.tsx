@@ -358,7 +358,7 @@ export default function ThesisDetailPage() {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="min-h-[44px] min-w-[44px]">
+                <Button variant="ghost" size="icon" className="min-h-[44px] min-w-[44px]" aria-label="Thesis options">
                   <MoreVertical className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>

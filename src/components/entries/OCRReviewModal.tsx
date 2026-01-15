@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import {
-  X,
   Calendar,
   AlertTriangle,
   Edit2,
@@ -15,6 +14,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -22,7 +27,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import TradeLinkSuggestions, { LinkSuggestion } from './TradeLinkSuggestions';
-import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
 export interface OCRResult {
@@ -166,49 +170,19 @@ export default function OCRReviewModal({
     setShowLinkSuggestions(false);
   };
 
-  if (!isOpen) return null;
-
   const isLowConfidence = ocrResult.confidence < 0.7;
   const isVeryLowConfidence = ocrResult.confidence < 0.5;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-
-      {/* Modal */}
-      <div
-        className={cn(
-          'relative w-full max-w-lg bg-background rounded-t-2xl sm:rounded-2xl shadow-xl',
-          'max-h-[90vh] overflow-hidden flex flex-col',
-          'animate-in slide-in-from-bottom duration-300'
-        )}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="ocr-review-title"
-      >
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-lg max-h-[90vh] flex flex-col p-0 gap-0">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b">
-          <div className="flex items-center gap-2">
+        <DialogHeader className="p-4 border-b">
+          <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            <h2 id="ocr-review-title" className="text-lg font-semibold">
-              Review Scanned Entry
-            </h2>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="h-8 w-8"
-            aria-label="Close"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
+            Review Scanned Entry
+          </DialogTitle>
+        </DialogHeader>
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -441,7 +415,7 @@ export default function OCRReviewModal({
             )}
           </Button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

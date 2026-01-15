@@ -717,19 +717,21 @@ export function QuickCapture({ isOpen, onClose, initialMode }: QuickCaptureProps
             <div className="flex-1" />
 
             {/* Inference indicator */}
-            {submitState === 'inferring' && (
-              <Badge variant="secondary" className="gap-1">
-                <Sparkles className="h-3 w-3 animate-pulse" />
-                Analyzing...
-              </Badge>
-            )}
+            <div aria-live="polite" aria-atomic="true" className="contents">
+              {submitState === 'inferring' && (
+                <Badge variant="secondary" className="gap-1">
+                  <Sparkles className="h-3 w-3 animate-pulse" />
+                  <span>Analyzing...</span>
+                </Badge>
+              )}
 
-            {inferred && submitState !== 'inferring' && (
-              <Badge variant="outline" className="gap-1">
-                <Sparkles className="h-3 w-3" />
-                Auto-detected
-              </Badge>
-            )}
+              {inferred && submitState !== 'inferring' && (
+                <Badge variant="outline" className="gap-1">
+                  <Sparkles className="h-3 w-3" />
+                  <span>Auto-detected</span>
+                </Badge>
+              )}
+            </div>
           </div>
 
           {/* Inferred/editable metadata */}
