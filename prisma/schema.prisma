@@ -276,6 +276,9 @@ model Settings {
   lastEntryDate DateTime? // Last entry date for streak calculation
   lastGraceDate DateTime? // Last grace day used (for 1-day forgiveness)
 
+  // User timezone preference (PRD 4 - Phase D)
+  timezone String @default("America/New_York") // IANA timezone (e.g., "America/New_York", "Europe/London")
+
   // User ownership (one-to-one)
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)

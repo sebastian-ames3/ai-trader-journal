@@ -12,7 +12,14 @@
 import { config } from 'dotenv';
 config();
 
-import { analyzeEntryText, batchAnalyzeEntries } from '../src/lib/aiAnalysis';
+import {
+  analyzeEntryText,
+  batchAnalyzeEntries,
+  MIN_CONTENT_LENGTH_FOR_BIAS,
+  HIGH_CONFIDENCE_THRESHOLD,
+  SAFE_ANALYSIS_DEFAULTS,
+  INSUFFICIENT_CONTENT_DEFAULTS,
+} from '../src/lib/aiAnalysis';
 import { prisma } from '../src/lib/prisma';
 
 const API_BASE = 'http://localhost:3000/api/entries';
@@ -233,6 +240,114 @@ async function runTests() {
     await Promise.all(entryIds.map(id =>
       fetch(`${API_BASE}/${id}`, { method: 'DELETE' })
     ));
+  });
+
+  // ========================================
+  // PRD 4 Phase D: Bias Detection Tuning Tests
+  // ========================================
+
+  // Test 10: Minimum Content Length Check
+  await test('Short Content Returns Insufficient Content Response', async () => {
+    const shortContent = 'Bought AAPL calls.'; // 18 chars
+
+    assert(shortContent.length < MIN_CONTENT_LENGTH_FOR_BIAS,
+      `Test content should be shorter than ${MIN_CONTENT_LENGTH_FOR_BIAS} chars`);
+
+    const analysis = await analyzeEntryText(shortContent);
+
+    assert(analysis.insufficientContent === true,
+      'Should mark insufficientContent as true for short entries');
+    assert(analysis.detectedBiases.length === 0,
+      'Should not detect biases for short entries');
+    assert(analysis.confidence === 0,
+      'Should have zero confidence for insufficient content');
+
+    log(`Content length: ${shortContent.length} chars`);
+    log(`Insufficient content: ${analysis.insufficientContent}`);
+  });
+
+  // Test 11: Empty Content Check
+  await test('Empty Content Returns Safe Defaults', async () => {
+    const emptyContent = '';
+    const whitespaceContent = '   \n\t   ';
+
+    const emptyAnalysis = await analyzeEntryText(emptyContent);
+    const whitespaceAnalysis = await analyzeEntryText(whitespaceContent);
+
+    assert(emptyAnalysis.sentiment === 'neutral', 'Empty content should return neutral sentiment');
+    assert(whitespaceAnalysis.sentiment === 'neutral', 'Whitespace content should return neutral sentiment');
+
+    log('Empty and whitespace content handled correctly');
+  });
+
+  // Test 12: Bias Confidence Scores
+  await test('Bias Detection Returns Confidence Scores', async () => {
+    const content = `
+      Everyone is making money on this move and I'm missing out completely!
+      I need to get in NOW before it's too late. This is definitely going to
+      keep running. The chart is so bullish and I'm certain it will hit new highs.
+      I can feel it - this is the one that will make back all my losses.
+    `.trim();
+
+    assert(content.length >= MIN_CONTENT_LENGTH_FOR_BIAS,
+      'Content should be long enough for analysis');
+
+    const analysis = await analyzeEntryText(content);
+
+    // Should have bias confidence scores
+    assert(Array.isArray(analysis.biasConfidenceScores),
+      'Should have biasConfidenceScores array');
+
+    // Log all bias confidence scores for debugging
+    log(`Bias confidence scores: ${JSON.stringify(analysis.biasConfidenceScores)}`);
+    log(`High-confidence biases: ${analysis.detectedBiases.join(', ')}`);
+
+    // The detectedBiases should only contain high-confidence biases
+    if (analysis.biasConfidenceScores.length > 0) {
+      const highConfBiases = analysis.biasConfidenceScores.filter(
+        b => b.confidence >= HIGH_CONFIDENCE_THRESHOLD
+      );
+      assert(analysis.detectedBiases.length === highConfBiases.length,
+        'detectedBiases should only include high-confidence biases');
+    }
+  });
+
+  // Test 13: High Confidence Threshold Filtering
+  await test('Only High Confidence Biases Are Shown', async () => {
+    // Verify the threshold value
+    assert(HIGH_CONFIDENCE_THRESHOLD === 0.7,
+      'HIGH_CONFIDENCE_THRESHOLD should be 0.7');
+
+    // Verify constants are exported correctly
+    assert(MIN_CONTENT_LENGTH_FOR_BIAS === 50,
+      'MIN_CONTENT_LENGTH_FOR_BIAS should be 50');
+
+    log(`High confidence threshold: ${HIGH_CONFIDENCE_THRESHOLD}`);
+    log(`Minimum content length: ${MIN_CONTENT_LENGTH_FOR_BIAS}`);
+  });
+
+  // Test 14: Insufficient Content Defaults Structure
+  await test('Insufficient Content Defaults Have Correct Structure', async () => {
+    assert(INSUFFICIENT_CONTENT_DEFAULTS.insufficientContent === true,
+      'INSUFFICIENT_CONTENT_DEFAULTS.insufficientContent should be true');
+    assert(Array.isArray(INSUFFICIENT_CONTENT_DEFAULTS.biasConfidenceScores),
+      'Should have biasConfidenceScores array');
+    assert(INSUFFICIENT_CONTENT_DEFAULTS.biasConfidenceScores.length === 0,
+      'biasConfidenceScores should be empty');
+
+    log('INSUFFICIENT_CONTENT_DEFAULTS structure is correct');
+  });
+
+  // Test 15: Safe Defaults Structure
+  await test('Safe Analysis Defaults Have Correct Structure', async () => {
+    assert(SAFE_ANALYSIS_DEFAULTS.insufficientContent === false,
+      'SAFE_ANALYSIS_DEFAULTS.insufficientContent should be false');
+    assert(Array.isArray(SAFE_ANALYSIS_DEFAULTS.biasConfidenceScores),
+      'Should have biasConfidenceScores array');
+    assert(SAFE_ANALYSIS_DEFAULTS.confidence === 0,
+      'Default confidence should be 0');
+
+    log('SAFE_ANALYSIS_DEFAULTS structure is correct');
   });
 
   // Cleanup test entry
