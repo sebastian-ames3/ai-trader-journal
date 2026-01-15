@@ -63,6 +63,7 @@ function JournalContent() {
 
   useEffect(() => {
     fetchEntries();
+    // fetchEntries uses filters state which is derived from searchParams - including it would cause infinite loops
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
@@ -357,6 +358,7 @@ function JournalContent() {
       fetchEntries(),
       fetchEntryCounts(currentMonth),
     ]);
+    // fetchEntries is not memoized; including it would cause unnecessary re-renders. filters is included to capture its dependencies.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, currentMonth, fetchEntryCounts]);
 

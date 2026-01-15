@@ -111,6 +111,8 @@ const MenteeCard = React.memo(function MenteeCard({
       <div className="flex items-start gap-3 mb-4">
         {/* Avatar */}
         {mentee.avatarUrl ? (
+          // External avatar URL - Next/Image would require domain configuration
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={mentee.avatarUrl}
             alt={mentee.name}

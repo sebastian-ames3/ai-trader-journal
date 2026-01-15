@@ -37,6 +37,7 @@ export default function OnboardingTip({
 
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [tipId, showDelay]);
 
   const handleDismiss = () => {

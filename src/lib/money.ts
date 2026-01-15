@@ -150,3 +150,25 @@ export function calculateCapitalDeployed(
     .map((t) => Math.abs(t.debitCredit));
   return sumMoney(debits);
 }
+
+/**
+ * Format P/L value with +/- sign prefix
+ * Common pattern: +$123.45 or -$123.45
+ */
+export function formatPL(value: number | null | undefined, decimals: number = 2): string {
+  if (value === null || value === undefined) return '$0.00';
+  const rounded = round(value, decimals);
+  const sign = rounded >= 0 ? '+' : '-';
+  return `${sign}$${Math.abs(rounded).toFixed(decimals)}`;
+}
+
+/**
+ * Format percentage change with +/- sign prefix
+ * Common pattern: +12.34% or -12.34%
+ */
+export function formatChange(value: number | null | undefined, decimals: number = 2): string {
+  if (value === null || value === undefined) return '0.00%';
+  const rounded = round(value, decimals);
+  const sign = rounded >= 0 ? '+' : '-';
+  return `${sign}${Math.abs(rounded).toFixed(decimals)}%`;
+}

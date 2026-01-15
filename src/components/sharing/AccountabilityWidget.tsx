@@ -173,6 +173,8 @@ export function AccountabilityWidget({
         {/* User */}
         <div className="flex-1 text-center">
           {user.avatarUrl ? (
+            // External avatar URL - Next/Image would require domain configuration
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={user.avatarUrl}
               alt={user.name}
@@ -204,6 +206,8 @@ export function AccountabilityWidget({
         {/* Partner */}
         <div className="flex-1 text-center">
           {partner.avatarUrl ? (
+            // External avatar URL - Next/Image would require domain configuration
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={partner.avatarUrl}
               alt={partner.name}
