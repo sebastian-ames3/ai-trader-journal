@@ -1,6 +1,7 @@
 'use client';
 
-import { ArrowLeft, Bell, Palette, Layout, Moon, Sun, Monitor } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowLeft, Bell, Palette, Layout, Moon, Sun, Monitor, Download, FileJson, FileSpreadsheet, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,36 @@ import { cn } from '@/lib/utils';
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
+  const [exporting, setExporting] = useState<string | null>(null);
+
+  const handleExport = async (format: 'json' | 'csv', type: string = 'all') => {
+    setExporting(`${format}-${type}`);
+    try {
+      const response = await fetch(`/api/export?format=${format}&type=${type}`);
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+
+      // Get the blob from the response
+      const blob = await response.blob();
+
+      // Create a download link
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = response.headers.get('Content-Disposition')?.split('filename=')[1]?.replace(/"/g, '')
+        || `trader-journal-export.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('Failed to export data. Please try again.');
+    } finally {
+      setExporting(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-24">
@@ -124,6 +155,120 @@ export default function SettingsPage() {
                 Customize Dashboard
               </Button>
             </Link>
+          </CardContent>
+        </Card>
+
+        {/* Data Export Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Download className="h-5 w-5" />
+              Data Export
+            </CardTitle>
+            <CardDescription>
+              Download your journal data for backup or portability
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Full Export */}
+            <div>
+              <p className="text-sm font-medium mb-2">Full Export (All Data)</p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => handleExport('json', 'all')}
+                  disabled={exporting !== null}
+                  className="min-h-[44px] flex-1 gap-2"
+                >
+                  {exporting === 'json-all' ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <FileJson className="h-4 w-4" />
+                  )}
+                  Export JSON
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleExport('csv', 'entries')}
+                  disabled={exporting !== null}
+                  className="min-h-[44px] flex-1 gap-2"
+                >
+                  {exporting === 'csv-entries' ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <FileSpreadsheet className="h-4 w-4" />
+                  )}
+                  Export CSV
+                </Button>
+              </div>
+            </div>
+
+            {/* Individual Exports */}
+            <div>
+              <p className="text-sm font-medium mb-2">Export by Category</p>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleExport('csv', 'entries')}
+                  disabled={exporting !== null}
+                  className="min-h-[44px] justify-start"
+                >
+                  {exporting === 'csv-entries' ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  )}
+                  Entries (CSV)
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleExport('csv', 'theses')}
+                  disabled={exporting !== null}
+                  className="min-h-[44px] justify-start"
+                >
+                  {exporting === 'csv-theses' ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  )}
+                  Theses (CSV)
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleExport('csv', 'trades')}
+                  disabled={exporting !== null}
+                  className="min-h-[44px] justify-start"
+                >
+                  {exporting === 'csv-trades' ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  )}
+                  Trades (CSV)
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleExport('csv', 'goals')}
+                  disabled={exporting !== null}
+                  className="min-h-[44px] justify-start"
+                >
+                  {exporting === 'csv-goals' ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  )}
+                  Goals (CSV)
+                </Button>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              JSON includes all data in a single file. CSV exports are separated by category for spreadsheet compatibility.
+            </p>
           </CardContent>
         </Card>
 
