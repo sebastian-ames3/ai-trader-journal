@@ -45,8 +45,11 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
-    // Build where clause
-    const where: Prisma.EntryWhereInput = { userId: user.id };
+    // Build where clause - exclude soft-deleted entries by default
+    const where: Prisma.EntryWhereInput = {
+      userId: user.id,
+      deletedAt: null  // Only show non-deleted entries
+    };
 
     // Full-text search on content
     if (search) {
