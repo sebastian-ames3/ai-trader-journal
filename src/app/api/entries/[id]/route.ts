@@ -226,7 +226,8 @@ export async function PUT(
 
 /**
  * DELETE /api/entries/[id]
- * Delete a journal entry
+ * Soft delete a journal entry (sets deletedAt timestamp)
+ * Entry can be restored within 30 days via POST /api/entries/[id]/restore
  */
 export async function DELETE(
   request: NextRequest,
@@ -250,14 +251,23 @@ export async function DELETE(
       );
     }
 
-    // Delete entry
-    await prisma.entry.delete({
-      where: {
-        id
+    // Soft delete - set deletedAt timestamp instead of actually deleting
+    const deletedEntry = await prisma.entry.update({
+      where: { id },
+      data: {
+        deletedAt: new Date()
+      },
+      select: {
+        id: true,
+        deletedAt: true
       }
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      entry: deletedEntry,
+      message: 'Entry moved to trash. You can undo this action.'
+    });
   } catch (error) {
     console.error('Error deleting entry:', error);
     return NextResponse.json(

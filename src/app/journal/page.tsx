@@ -13,6 +13,7 @@ import { CalendarMonthView, CalendarSelectedDateHeader } from '@/components/ui/c
 import { PullToRefresh } from '@/components/PullToRefresh';
 import BulkLinkingTool from '@/components/entries/BulkLinkingTool';
 import { useToast } from '@/hooks/use-toast';
+import { ToastAction } from '@/components/ui/toast';
 import { format } from 'date-fns';
 
 interface Entry {
@@ -265,11 +266,45 @@ function JournalContent() {
     }
   }, [entries, toast]);
 
-  // Handle deleting an entry
-  const handleDeleteEntry = useCallback(async (entryId: string) => {
-    if (!confirm('Are you sure you want to delete this entry? This action cannot be undone.')) {
-      return;
+  // Handle restoring a soft-deleted entry
+  const handleRestoreEntry = useCallback(async (entryId: string, deletedEntry: Entry) => {
+    try {
+      const response = await fetch(`/api/entries/${entryId}/restore`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to restore entry');
+      }
+
+      // Restore entry to list
+      setEntries(prev => [deletedEntry, ...prev].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      ));
+      setTotalCount(prev => prev + 1);
+      fetchEntryCounts(currentMonth);
+
+      toast({
+        title: 'Entry restored',
+        description: 'The entry has been restored.',
+        duration: 3000,
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: (error as Error).message || 'Failed to restore entry',
+        variant: 'destructive',
+        duration: 5000,
+      });
     }
+  }, [toast, currentMonth, fetchEntryCounts]);
+
+  // Handle deleting an entry (soft delete with undo)
+  const handleDeleteEntry = useCallback(async (entryId: string) => {
+    // Find the entry before removing it (for potential restore)
+    const deletedEntry = entries.find(e => e.id === entryId);
+    if (!deletedEntry) return;
 
     // Optimistic update - remove entry from list
     const originalEntries = [...entries];
@@ -286,14 +321,23 @@ function JournalContent() {
         throw new Error(errorData.error || 'Failed to delete entry');
       }
 
-      toast({
-        title: 'Entry deleted',
-        description: 'The entry has been removed.',
-        duration: 3000,
-      });
-
       // Refresh entry counts after deletion
       fetchEntryCounts(currentMonth);
+
+      // Show toast with undo action
+      toast({
+        title: 'Entry deleted',
+        description: 'The entry has been moved to trash.',
+        duration: 5000,
+        action: (
+          <ToastAction
+            altText="Undo delete"
+            onClick={() => handleRestoreEntry(entryId, deletedEntry)}
+          >
+            Undo
+          </ToastAction>
+        ),
+      });
     } catch (error) {
       // Rollback on error
       setEntries(originalEntries);
@@ -305,7 +349,7 @@ function JournalContent() {
         duration: 5000,
       });
     }
-  }, [entries, toast, currentMonth, fetchEntryCounts]);
+  }, [entries, toast, currentMonth, fetchEntryCounts, handleRestoreEntry]);
 
   // Pull-to-refresh handler
   const handleRefresh = useCallback(async () => {

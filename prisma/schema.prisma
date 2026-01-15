@@ -220,6 +220,7 @@ model Entry {
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime? // Soft delete timestamp for undo functionality
 
   // Indexes for common query patterns
   @@index([type])
@@ -230,6 +231,7 @@ model Entry {
   @@index([tradeId])
   @@index([thesisTradeId])
   @@index([userId])
+  @@index([deletedAt])
 }
 
 model Snapshot {
