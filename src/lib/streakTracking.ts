@@ -1,5 +1,84 @@
-import { differenceInCalendarDays, startOfDay } from 'date-fns';
+import { differenceInCalendarDays } from 'date-fns';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { prisma } from './prisma';
+
+/**
+ * Default timezone used when user hasn't set a preference
+ */
+export const DEFAULT_TIMEZONE = 'America/New_York';
+
+/**
+ * Gets the start of day in user's timezone.
+ * This ensures streak calculations are based on the user's local midnight,
+ * not UTC midnight.
+ *
+ * @param date - The date to get start of day for (in UTC)
+ * @param timezone - IANA timezone string (e.g., "America/New_York")
+ * @returns Date object representing start of day in user's timezone (as UTC)
+ */
+export function getStartOfDayInTimezone(date: Date, timezone: string): Date {
+  try {
+    // Validate timezone by checking if Intl recognizes it
+    try {
+      Intl.DateTimeFormat(undefined, { timeZone: timezone });
+    } catch {
+      throw new Error(`Invalid timezone: ${timezone}`);
+    }
+
+    // Convert UTC date to user's timezone
+    const zonedDate = toZonedTime(date, timezone);
+
+    // Check if the result is valid
+    if (isNaN(zonedDate.getTime())) {
+      throw new Error('toZonedTime returned invalid date');
+    }
+
+    // Get start of day in that timezone
+    const startOfDayZoned = new Date(zonedDate);
+    startOfDayZoned.setHours(0, 0, 0, 0);
+
+    // Convert back to UTC for storage/comparison
+    const result = fromZonedTime(startOfDayZoned, timezone);
+
+    // Verify result is valid
+    if (isNaN(result.getTime())) {
+      throw new Error('fromZonedTime returned invalid date');
+    }
+
+    return result;
+  } catch (error) {
+    // Fallback to UTC if timezone is invalid
+    console.warn(`Invalid timezone "${timezone}", falling back to UTC`, error);
+    const utcStart = new Date(date);
+    utcStart.setUTCHours(0, 0, 0, 0);
+    return utcStart;
+  }
+}
+
+/**
+ * Calculates the difference in calendar days between two dates
+ * in the context of a specific timezone.
+ *
+ * This handles DST transitions gracefully by:
+ * 1. Converting both dates to the user's timezone
+ * 2. Getting start of day for each
+ * 3. Comparing the calendar days
+ *
+ * @param laterDate - The more recent date
+ * @param earlierDate - The earlier date
+ * @param timezone - IANA timezone string
+ * @returns Number of calendar days difference
+ */
+export function getDaysDifferenceInTimezone(
+  laterDate: Date,
+  earlierDate: Date,
+  timezone: string
+): number {
+  const laterStart = getStartOfDayInTimezone(laterDate, timezone);
+  const earlierStart = getStartOfDayInTimezone(earlierDate, timezone);
+
+  return differenceInCalendarDays(laterStart, earlierStart);
+}
 
 interface StreakData {
   currentStreak: number;
@@ -18,6 +97,9 @@ const STREAK_MILESTONES = [3, 7, 14, 30, 60, 90, 180, 365];
 /**
  * Updates streak tracking after a new entry is created
  * Implements grace day logic: allows 1 missed day before resetting streak
+ *
+ * Uses user's timezone for day boundary calculations to ensure
+ * streaks are tracked based on the user's local time, not UTC.
  */
 export async function updateStreakAfterEntry(userId: string): Promise<StreakData> {
   try {
@@ -32,20 +114,31 @@ export async function updateStreakAfterEntry(userId: string): Promise<StreakData
         accountSize: 10000,
         liquidityThreshold: 100,
         ivThreshold: 80,
+        timezone: DEFAULT_TIMEZONE,
       },
       update: {},
     });
 
-    const now = startOfDay(new Date());
-    const lastEntry = settings.lastEntryDate ? startOfDay(settings.lastEntryDate) : null;
-    const lastGrace = settings.lastGraceDate ? startOfDay(settings.lastGraceDate) : null;
+    // Use user's timezone for day boundary calculations
+    const timezone = settings.timezone || DEFAULT_TIMEZONE;
+    const now = getStartOfDayInTimezone(new Date(), timezone);
+    const lastEntry = settings.lastEntryDate
+      ? getStartOfDayInTimezone(settings.lastEntryDate, timezone)
+      : null;
+    const lastGrace = settings.lastGraceDate
+      ? getStartOfDayInTimezone(settings.lastGraceDate, timezone)
+      : null;
 
     let newStreak = settings.currentStreak;
     let usedGraceToday = false;
 
-    // Calculate days since last entry
+    // Calculate days since last entry using timezone-aware comparison
     if (lastEntry) {
-      const daysSinceLastEntry = differenceInCalendarDays(now, lastEntry);
+      const daysSinceLastEntry = getDaysDifferenceInTimezone(
+        new Date(),
+        settings.lastEntryDate!,
+        timezone
+      );
 
       if (daysSinceLastEntry === 0) {
         // Same day entry - no streak change
@@ -55,7 +148,9 @@ export async function updateStreakAfterEntry(userId: string): Promise<StreakData
         newStreak = settings.currentStreak + 1;
       } else if (daysSinceLastEntry === 2) {
         // Missed 1 day - check if we can use grace day
-        const daysSinceGrace = lastGrace ? differenceInCalendarDays(now, lastGrace) : Infinity;
+        const daysSinceGrace = lastGrace && settings.lastGraceDate
+          ? getDaysDifferenceInTimezone(new Date(), settings.lastGraceDate, timezone)
+          : Infinity;
 
         if (daysSinceGrace > 7) {
           // Grace day available (not used in past week)
@@ -153,6 +248,7 @@ export async function getStreakData(userId: string): Promise<StreakData> {
         accountSize: 10000,
         liquidityThreshold: 100,
         ivThreshold: 80,
+        timezone: DEFAULT_TIMEZONE,
       },
       update: {},
     });
@@ -174,6 +270,47 @@ export async function getStreakData(userId: string): Promise<StreakData> {
       isNewMilestone: false,
     };
   }
+}
+
+/**
+ * Updates user's timezone preference
+ */
+export async function updateUserTimezone(
+  userId: string,
+  timezone: string
+): Promise<void> {
+  // Validate timezone string
+  try {
+    // Test if timezone is valid by trying to use it
+    Intl.DateTimeFormat(undefined, { timeZone: timezone });
+  } catch {
+    throw new Error(`Invalid timezone: ${timezone}`);
+  }
+
+  await prisma.settings.upsert({
+    where: { userId },
+    create: {
+      userId,
+      timezone,
+      defaultRisk: 1.0,
+      accountSize: 10000,
+      liquidityThreshold: 100,
+      ivThreshold: 80,
+    },
+    update: { timezone },
+  });
+}
+
+/**
+ * Gets user's current timezone
+ */
+export async function getUserTimezone(userId: string): Promise<string> {
+  const settings = await prisma.settings.findUnique({
+    where: { userId },
+    select: { timezone: true },
+  });
+
+  return settings?.timezone || DEFAULT_TIMEZONE;
 }
 
 /**
