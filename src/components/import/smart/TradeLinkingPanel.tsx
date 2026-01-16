@@ -204,6 +204,7 @@ function LinkGroupCard({
               e.stopPropagation();
               onDelete();
             }}
+            aria-label="Delete thesis"
           >
             <Trash2 className="h-3 w-3" />
           </Button>
@@ -278,6 +279,7 @@ function LinkGroupCard({
                       size="icon"
                       className="h-5 w-5"
                       onClick={() => onRemoveTrade(trade.id)}
+                      aria-label="Remove trade"
                     >
                       <X className="h-3 w-3" />
                     </Button>

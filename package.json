@@ -53,6 +53,7 @@
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-toast": "^1.2.15",
+    "@radix-ui/react-tooltip": "^1.2.8",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.87.1",
     "@types/lodash.debounce": "^4.0.9",
@@ -62,6 +63,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "date-fns-tz": "^3.2.0",
     "dexie": "^4.2.1",
     "dexie-react-hooks": "^4.2.0",
     "framer-motion": "^12.23.25",
@@ -79,7 +81,8 @@
     "tailwindcss-animate": "^1.0.7",
     "web-push": "^3.6.7",
     "yahoo-finance2": "^3.10.0",
-    "zustand": "^5.0.9"
+    "zod": "^4.3.5",
+    "zustand": "^5.0.10"
   },
   "devDependencies": {
     "@next/bundle-analyzer": "^16.0.8",

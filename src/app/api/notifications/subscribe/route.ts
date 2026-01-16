@@ -10,10 +10,15 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireAuth } from '@/lib/auth';
 
 // POST - Subscribe to push notifications
 export async function POST(request: NextRequest) {
   try {
+    // Authentication check
+    const { error: authError } = await requireAuth();
+    if (authError) return authError;
+
     const body = await request.json();
 
     // Validate subscription object
@@ -61,6 +66,10 @@ export async function POST(request: NextRequest) {
 // DELETE - Unsubscribe from push notifications
 export async function DELETE(request: NextRequest) {
   try {
+    // Authentication check
+    const { error: authError } = await requireAuth();
+    if (authError) return authError;
+
     const body = await request.json();
 
     if (!body.endpoint) {

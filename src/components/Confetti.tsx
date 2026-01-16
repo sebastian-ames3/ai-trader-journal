@@ -113,6 +113,7 @@ export function useStreakConfetti(currentStreak: number) {
 
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [currentStreak, lastCelebratedStreak]);
 
   return showConfetti;

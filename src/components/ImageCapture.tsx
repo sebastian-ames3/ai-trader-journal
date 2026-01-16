@@ -262,6 +262,7 @@ export default function ImageCapture({
       <div className={cn('flex flex-col items-center gap-3', className)}>
         {previewUrl && (
           <div className="relative w-full max-w-[200px] aspect-video rounded-lg overflow-hidden">
+            {/* Using native img for blob URL preview - Next/Image requires explicit dimensions and doesn't support blob URLs */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={previewUrl}
@@ -312,6 +313,7 @@ export default function ImageCapture({
       {/* Preview with cancel button */}
       {previewUrl && state === 'error' && (
         <div className="relative w-full max-w-[200px] aspect-video rounded-lg overflow-hidden">
+          {/* Using native img for blob URL preview - Next/Image requires explicit dimensions and doesn't support blob URLs */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={previewUrl}
@@ -323,6 +325,7 @@ export default function ImageCapture({
             size="icon"
             className="absolute top-1 right-1 h-6 w-6"
             onClick={handleCancel}
+            aria-label="Cancel image"
           >
             <X className="h-3 w-3" />
           </Button>

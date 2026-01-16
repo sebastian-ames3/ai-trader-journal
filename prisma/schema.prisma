@@ -220,6 +220,7 @@ model Entry {
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime? // Soft delete timestamp for undo functionality
 
   // Indexes for common query patterns
   @@index([type])
@@ -230,6 +231,7 @@ model Entry {
   @@index([tradeId])
   @@index([thesisTradeId])
   @@index([userId])
+  @@index([deletedAt])
 }
 
 model Snapshot {
@@ -273,6 +275,9 @@ model Settings {
   totalEntries  Int       @default(0) // Total entry count
   lastEntryDate DateTime? // Last entry date for streak calculation
   lastGraceDate DateTime? // Last grace day used (for 1-day forgiveness)
+
+  // User timezone preference (PRD 4 - Phase D)
+  timezone String @default("America/New_York") // IANA timezone (e.g., "America/New_York", "Europe/London")
 
   // User ownership (one-to-one)
   userId String @unique

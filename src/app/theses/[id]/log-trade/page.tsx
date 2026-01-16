@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { validateTradeForm, getFieldError } from '@/lib/validation';
 import VoiceRecorder from '@/components/VoiceRecorder';
 import AudioPlayer from '@/components/AudioPlayer';
 import ScreenshotExtractor, { type ExtractedTradeData } from '@/components/trades/ScreenshotExtractor';
@@ -114,6 +115,9 @@ export default function LogTradePage() {
   const [warnings, setWarnings] = useState<RiskWarning[]>([]);
   const [lessons, setLessons] = useState<HistoricalLesson[]>([]);
   const [patterns, setPatterns] = useState<PatternInsight[]>([]);
+
+  // Form validation errors
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   // Fetch thesis info
   useEffect(() => {
@@ -251,13 +255,50 @@ export default function LogTradePage() {
     }
   }, [thesisData, thesisId, strategyType, debitCredit]);
 
-  // Form validation
-  const isValid = description.trim() && debitCredit !== '';
+  // Form validation - check if form has required fields and no errors
+  const hasRequiredFields = description.trim() && debitCredit !== '';
+  const hasNoErrors = Object.keys(validationErrors).length === 0;
+  const isValid = hasRequiredFields && hasNoErrors;
+
+  // Clear field error when user types
+  const clearFieldError = (field: string) => {
+    if (validationErrors[field]) {
+      setValidationErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
+  };
 
   // Handle showing AI reminders before submit
   const handlePreSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isValid || isSubmitting) return;
+    if (isSubmitting) return;
+
+    // Validate the form
+    const result = validateTradeForm({
+      action,
+      strategyType: strategyType || null,
+      description,
+      debitCredit,
+      quantity,
+      expiration: expiration || null,
+      reasoningNote: reasoningNote || null,
+    });
+
+    if (!result.success) {
+      setValidationErrors(result.errors);
+      toast({
+        title: 'Validation Error',
+        description: 'Please fix the errors before submitting',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Clear any previous errors
+    setValidationErrors({});
 
     // Show AI reminders before final submit
     setShowAIReminders(true);
@@ -468,10 +509,23 @@ export default function LogTradePage() {
             <Textarea
               id="description"
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => {
+                setDescription(e.target.value);
+                clearFieldError('description');
+              }}
               placeholder="Describe the trade... e.g., 'Sold 145/150 call spread for $1.85 credit'"
-              className="min-h-[100px] resize-y"
+              className={cn(
+                'min-h-[100px] resize-y',
+                getFieldError(validationErrors, 'description') && 'border-red-500 focus-visible:ring-red-500'
+              )}
+              aria-invalid={!!getFieldError(validationErrors, 'description')}
+              aria-describedby={getFieldError(validationErrors, 'description') ? 'description-error' : undefined}
             />
+            {getFieldError(validationErrors, 'description') && (
+              <p id="description-error" className="text-sm text-red-600 dark:text-red-400 mt-1">
+                {getFieldError(validationErrors, 'description')}
+              </p>
+            )}
           </div>
 
           {/* Debit/Credit and Quantity Row */}
@@ -486,13 +540,27 @@ export default function LogTradePage() {
                 type="number"
                 step="0.01"
                 value={debitCredit}
-                onChange={(e) => setDebitCredit(e.target.value)}
+                onChange={(e) => {
+                  setDebitCredit(e.target.value);
+                  clearFieldError('debitCredit');
+                }}
                 placeholder="-2.50 or +1.85"
-                className="min-h-[44px]"
+                className={cn(
+                  'min-h-[44px]',
+                  getFieldError(validationErrors, 'debitCredit') && 'border-red-500 focus-visible:ring-red-500'
+                )}
+                aria-invalid={!!getFieldError(validationErrors, 'debitCredit')}
+                aria-describedby={getFieldError(validationErrors, 'debitCredit') ? 'debitCredit-error' : 'debitCredit-hint'}
               />
-              <p className="text-xs text-slate-500">
-                Negative = debit, Positive = credit
-              </p>
+              {getFieldError(validationErrors, 'debitCredit') ? (
+                <p id="debitCredit-error" className="text-sm text-red-600 dark:text-red-400">
+                  {getFieldError(validationErrors, 'debitCredit')}
+                </p>
+              ) : (
+                <p id="debitCredit-hint" className="text-xs text-slate-500">
+                  Negative = debit, Positive = credit
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -505,13 +573,27 @@ export default function LogTradePage() {
                 type="number"
                 min="1"
                 value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
+                onChange={(e) => {
+                  setQuantity(e.target.value);
+                  clearFieldError('quantity');
+                }}
                 placeholder="1"
-                className="min-h-[44px]"
+                className={cn(
+                  'min-h-[44px]',
+                  getFieldError(validationErrors, 'quantity') && 'border-red-500 focus-visible:ring-red-500'
+                )}
+                aria-invalid={!!getFieldError(validationErrors, 'quantity')}
+                aria-describedby={getFieldError(validationErrors, 'quantity') ? 'quantity-error' : 'quantity-hint'}
               />
-              <p className="text-xs text-slate-500">
-                Number of contracts/spreads
-              </p>
+              {getFieldError(validationErrors, 'quantity') ? (
+                <p id="quantity-error" className="text-sm text-red-600 dark:text-red-400">
+                  {getFieldError(validationErrors, 'quantity')}
+                </p>
+              ) : (
+                <p id="quantity-hint" className="text-xs text-slate-500">
+                  Number of contracts/spreads
+                </p>
+              )}
             </div>
           </div>
 
@@ -525,9 +607,22 @@ export default function LogTradePage() {
               id="expiration"
               type="date"
               value={expiration}
-              onChange={(e) => setExpiration(e.target.value)}
-              className="min-h-[44px]"
+              onChange={(e) => {
+                setExpiration(e.target.value);
+                clearFieldError('expiration');
+              }}
+              className={cn(
+                'min-h-[44px]',
+                getFieldError(validationErrors, 'expiration') && 'border-red-500 focus-visible:ring-red-500'
+              )}
+              aria-invalid={!!getFieldError(validationErrors, 'expiration')}
+              aria-describedby={getFieldError(validationErrors, 'expiration') ? 'expiration-error' : undefined}
             />
+            {getFieldError(validationErrors, 'expiration') && (
+              <p id="expiration-error" className="text-sm text-red-600 dark:text-red-400 mt-1">
+                {getFieldError(validationErrors, 'expiration')}
+              </p>
+            )}
           </div>
 
           {/* Reasoning Note */}

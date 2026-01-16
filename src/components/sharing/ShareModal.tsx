@@ -127,6 +127,8 @@ export function ShareModal({
       setShareUrl(null);
       setCopied(false);
     }
+    // Using entry?.id instead of entry to only reset when entry ID changes, not on other entry property updates
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, entry?.id]);
 
   const handleCreateShare = async () => {

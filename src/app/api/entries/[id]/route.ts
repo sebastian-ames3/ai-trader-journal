@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { EntryType, EntryMood, ConvictionLevel } from '@prisma/client';
 import { analyzeEntryText } from '@/lib/aiAnalysis';
 import { isClaudeConfigured } from '@/lib/claude';
+import { requireAuth } from '@/lib/auth';
 
 /**
  * Calculate similarity between two strings using word-based Jaccard index
@@ -52,6 +53,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Authentication check
+    const { user, error: authError } = await requireAuth();
+    if (authError) return authError;
+
     const { id } = await params;
     const entry = await prisma.entry.findUnique({
       where: {
@@ -75,7 +80,7 @@ export async function GET(
       }
     });
 
-    if (!entry) {
+    if (!entry || entry.userId !== user.id) {
       return NextResponse.json(
         { error: 'Entry not found' },
         { status: 404 }
@@ -101,15 +106,19 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Authentication check
+    const { user, error: authError } = await requireAuth();
+    if (authError) return authError;
+
     const { id } = await params;
     const body = await request.json();
 
-    // Check if entry exists
+    // Check if entry exists and verify ownership
     const existingEntry = await prisma.entry.findUnique({
       where: { id }
     });
 
-    if (!existingEntry) {
+    if (!existingEntry || existingEntry.userId !== user.id) {
       return NextResponse.json(
         { error: 'Entry not found' },
         { status: 404 }
@@ -217,34 +226,48 @@ export async function PUT(
 
 /**
  * DELETE /api/entries/[id]
- * Delete a journal entry
+ * Soft delete a journal entry (sets deletedAt timestamp)
+ * Entry can be restored within 30 days via POST /api/entries/[id]/restore
  */
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Authentication check
+    const { user, error: authError } = await requireAuth();
+    if (authError) return authError;
+
     const { id } = await params;
-    // Check if entry exists
+    // Check if entry exists and verify ownership
     const existingEntry = await prisma.entry.findUnique({
       where: { id }
     });
 
-    if (!existingEntry) {
+    if (!existingEntry || existingEntry.userId !== user.id) {
       return NextResponse.json(
         { error: 'Entry not found' },
         { status: 404 }
       );
     }
 
-    // Delete entry
-    await prisma.entry.delete({
-      where: {
-        id
+    // Soft delete - set deletedAt timestamp instead of actually deleting
+    const deletedEntry = await prisma.entry.update({
+      where: { id },
+      data: {
+        deletedAt: new Date()
+      },
+      select: {
+        id: true,
+        deletedAt: true
       }
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      entry: deletedEntry,
+      message: 'Entry moved to trash. You can undo this action.'
+    });
   } catch (error) {
     console.error('Error deleting entry:', error);
     return NextResponse.json(

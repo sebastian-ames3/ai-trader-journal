@@ -67,7 +67,7 @@ export function WeeklyInsightsWidget({
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Brain className="h-5 w-5 text-purple-500" />
+          <Brain className="h-5 w-5 text-purple-600 dark:text-purple-400" />
           <h3 className="font-semibold text-slate-900 dark:text-slate-100">
             This Week
           </h3>

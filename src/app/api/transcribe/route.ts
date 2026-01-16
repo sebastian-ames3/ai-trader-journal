@@ -27,6 +27,7 @@ import {
   transcribeFileWithAssemblyAI,
   isAssemblyAIConfigured,
 } from '@/lib/assemblyai';
+import { requireAuth } from '@/lib/auth';
 
 // Lazy-initialize OpenAI client
 let openaiClient: OpenAI | null = null;
@@ -116,6 +117,10 @@ async function transcribeWithAssemblyAIProvider(
 
 export async function POST(request: NextRequest) {
   try {
+    // Authentication check
+    const { error: authError } = await requireAuth();
+    if (authError) return authError;
+
     // Get provider from query params
     const { searchParams } = new URL(request.url);
     const requestProvider = searchParams.get('provider');

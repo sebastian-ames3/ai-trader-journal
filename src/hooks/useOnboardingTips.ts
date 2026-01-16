@@ -43,6 +43,7 @@ export function useOnboardingTips(entryCount: number) {
       // Fifth entry - show insights tip
       setCurrentTip(tips[2]);
     }
+    // tips array is a stable constant defined outside component, intentionally excluded
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entryCount]);
 

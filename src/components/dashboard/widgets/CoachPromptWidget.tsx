@@ -98,7 +98,7 @@ export function CoachPromptWidget({
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <MessageCircle className="h-5 w-5 text-purple-500" />
+          <MessageCircle className="h-5 w-5 text-purple-600 dark:text-purple-400" />
           <h3 className="font-semibold text-slate-900 dark:text-slate-100">
             AI Coach
           </h3>
@@ -119,7 +119,7 @@ export function CoachPromptWidget({
         )}
       >
         <div className="flex items-start gap-2 mb-3">
-          <Sparkles className="h-5 w-5 text-purple-500 flex-shrink-0 mt-0.5" />
+          <Sparkles className="h-5 w-5 text-purple-600 dark:text-purple-400 flex-shrink-0 mt-0.5" />
           <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
             {currentPrompt || 'Loading prompt...'}
           </p>

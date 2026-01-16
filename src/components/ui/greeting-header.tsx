@@ -26,13 +26,13 @@ function getTimeOfDay(): {
   } else if (hour >= 12 && hour < 17) {
     return {
       greeting: "Good Afternoon",
-      icon: <Sun className="h-6 w-6 text-yellow-500" />,
+      icon: <Sun className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />,
       gradientClass: "from-yellow-50 to-amber-50 dark:from-yellow-950/20 dark:to-amber-950/20",
     };
   } else if (hour >= 17 && hour < 21) {
     return {
       greeting: "Good Evening",
-      icon: <Sunset className="h-6 w-6 text-orange-500" />,
+      icon: <Sunset className="h-6 w-6 text-orange-600 dark:text-orange-400" />,
       gradientClass: "from-orange-50 to-rose-50 dark:from-orange-950/20 dark:to-rose-950/20",
     };
   } else {

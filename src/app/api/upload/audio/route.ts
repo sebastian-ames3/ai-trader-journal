@@ -15,9 +15,14 @@ import {
   validateContentType,
   isStorageConfigured,
 } from '@/lib/storage';
+import { requireAuth } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
+    // Authentication check
+    const { error: authError } = await requireAuth();
+    if (authError) return authError;
+
     // Check if storage is configured
     if (!isStorageConfigured()) {
       return NextResponse.json(

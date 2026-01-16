@@ -25,74 +25,92 @@ import { cn } from '@/lib/utils';
 
 type FilterTab = 'ACTIVE' | 'COMPLETED' | 'ALL';
 
+// API response type (CoachGoal from Prisma)
+interface ApiGoal {
+  id: string;
+  userId: string;
+  goal: string;
+  description: string | null;
+  metricType: string | null;
+  metricName: string | null;
+  targetValue: number | null;
+  currentValue: number | null;
+  progress: number;
+  timeframe: string;
+  status: 'ACTIVE' | 'COMPLETED' | 'ABANDONED' | 'EXPIRED';
+  startDate: string;
+  endDate: string | null;
+  completedAt: string | null;
+  checkIns: unknown[];
+  reflection: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Transform API response to frontend Goal type
+function transformApiGoal(apiGoal: ApiGoal): Goal {
+  // Map metricType to frontend GoalType
+  const typeMap: Record<string, Goal['type']> = {
+    streak: 'JOURNALING_STREAK',
+    bias_count: 'BIAS_REDUCTION',
+    win_rate: 'WIN_RATE',
+    compliance: 'PRE_TRADE_CHECKS',
+    count: 'ENTRIES_PER_WEEK',
+  };
+
+  // Derive unit from metric type or timeframe
+  const unitMap: Record<string, string> = {
+    streak: 'days',
+    bias_count: 'occurrences',
+    win_rate: '%',
+    compliance: 'checks',
+    count: 'entries',
+  };
+
+  const goalType = typeMap[apiGoal.metricType || ''] || 'CUSTOM';
+  const unit = unitMap[apiGoal.metricType || ''] || 'progress';
+
+  return {
+    id: apiGoal.id,
+    type: goalType,
+    name: apiGoal.goal,
+    description: apiGoal.description || undefined,
+    targetValue: apiGoal.targetValue || 100,
+    currentValue: apiGoal.currentValue || Math.round((apiGoal.progress / 100) * (apiGoal.targetValue || 100)),
+    unit,
+    status: apiGoal.status === 'EXPIRED' ? 'ABANDONED' : apiGoal.status,
+    startDate: apiGoal.startDate,
+    endDate: apiGoal.endDate || undefined,
+    completedAt: apiGoal.completedAt || undefined,
+  };
+}
+
 export default function GoalsPage() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterTab>('ACTIVE');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Fetch goals
+  // Fetch goals from API
   const fetchGoals = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
-      // For now, use mock data until API is implemented
-      // const response = await fetch('/api/coach/goals');
-      // const data = await response.json();
-      // setGoals(data.goals);
+      const response = await fetch('/api/coach/goals');
 
-      // Mock data for development
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setGoals([
-        {
-          id: '1',
-          type: 'JOURNALING_STREAK',
-          name: 'Daily Journaling',
-          description: 'Journal every trading day to build reflection habits',
-          targetValue: 7,
-          currentValue: 4,
-          unit: 'days',
-          status: 'ACTIVE',
-          streakDays: 4,
-          startDate: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-        },
-        {
-          id: '2',
-          type: 'PRE_TRADE_CHECKS',
-          name: 'Pre-Trade Checklist',
-          description: 'Complete a checklist before entering any trade',
-          targetValue: 10,
-          currentValue: 6,
-          unit: 'checks',
-          status: 'ACTIVE',
-          startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-        },
-        {
-          id: '3',
-          type: 'ENTRIES_PER_WEEK',
-          name: 'Weekly Journal Goal',
-          description: 'Write at least 5 journal entries per week',
-          targetValue: 5,
-          currentValue: 5,
-          unit: 'entries',
-          status: 'COMPLETED',
-          startDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-          completedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        },
-        {
-          id: '4',
-          type: 'BIAS_REDUCTION',
-          name: 'Reduce Confirmation Bias',
-          description: 'Be more objective in trade analysis',
-          targetValue: 50,
-          currentValue: 20,
-          unit: '% reduction',
-          status: 'ABANDONED',
-          startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-        },
-      ]);
-    } catch (error) {
-      console.error('Error fetching goals:', error);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to fetch goals');
+      }
+
+      const data = await response.json();
+      const transformedGoals = data.goals.map(transformApiGoal);
+      setGoals(transformedGoals);
+    } catch (err) {
+      console.error('Error fetching goals:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load goals');
     } finally {
       setLoading(false);
     }
@@ -110,46 +128,73 @@ export default function GoalsPage() {
     return true;
   });
 
-  // Handle goal creation
+  // Handle goal creation via API
   const handleCreateGoal = async (data: GoalFormData) => {
     setIsCreating(true);
+    setError(null);
     try {
-      // For now, mock the creation
-      // const response = await fetch('/api/coach/goals', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(data),
-      // });
-      // const newGoal = await response.json();
-
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      const newGoal: Goal = {
-        id: `goal-${Date.now()}`,
-        type: data.type,
-        name: data.name,
-        description: data.description,
-        targetValue: data.targetValue,
-        currentValue: 0,
-        unit: data.unit,
-        status: 'ACTIVE',
-        startDate: new Date().toISOString(),
-        endDate: data.endDate || undefined,
+      // Map frontend GoalType to API metricType
+      const metricTypeMap: Record<string, string> = {
+        JOURNALING_STREAK: 'streak',
+        ENTRIES_PER_WEEK: 'count',
+        PRE_TRADE_CHECKS: 'compliance',
+        BIAS_REDUCTION: 'bias_count',
+        WIN_RATE: 'win_rate',
+        CUSTOM: 'custom',
       };
 
-      setGoals((prev) => [newGoal, ...prev]);
+      const response = await fetch('/api/coach/goals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          goal: data.name,
+          description: data.description,
+          metricType: metricTypeMap[data.type] || 'custom',
+          metricName: data.type.toLowerCase(),
+          targetValue: data.targetValue,
+          timeframe: 'WEEKLY',
+          endDate: data.endDate || undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to create goal');
+      }
+
+      const apiGoal = await response.json();
+      const newGoal = transformApiGoal(apiGoal);
+
+      // Add the new goal with the correct unit from form data
+      const goalWithUnit: Goal = {
+        ...newGoal,
+        unit: data.unit,
+      };
+
+      setGoals((prev) => [goalWithUnit, ...prev]);
       setShowCreateForm(false);
-    } catch (error) {
-      console.error('Error creating goal:', error);
+    } catch (err) {
+      console.error('Error creating goal:', err);
+      setError(err instanceof Error ? err.message : 'Failed to create goal');
     } finally {
       setIsCreating(false);
     }
   };
 
-  // Handle marking goal as completed
+  // Handle marking goal as completed via API
   const handleCompleteGoal = async (goalId: string) => {
     try {
-      // await fetch(`/api/coach/goals/${goalId}/complete`, { method: 'POST' });
+      const response = await fetch(`/api/coach/goals/${goalId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'COMPLETED' }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to complete goal');
+      }
+
       setGoals((prev) =>
         prev.map((g) =>
           g.id === goalId
@@ -157,32 +202,53 @@ export default function GoalsPage() {
             : g
         )
       );
-    } catch (error) {
-      console.error('Error completing goal:', error);
+    } catch (err) {
+      console.error('Error completing goal:', err);
+      setError(err instanceof Error ? err.message : 'Failed to complete goal');
     }
   };
 
-  // Handle abandoning a goal
+  // Handle abandoning a goal via API
   const handleAbandonGoal = async (goalId: string) => {
     try {
-      // await fetch(`/api/coach/goals/${goalId}/abandon`, { method: 'POST' });
+      const response = await fetch(`/api/coach/goals/${goalId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'ABANDONED' }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to abandon goal');
+      }
+
       setGoals((prev) =>
         prev.map((g) =>
           g.id === goalId ? { ...g, status: 'ABANDONED' as const } : g
         )
       );
-    } catch (error) {
-      console.error('Error abandoning goal:', error);
+    } catch (err) {
+      console.error('Error abandoning goal:', err);
+      setError(err instanceof Error ? err.message : 'Failed to abandon goal');
     }
   };
 
-  // Handle deleting a goal
+  // Handle deleting a goal via API
   const handleDeleteGoal = async (goalId: string) => {
     try {
-      // await fetch(`/api/coach/goals/${goalId}`, { method: 'DELETE' });
+      const response = await fetch(`/api/coach/goals/${goalId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to delete goal');
+      }
+
       setGoals((prev) => prev.filter((g) => g.id !== goalId));
-    } catch (error) {
-      console.error('Error deleting goal:', error);
+    } catch (err) {
+      console.error('Error deleting goal:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete goal');
     }
   };
 
@@ -246,6 +312,15 @@ export default function GoalsPage() {
           </div>
         )}
       </header>
+
+      {/* Error banner */}
+      {error && (
+        <div className="px-4 py-3 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800">
+          <p className="text-sm text-red-700 dark:text-red-300">
+            {error}
+          </p>
+        </div>
+      )}
 
       {/* Content */}
       <div className="max-w-4xl mx-auto px-4 py-6">
@@ -315,7 +390,7 @@ export default function GoalsPage() {
                             onClick={() => handleCompleteGoal(goal.id)}
                             className="min-h-[44px]"
                           >
-                            <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
+                            <CheckCircle className="h-4 w-4 mr-2 text-green-600 dark:text-green-400" />
                             Mark as Completed
                           </DropdownMenuItem>
                           <DropdownMenuItem

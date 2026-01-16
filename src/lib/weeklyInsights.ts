@@ -89,7 +89,8 @@ export interface WeeklyInsights {
  * @param weekOffset - 0 for current week, -1 for last week, etc.
  */
 export async function generateWeeklyInsights(
-  weekOffset: number = 0
+  weekOffset: number = 0,
+  userId?: string
 ): Promise<WeeklyInsights> {
 
   // Calculate date range for the target week
@@ -98,13 +99,14 @@ export async function generateWeeklyInsights(
   const weekStart = startOfWeek(targetDate, { weekStartsOn: 1 }); // Monday
   const weekEnd = endOfWeek(targetDate, { weekStartsOn: 1 }); // Sunday
 
-  // Fetch all entries for the week
+  // Fetch all entries for the week (filtered by user if provided)
   const entries = await prisma.entry.findMany({
     where: {
       createdAt: {
         gte: weekStart,
         lte: weekEnd
-      }
+      },
+      ...(userId && { userId })
     },
     include: {
       trade: {
@@ -142,7 +144,7 @@ export async function generateWeeklyInsights(
   // Get comparison with previous week if requested for current week
   let comparison;
   if (weekOffset === 0) {
-    comparison = await generateWeekComparison(entries, weekStart);
+    comparison = await generateWeekComparison(entries, weekStart, userId);
   }
 
   // Get behavioral patterns (Phase 2)
@@ -310,7 +312,8 @@ function generatePersonalizedInsights(
  */
 async function generateWeekComparison(
   currentEntries: EntryWithTrade[],
-  currentWeekStart: Date
+  currentWeekStart: Date,
+  userId?: string
 ): Promise<WeeklyInsights['comparison']> {
 
   // Get previous week's data
@@ -322,7 +325,8 @@ async function generateWeekComparison(
       createdAt: {
         gte: prevWeekStart,
         lte: prevWeekEnd
-      }
+      },
+      ...(userId && { userId })
     }
   });
 

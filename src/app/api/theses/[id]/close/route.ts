@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ThesisOutcome, ThesisStatus, ThesisTradeStatus } from '@prisma/client';
 import { analyzeThesisPatterns, findSimilarTheses } from '@/lib/thesisPatterns';
+import { requireAuth } from '@/lib/auth';
+import { calculateTotalPL } from '@/lib/money';
 
 /**
  * POST /api/theses/[id]/close
@@ -15,6 +17,10 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Authentication check
+    const { user, error: authError } = await requireAuth();
+    if (authError) return authError;
+
     const { id } = await params;
     const body = await request.json();
 
@@ -34,7 +40,7 @@ export async function POST(
       );
     }
 
-    // Check if thesis exists
+    // Check if thesis exists and verify ownership
     const existingThesis = await prisma.tradingThesis.findUnique({
       where: { id },
       include: {
@@ -42,7 +48,7 @@ export async function POST(
       }
     });
 
-    if (!existingThesis) {
+    if (!existingThesis || existingThesis.userId !== user.id) {
       return NextResponse.json(
         { error: 'Thesis not found' },
         { status: 404 }
@@ -57,13 +63,8 @@ export async function POST(
       );
     }
 
-    // Calculate final P/L from all trades
-    let totalRealizedPL = 0;
-    for (const trade of existingThesis.thesisTrades) {
-      if (trade.realizedPL !== null) {
-        totalRealizedPL += trade.realizedPL;
-      }
-    }
+    // Calculate final P/L from all trades using precise decimal arithmetic
+    const totalRealizedPL = calculateTotalPL(existingThesis.thesisTrades);
 
     // Close thesis and all open trades in a transaction
     const thesis = await prisma.$transaction(async (tx) => {

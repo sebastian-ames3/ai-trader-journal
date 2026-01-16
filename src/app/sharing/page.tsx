@@ -229,6 +229,8 @@ export default function SharingPage() {
             <div className="p-4 rounded-2xl bg-white dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
               <div className="flex items-center gap-4">
                 {mentor.avatarUrl ? (
+                  // External avatar URL - Next/Image would require domain configuration
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={mentor.avatarUrl}
                     alt={mentor.name}

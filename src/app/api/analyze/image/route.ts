@@ -16,6 +16,7 @@ import {
   parseJsonResponse,
   handleClaudeError,
 } from '@/lib/claude';
+import { requireAuth } from '@/lib/auth';
 
 // Chart analysis prompt
 const CHART_ANALYSIS_PROMPT = `Analyze this trading chart or screenshot. Extract the following information if visible:
@@ -65,6 +66,10 @@ interface ChartAnalysis {
 
 export async function POST(request: NextRequest) {
   try {
+    // Authentication check
+    const { error: authError } = await requireAuth();
+    if (authError) return authError;
+
     // Check for Anthropic API key
     if (!isClaudeConfigured()) {
       return NextResponse.json(

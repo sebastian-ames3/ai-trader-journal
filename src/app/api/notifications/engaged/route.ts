@@ -7,9 +7,14 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { markNotificationEngaged } from '@/lib/notifications';
+import { requireAuth } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
+    // Authentication check
+    const { error: authError } = await requireAuth();
+    if (authError) return authError;
+
     const body = await request.json();
     const { notificationId } = body;
 

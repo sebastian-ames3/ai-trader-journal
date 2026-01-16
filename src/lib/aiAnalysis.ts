@@ -7,9 +7,12 @@
  * - Cognitive biases
  * - Inferred conviction level
  * - Auto-generated tags
+ *
+ * Uses Zod for schema validation to prevent corrupted data from AI responses.
  */
 
 import { ConvictionLevel } from '@prisma/client';
+import { z } from 'zod';
 import {
   getClaude,
   CLAUDE_MODELS,
@@ -17,33 +20,148 @@ import {
   isClaudeConfigured,
 } from '@/lib/claude';
 
+/**
+ * Minimum content length required for meaningful bias detection.
+ * Short entries don't provide enough context for reliable analysis.
+ */
+export const MIN_CONTENT_LENGTH_FOR_BIAS = 50;
+
+/**
+ * Minimum confidence threshold for showing biases to users.
+ * Only biases with confidence >= this value are included in results.
+ */
+export const HIGH_CONFIDENCE_THRESHOLD = 0.7;
+
+/**
+ * Schema for individual bias with confidence score
+ */
+const BiasWithConfidenceSchema = z.object({
+  bias: z.string(),
+  confidence: z.number().min(0).max(1),
+});
+
+/**
+ * Zod schema for validating AI analysis responses.
+ * Uses .catch() to provide safe defaults for invalid fields.
+ */
+const AnalysisResponseSchema = z.object({
+  sentiment: z
+    .enum(['positive', 'negative', 'neutral'])
+    .catch('neutral'),
+  emotionalKeywords: z
+    .array(z.string())
+    .max(10)
+    .catch([]),
+  detectedBiases: z
+    .array(BiasWithConfidenceSchema)
+    .max(5)
+    .catch([]),
+  convictionInferred: z
+    .enum(['LOW', 'MEDIUM', 'HIGH'])
+    .nullable()
+    .catch(null),
+  confidence: z
+    .number()
+    .min(0)
+    .max(1)
+    .catch(0.5),
+  aiTags: z
+    .array(z.string())
+    .max(7)
+    .catch([]),
+  insufficientContent: z
+    .boolean()
+    .optional()
+    .catch(false),
+});
+
+/**
+ * Bias with associated confidence score
+ */
+export interface BiasWithConfidence {
+  bias: string;
+  confidence: number;
+}
+
+/**
+ * Safe default values for when AI analysis fails completely
+ */
+export const SAFE_ANALYSIS_DEFAULTS: AnalysisResult = {
+  sentiment: 'neutral',
+  emotionalKeywords: [],
+  detectedBiases: [],
+  biasConfidenceScores: [],
+  convictionInferred: null,
+  confidence: 0,
+  aiTags: [],
+  insufficientContent: false,
+};
+
+/**
+ * Safe defaults for insufficient content - used when entry is too short
+ */
+export const INSUFFICIENT_CONTENT_DEFAULTS: AnalysisResult = {
+  sentiment: 'neutral',
+  emotionalKeywords: [],
+  detectedBiases: [],
+  biasConfidenceScores: [],
+  convictionInferred: null,
+  confidence: 0,
+  aiTags: [],
+  insufficientContent: true,
+};
+
 export interface AnalysisResult {
   sentiment: 'positive' | 'negative' | 'neutral';
   emotionalKeywords: string[];
-  detectedBiases: string[];
+  detectedBiases: string[]; // Filtered to high-confidence biases only
+  biasConfidenceScores: BiasWithConfidence[]; // All biases with their confidence scores
   convictionInferred: ConvictionLevel | null;
   confidence: number; // 0-1 score of AI confidence in analysis
   aiTags: string[]; // Auto-generated tags from taxonomy
+  insufficientContent: boolean; // True if content too short for reliable analysis
 }
 
 /**
  * Analyzes journal entry text using Claude Haiku
+ *
+ * Uses Zod validation to ensure AI responses are valid.
+ * Returns safe defaults if validation fails, preventing data corruption.
+ *
  * @param content - The journal entry text to analyze
  * @param userMood - Optional user-selected mood for comparison
  * @param userConviction - Optional user-selected conviction for comparison
+ * @param options - Optional configuration { throwOnError: boolean }
  */
 export async function analyzeEntryText(
   content: string,
   userMood?: string,
-  userConviction?: string
+  userConviction?: string,
+  options: { throwOnError?: boolean } = {}
 ): Promise<AnalysisResult> {
-  // Validate inputs
+  const { throwOnError = false } = options;
+
+  // Validate inputs - return defaults for empty content
   if (!content || content.trim().length === 0) {
-    throw new Error('Content cannot be empty');
+    console.warn('analyzeEntryText called with empty content, returning defaults');
+    return SAFE_ANALYSIS_DEFAULTS;
   }
 
+  // Check minimum content length for meaningful bias detection
+  const trimmedContent = content.trim();
+  if (trimmedContent.length < MIN_CONTENT_LENGTH_FOR_BIAS) {
+    console.info(
+      `Content too short for bias detection (${trimmedContent.length} chars < ${MIN_CONTENT_LENGTH_FOR_BIAS}), returning insufficient content defaults`
+    );
+    return INSUFFICIENT_CONTENT_DEFAULTS;
+  }
+
+  // Check if Claude is configured
   if (!isClaudeConfigured()) {
-    throw new Error('ANTHROPIC_API_KEY environment variable is not set');
+    const error = new Error('ANTHROPIC_API_KEY environment variable is not set');
+    console.error('AI Analysis Error: Claude not configured');
+    if (throwOnError) throw error;
+    return SAFE_ANALYSIS_DEFAULTS;
   }
 
   // Build the analysis prompt
@@ -67,25 +185,152 @@ export async function analyzeEntryText(
 
     // Parse the JSON response
     const parsed = parseJsonResponse<RawAnalysisResponse>(response);
-    return parseAnalysisResponse(parsed);
+
+    // Validate with Zod schema - this will use .catch() defaults for invalid fields
+    const validated = validateAnalysisResponse(parsed, content);
+
+    return validated;
   } catch (error) {
-    console.error('Error calling Claude API:', error);
-    if (error instanceof Error) {
-      console.error('Error message:', error.message);
+    // Log detailed error information for debugging
+    console.error('AI Analysis Error:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      contentLength: content.length,
+      contentPreview: content.substring(0, 100) + '...',
+      timestamp: new Date().toISOString(),
+    });
+
+    // Re-throw if explicitly requested
+    if (throwOnError) {
+      throw new Error(
+        `Failed to analyze entry text: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
-    throw new Error(
-      `Failed to analyze entry text: ${error instanceof Error ? error.message : 'Unknown error'}`
-    );
+
+    // Return safe defaults - entry will be saved without corrupted analysis data
+    return { ...SAFE_ANALYSIS_DEFAULTS, confidence: 0 };
   }
 }
 
 interface RawAnalysisResponse {
   sentiment?: string;
   emotionalKeywords?: string[];
-  detectedBiases?: string[];
+  detectedBiases?: Array<{ bias: string; confidence: number }> | string[];
   convictionInferred?: string;
   confidence?: number;
   aiTags?: string[];
+  insufficientContent?: boolean;
+}
+
+/**
+ * Normalizes bias data from AI response to ensure consistent format.
+ * Handles both old format (string[]) and new format (BiasWithConfidence[]).
+ */
+function normalizeBiases(
+  biases: Array<{ bias: string; confidence: number }> | string[] | undefined
+): BiasWithConfidence[] {
+  if (!biases || !Array.isArray(biases)) {
+    return [];
+  }
+
+  return biases.map((item) => {
+    // Handle old format: string
+    if (typeof item === 'string') {
+      return { bias: item, confidence: 0.5 }; // Default confidence for legacy format
+    }
+    // Handle new format: { bias, confidence }
+    return {
+      bias: item.bias,
+      confidence: typeof item.confidence === 'number' ? item.confidence : 0.5,
+    };
+  });
+}
+
+/**
+ * Filters biases to only include those with high confidence.
+ */
+function filterHighConfidenceBiases(biases: BiasWithConfidence[]): string[] {
+  return biases
+    .filter((b) => b.confidence >= HIGH_CONFIDENCE_THRESHOLD)
+    .map((b) => b.bias);
+}
+
+/**
+ * Validates AI response using Zod schema with safe defaults
+ * Logs validation errors but never throws - always returns valid data
+ */
+function validateAnalysisResponse(
+  parsed: RawAnalysisResponse | null,
+  contentPreview?: string
+): AnalysisResult {
+  // If parsing completely failed, return safe defaults
+  if (!parsed) {
+    console.warn('AI Analysis: JSON parsing returned null', {
+      contentPreview: contentPreview?.substring(0, 50),
+    });
+    return SAFE_ANALYSIS_DEFAULTS;
+  }
+
+  try {
+    // Normalize biases before validation
+    const normalizedBiases = normalizeBiases(parsed.detectedBiases);
+    const normalizedParsed = {
+      ...parsed,
+      detectedBiases: normalizedBiases,
+    };
+
+    // Use Zod safeParse to validate and get detailed errors
+    const result = AnalysisResponseSchema.safeParse(normalizedParsed);
+
+    if (!result.success) {
+      // Log validation errors for debugging but continue with defaults
+      console.warn('AI Analysis: Zod validation errors', {
+        errors: result.error.issues.map((issue) => ({
+          path: issue.path.join('.'),
+          message: issue.message,
+          code: issue.code,
+        })),
+        rawResponse: JSON.stringify(parsed).substring(0, 200),
+      });
+
+      // Use parse with .catch() defaults - this will fix invalid fields
+      const fixed = AnalysisResponseSchema.parse(normalizedParsed);
+      const biasConfidenceScores = fixed.detectedBiases;
+      const highConfidenceBiases = filterHighConfidenceBiases(biasConfidenceScores);
+
+      return {
+        sentiment: fixed.sentiment,
+        emotionalKeywords: fixed.emotionalKeywords,
+        detectedBiases: highConfidenceBiases,
+        biasConfidenceScores,
+        convictionInferred: fixed.convictionInferred as ConvictionLevel | null,
+        confidence: fixed.confidence,
+        aiTags: fixed.aiTags,
+        insufficientContent: fixed.insufficientContent ?? false,
+      };
+    }
+
+    // Validation passed - filter biases by confidence
+    const biasConfidenceScores = result.data.detectedBiases;
+    const highConfidenceBiases = filterHighConfidenceBiases(biasConfidenceScores);
+
+    return {
+      sentiment: result.data.sentiment,
+      emotionalKeywords: result.data.emotionalKeywords,
+      detectedBiases: highConfidenceBiases,
+      biasConfidenceScores,
+      convictionInferred: result.data.convictionInferred as ConvictionLevel | null,
+      confidence: result.data.confidence,
+      aiTags: result.data.aiTags,
+      insufficientContent: result.data.insufficientContent ?? false,
+    };
+  } catch (error) {
+    // If Zod itself throws (shouldn't happen with .catch() but safety first)
+    console.error('AI Analysis: Unexpected validation error', {
+      error: error instanceof Error ? error.message : 'Unknown',
+      parsed: JSON.stringify(parsed).substring(0, 200),
+    });
+    return SAFE_ANALYSIS_DEFAULTS;
+  }
 }
 
 /**
@@ -110,7 +355,10 @@ Respond with ONLY valid JSON in this exact format:
 {
   "sentiment": "positive" | "negative" | "neutral",
   "emotionalKeywords": ["keyword1", "keyword2", ...],
-  "detectedBiases": ["bias1", "bias2", ...],
+  "detectedBiases": [
+    { "bias": "bias_name", "confidence": 0.0 to 1.0 },
+    ...
+  ],
   "convictionInferred": "LOW" | "MEDIUM" | "HIGH" | null,
   "confidence": 0.0 to 1.0,
   "aiTags": ["tag1", "tag2", ...]
@@ -125,7 +373,12 @@ INSTRUCTIONS:
 2. EMOTIONAL KEYWORDS: Extract 3-7 emotion-related words found or implied in the text
    Examples: "nervous", "confident", "FOMO", "revenge", "uncertain", "excited", "fearful", "greedy", "patient", "impulsive", "disciplined", "anxious", "calm", "frustrated"
 
-3. DETECTED BIASES: Identify cognitive biases if present (max 5):
+3. DETECTED BIASES: Identify cognitive biases if present (max 5), with confidence score for each:
+   - Include a confidence score (0.0-1.0) for each detected bias
+   - Only include biases you have strong evidence for in the text
+   - Format: { "bias": "bias_name", "confidence": 0.8 }
+
+   Available biases:
    - "confirmation_bias": Seeking data that confirms existing belief
    - "recency_bias": Overweighting recent events
    - "loss_aversion": Fear of losses dominating decision-making
@@ -135,6 +388,12 @@ INSTRUCTIONS:
    - "anchoring": Fixated on specific price/outcome
    - "herd_mentality": Following crowd without independent analysis
    - "outcome_bias": Judging decision by result rather than process
+
+   Confidence guidelines:
+   - 0.9-1.0: Explicit mention or very clear evidence
+   - 0.7-0.9: Strong implicit evidence
+   - 0.5-0.7: Moderate evidence, some interpretation
+   - Below 0.5: Weak evidence, don't include
 
 4. CONVICTION INFERRED: Based on language certainty and decisiveness
    - "HIGH": Strong, decisive language ("definitely", "certain", "clear")
@@ -184,58 +443,7 @@ INSTRUCTIONS:
 Return ONLY the JSON object, no markdown formatting.`;
 }
 
-/**
- * Parses Claude's JSON response into AnalysisResult
- */
-function parseAnalysisResponse(parsed: RawAnalysisResponse | null): AnalysisResult {
-  if (!parsed) {
-    // Return safe defaults on parse error
-    return {
-      sentiment: 'neutral',
-      emotionalKeywords: [],
-      detectedBiases: [],
-      convictionInferred: null,
-      confidence: 0,
-      aiTags: [],
-    };
-  }
-
-  return {
-    sentiment: validateSentiment(parsed.sentiment),
-    emotionalKeywords: Array.isArray(parsed.emotionalKeywords)
-      ? parsed.emotionalKeywords.slice(0, 10)
-      : [],
-    detectedBiases: Array.isArray(parsed.detectedBiases)
-      ? parsed.detectedBiases.slice(0, 5)
-      : [],
-    convictionInferred: validateConviction(parsed.convictionInferred),
-    confidence:
-      typeof parsed.confidence === 'number'
-        ? Math.max(0, Math.min(1, parsed.confidence))
-        : 0.5,
-    aiTags: Array.isArray(parsed.aiTags) ? parsed.aiTags.slice(0, 7) : [],
-  };
-}
-
-/**
- * Validates sentiment value
- */
-function validateSentiment(value: unknown): 'positive' | 'negative' | 'neutral' {
-  if (value === 'positive' || value === 'negative' || value === 'neutral') {
-    return value;
-  }
-  return 'neutral';
-}
-
-/**
- * Validates conviction level
- */
-function validateConviction(value: unknown): ConvictionLevel | null {
-  if (value === 'LOW' || value === 'MEDIUM' || value === 'HIGH') {
-    return value as ConvictionLevel;
-  }
-  return null;
-}
+// Legacy parseAnalysisResponse removed - replaced by validateAnalysisResponse with Zod
 
 /**
  * Analyzes multiple entries in batch (for historical analysis)
@@ -274,9 +482,11 @@ export async function batchAnalyzeEntries(
             sentiment: 'neutral' as const,
             emotionalKeywords: [],
             detectedBiases: [],
+            biasConfidenceScores: [],
             convictionInferred: null,
             confidence: 0,
             aiTags: [],
+            insufficientContent: false,
           },
         };
       }

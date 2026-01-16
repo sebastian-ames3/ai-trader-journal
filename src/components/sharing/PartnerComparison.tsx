@@ -143,9 +143,9 @@ function ComparisonBar({
         {userValue === partnerValue ? (
           <Minus className="h-4 w-4 text-slate-400" />
         ) : userWins ? (
-          <TrendingUp className="h-4 w-4 text-green-500" />
+          <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
         ) : (
-          <TrendingDown className="h-4 w-4 text-red-500" />
+          <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
         )}
       </div>
 
@@ -227,6 +227,8 @@ export function PartnerComparison({
       <div className="flex items-center justify-between p-4 rounded-2xl bg-gradient-to-r from-amber-50 to-blue-50 dark:from-amber-950/30 dark:to-blue-950/30 border border-slate-200/50 dark:border-slate-700/50">
         <div className="flex items-center gap-3">
           {user.avatarUrl ? (
+            // External avatar URL - Next/Image would require domain configuration
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={user.avatarUrl}
               alt={user.name}
@@ -256,6 +258,8 @@ export function PartnerComparison({
 
         <div className="flex items-center gap-3 flex-row-reverse">
           {partner.avatarUrl ? (
+            // External avatar URL - Next/Image would require domain configuration
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={partner.avatarUrl}
               alt={partner.name}

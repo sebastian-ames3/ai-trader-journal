@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ThesisStatus } from '@prisma/client';
+import { requireAuth } from '@/lib/auth';
 
 /**
  * GET /api/theses/[id]
@@ -11,6 +12,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Authentication check
+    const { user, error: authError } = await requireAuth();
+    if (authError) return authError;
+
     const { id } = await params;
     const thesis = await prisma.tradingThesis.findUnique({
       where: { id },
@@ -28,7 +33,7 @@ export async function GET(
       }
     });
 
-    if (!thesis) {
+    if (!thesis || thesis.userId !== user.id) {
       return NextResponse.json(
         { error: 'Thesis not found' },
         { status: 404 }
@@ -54,15 +59,19 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Authentication check
+    const { user, error: authError } = await requireAuth();
+    if (authError) return authError;
+
     const { id } = await params;
     const body = await request.json();
 
-    // Check if thesis exists
+    // Check if thesis exists and verify ownership
     const existingThesis = await prisma.tradingThesis.findUnique({
       where: { id }
     });
 
-    if (!existingThesis) {
+    if (!existingThesis || existingThesis.userId !== user.id) {
       return NextResponse.json(
         { error: 'Thesis not found' },
         { status: 404 }
@@ -129,13 +138,17 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Authentication check
+    const { user, error: authError } = await requireAuth();
+    if (authError) return authError;
+
     const { id } = await params;
-    // Check if thesis exists
+    // Check if thesis exists and verify ownership
     const existingThesis = await prisma.tradingThesis.findUnique({
       where: { id }
     });
 
-    if (!existingThesis) {
+    if (!existingThesis || existingThesis.userId !== user.id) {
       return NextResponse.json(
         { error: 'Thesis not found' },
         { status: 404 }

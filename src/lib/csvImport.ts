@@ -7,6 +7,11 @@
 import Papa from 'papaparse';
 import { StrategyType, TradeAction, ThesisTradeStatus } from '@prisma/client';
 import { parseISO, parse, isValid } from 'date-fns';
+import { fromZonedTime } from 'date-fns-tz';
+
+// Default timezone for parsing dates without timezone info
+// OptionStrat exports are typically in US Eastern time
+const DEFAULT_TIMEZONE = 'America/New_York';
 
 // ============================================
 // Types
@@ -558,17 +563,29 @@ function parseLegacyRow(row: OptionStratCSVRow, index: number): ParsedTrade {
 }
 
 /**
- * Parse date from various formats
+ * Parse date from various formats with timezone awareness
+ *
+ * OptionStrat exports dates in US Eastern time. We parse them as such
+ * and convert to UTC for consistent storage.
  */
-function parseTradeDate(dateStr: string): Date | null {
+function parseTradeDate(dateStr: string, timezone: string = DEFAULT_TIMEZONE): Date | null {
   if (!dateStr) return null;
 
   // Remove time portion for parsing (e.g., "12/10/25 9:34" -> "12/10/25")
   const dateOnly = dateStr.split(' ')[0];
 
   // Try ISO format first (2024-01-15)
+  // ISO dates are parsed as UTC
   let date = parseISO(dateOnly);
-  if (isValid(date)) return date;
+  if (isValid(date)) {
+    // If the original string had a time, use it; otherwise use noon to avoid date shifting
+    const hasTime = dateStr.includes(':');
+    if (!hasTime) {
+      // Set to noon in the source timezone to avoid date shifting
+      date.setUTCHours(12, 0, 0, 0);
+    }
+    return date;
+  }
 
   // Try common formats
   const formats = [
@@ -593,11 +610,18 @@ function parseTradeDate(dateStr: string): Date | null {
     try {
       // Try with full string first (includes time)
       date = parse(dateStr, format, new Date());
-      if (isValid(date)) return date;
+      if (isValid(date)) {
+        // Convert from source timezone to UTC
+        return fromZonedTime(date, timezone);
+      }
 
       // Try with date only
       date = parse(dateOnly, format, new Date());
-      if (isValid(date)) return date;
+      if (isValid(date)) {
+        // Set to noon in source timezone to avoid date shifting
+        date.setHours(12, 0, 0, 0);
+        return fromZonedTime(date, timezone);
+      }
     } catch {
       // Continue trying other formats
     }

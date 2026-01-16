@@ -84,7 +84,7 @@ export function MarketConditionsWidget({
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Activity className="h-5 w-5 text-blue-500" />
+          <Activity className="h-5 w-5 text-blue-600 dark:text-blue-400" />
           <h3 className="font-semibold text-slate-900 dark:text-slate-100">
             Market
           </h3>
@@ -102,9 +102,9 @@ export function MarketConditionsWidget({
             <span className="text-xs font-medium text-slate-500">SPY</span>
             {spy && spy.change !== 0 && (
               spy.change > 0 ? (
-                <TrendingUp className="h-4 w-4 text-green-500" />
+                <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
               ) : (
-                <TrendingDown className="h-4 w-4 text-red-500" />
+                <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
               )
             )}
           </div>

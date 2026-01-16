@@ -2,11 +2,12 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Edit, Trash2, Loader, Link2, X, ChevronRight, ScanText } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Loader, Link2, X, ChevronRight, ScanText, Mic, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import TradeLinkSuggestions, { LinkSuggestion } from '@/components/entries/TradeLinkSuggestions';
+import AudioPlayer from '@/components/AudioPlayer';
 import { format } from 'date-fns';
 
 interface LinkedTrade {
@@ -32,6 +33,11 @@ interface Entry {
   thesisTrade: LinkedTrade | null;
   isOcrScanned?: boolean;
   ocrConfidence?: number;
+  // Voice memo fields
+  audioUrl?: string | null;
+  audioDuration?: number | null;
+  transcription?: string | null;
+  captureMethod?: 'TEXT' | 'VOICE' | 'SCREENSHOT' | 'QUICK_CAPTURE' | 'JOURNAL_SCAN';
   createdAt: string;
   updatedAt: string;
 }
@@ -74,6 +80,9 @@ export default function EntryDetailPage() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
+
+  // Voice memo state
+  const [showTranscription, setShowTranscription] = useState(false);
 
   // Trade linking state
   const [showLinkPanel, setShowLinkPanel] = useState(false);
@@ -335,6 +344,43 @@ export default function EntryDetailPage() {
               </p>
             </div>
 
+            {/* Voice Memo Section */}
+            {entry.audioUrl && (
+              <div className="mb-6 p-4 rounded-lg bg-muted/30 border">
+                <div className="flex items-center gap-2 mb-3">
+                  <Mic className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Voice Memo</span>
+                  {entry.audioDuration && (
+                    <span className="text-xs text-muted-foreground">
+                      ({Math.floor(entry.audioDuration / 60)}:{(entry.audioDuration % 60).toString().padStart(2, '0')})
+                    </span>
+                  )}
+                </div>
+                <AudioPlayer
+                  src={entry.audioUrl}
+                  duration={entry.audioDuration || undefined}
+                />
+                {entry.transcription && (
+                  <div className="mt-3 pt-3 border-t">
+                    <button
+                      onClick={() => setShowTranscription(!showTranscription)}
+                      className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform ${showTranscription ? 'rotate-180' : ''}`}
+                      />
+                      {showTranscription ? 'Hide' : 'Show'} Transcription
+                    </button>
+                    {showTranscription && (
+                      <p className="mt-2 text-sm text-muted-foreground italic whitespace-pre-wrap">
+                        &ldquo;{entry.transcription}&rdquo;
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Metadata Section */}
             <div className="border-t dark:border-gray-700 pt-6">
               <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Metadata</h3>
@@ -364,18 +410,26 @@ export default function EntryDetailPage() {
                 )}
               </div>
 
-              {/* OCR Indicator */}
-              {entry.isOcrScanned && (
-                <div className="flex items-center gap-2 mt-4 pt-4 border-t dark:border-gray-700">
-                  <Badge variant="outline" className="gap-1">
-                    <ScanText className="h-3 w-3" />
-                    OCR Scanned
-                    {entry.ocrConfidence && (
-                      <span className="text-muted-foreground ml-1">
-                        ({Math.round(entry.ocrConfidence * 100)}% confidence)
-                      </span>
-                    )}
-                  </Badge>
+              {/* Capture Method Indicators */}
+              {(entry.isOcrScanned || entry.captureMethod === 'VOICE') && (
+                <div className="flex items-center gap-2 mt-4 pt-4 border-t dark:border-gray-700 flex-wrap">
+                  {entry.isOcrScanned && (
+                    <Badge variant="outline" className="gap-1">
+                      <ScanText className="h-3 w-3" />
+                      OCR Scanned
+                      {entry.ocrConfidence && (
+                        <span className="text-muted-foreground ml-1">
+                          ({Math.round(entry.ocrConfidence * 100)}% confidence)
+                        </span>
+                      )}
+                    </Badge>
+                  )}
+                  {entry.captureMethod === 'VOICE' && (
+                    <Badge variant="outline" className="gap-1">
+                      <Mic className="h-3 w-3" />
+                      Voice Memo
+                    </Badge>
+                  )}
                 </div>
               )}
 
@@ -422,7 +476,7 @@ export default function EntryDetailPage() {
                         size="icon"
                         onClick={handleOpenLinkPanel}
                         className="h-8 w-8"
-                        title="Change link"
+                        aria-label="Change trade link"
                       >
                         <ChevronRight className="h-4 w-4" />
                       </Button>

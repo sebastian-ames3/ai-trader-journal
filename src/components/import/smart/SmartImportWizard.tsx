@@ -678,6 +678,7 @@ export default function SmartImportWizard({
             size="icon"
             onClick={handleClose}
             className="h-8 w-8"
+            aria-label="Close"
           >
             <X className="h-4 w-4" />
           </Button>
