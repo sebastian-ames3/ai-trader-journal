@@ -162,7 +162,7 @@ export default function AIReminders({
   if (!hasContent && !isLoading) {
     return (
       <Card className={cn('border-green-200 dark:border-green-800', className)}>
-        <CardContent className="p-4">
+        <CardContent className="p-4 space-y-4">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
               <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
@@ -175,6 +175,24 @@ export default function AIReminders({
                 No historical patterns or risks detected for ${ticker}
               </p>
             </div>
+          </div>
+          <div className="flex gap-3 pt-2 border-t border-slate-200 dark:border-slate-700">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1 min-h-[44px]"
+              onClick={onReconsider}
+            >
+              Reconsider Trade
+            </Button>
+            <Button
+              type="button"
+              className="flex-1 min-h-[44px]"
+              onClick={onAcknowledge}
+            >
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Proceed
+            </Button>
           </div>
         </CardContent>
       </Card>
