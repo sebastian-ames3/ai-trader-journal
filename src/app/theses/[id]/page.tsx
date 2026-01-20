@@ -40,6 +40,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow, format } from 'date-fns';
 import TradeTimeline from '@/components/TradeTimeline';
+import { TradeEditModal, type TradeUpdateData } from '@/components/trades/TradeEditModal';
 
 interface ThesisTradeAttachment {
   id: string;
@@ -115,6 +116,8 @@ export default function ThesisDetailPage() {
   const [showCloseModal, setShowCloseModal] = useState(false);
   const [showAddTradeModal, setShowAddTradeModal] = useState(false);
   const [showAddUpdateModal, setShowAddUpdateModal] = useState(false);
+  const [showEditTradeModal, setShowEditTradeModal] = useState(false);
+  const [editingTrade, setEditingTrade] = useState<ThesisTrade | null>(null);
 
   // Close thesis form state
   const [closeOutcome, setCloseOutcome] = useState<'WIN' | 'LOSS' | 'BREAKEVEN'>('WIN');
@@ -298,6 +301,57 @@ export default function ThesisDetailPage() {
     }
   };
 
+  const handleEditTrade = (trade: ThesisTrade) => {
+    setEditingTrade(trade);
+    setShowEditTradeModal(true);
+  };
+
+  const handleSaveTrade = async (tradeId: string, updates: TradeUpdateData) => {
+    const response = await fetch(`/api/trades/${tradeId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to update trade');
+    }
+
+    await fetchThesis();
+    toast({
+      title: 'Trade updated',
+      description: 'Your trade has been updated successfully',
+    });
+  };
+
+  const handleDeleteTrade = async (tradeId: string) => {
+    if (!confirm('Are you sure you want to delete this trade? This cannot be undone.')) return;
+
+    try {
+      const response = await fetch(`/api/trades/${tradeId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete trade');
+      }
+
+      await fetchThesis();
+      toast({
+        title: 'Trade deleted',
+        description: 'The trade has been removed from this thesis',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to delete trade',
+        variant: 'destructive',
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-20">
@@ -471,7 +525,11 @@ export default function ThesisDetailPage() {
             )}
           </div>
 
-          <TradeTimeline trades={thesis.thesisTrades} />
+          <TradeTimeline
+            trades={thesis.thesisTrades}
+            onEditTrade={handleEditTrade}
+            onDeleteTrade={handleDeleteTrade}
+          />
         </div>
 
         {/* Updates Section */}
@@ -700,6 +758,17 @@ export default function ThesisDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Edit Trade Modal */}
+      <TradeEditModal
+        trade={editingTrade}
+        isOpen={showEditTradeModal}
+        onClose={() => {
+          setShowEditTradeModal(false);
+          setEditingTrade(null);
+        }}
+        onSave={handleSaveTrade}
+      />
     </div>
   );
 }

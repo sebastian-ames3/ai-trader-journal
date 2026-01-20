@@ -12,8 +12,18 @@ import {
   CheckCircle,
   DollarSign,
   Paperclip,
+  MoreVertical,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
 interface TradeAttachment {
@@ -41,6 +51,8 @@ interface TimelineTrade {
 interface TradeTimelineProps {
   trades: TimelineTrade[];
   onTradeClick?: (tradeId: string) => void;
+  onEditTrade?: (trade: TimelineTrade) => void;
+  onDeleteTrade?: (tradeId: string) => void;
   className?: string;
 }
 
@@ -114,8 +126,11 @@ function formatCurrency(value: number): string {
 export default function TradeTimeline({
   trades,
   onTradeClick,
+  onEditTrade,
+  onDeleteTrade,
   className,
 }: TradeTimelineProps) {
+  const showActions = Boolean(onEditTrade || onDeleteTrade);
   // Sort trades by date (oldest first for timeline)
   const sortedTrades = [...trades].sort(
     (a, b) => new Date(a.openedAt).getTime() - new Date(b.openedAt).getTime()
@@ -204,29 +219,73 @@ export default function TradeTimeline({
                     </Badge>
                   </div>
 
-                  {/* P/L */}
-                  <div className="text-right flex-shrink-0">
-                    <p
-                      className={cn(
-                        'font-semibold',
-                        trade.debitCredit >= 0
-                          ? 'text-green-600 dark:text-green-400'
-                          : 'text-red-600 dark:text-red-400'
-                      )}
-                    >
-                      {formatCurrency(trade.debitCredit)}
-                    </p>
-                    {trade.realizedPL !== null && (
+                  {/* Actions and P/L */}
+                  <div className="flex items-start gap-2 flex-shrink-0">
+                    {/* P/L */}
+                    <div className="text-right">
                       <p
                         className={cn(
-                          'text-sm',
-                          trade.realizedPL >= 0
+                          'font-semibold',
+                          trade.debitCredit >= 0
                             ? 'text-green-600 dark:text-green-400'
                             : 'text-red-600 dark:text-red-400'
                         )}
                       >
-                        P/L: {formatCurrency(trade.realizedPL)}
+                        {formatCurrency(trade.debitCredit)}
                       </p>
+                      {trade.realizedPL !== null && (
+                        <p
+                          className={cn(
+                            'text-sm',
+                            trade.realizedPL >= 0
+                              ? 'text-green-600 dark:text-green-400'
+                              : 'text-red-600 dark:text-red-400'
+                          )}
+                        >
+                          P/L: {formatCurrency(trade.realizedPL)}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Actions dropdown */}
+                    {showActions && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            className="p-1.5 -mr-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                            aria-label="Trade actions"
+                          >
+                            <MoreVertical className="h-4 w-4 text-slate-400" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40">
+                          {onEditTrade && (
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onEditTrade(trade);
+                              }}
+                            >
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                          )}
+                          {onEditTrade && onDeleteTrade && <DropdownMenuSeparator />}
+                          {onDeleteTrade && (
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDeleteTrade(trade.id);
+                              }}
+                              className="text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     )}
                   </div>
                 </div>
