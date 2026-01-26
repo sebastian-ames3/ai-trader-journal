@@ -19,7 +19,13 @@ import AudioPlayer from './AudioPlayer';
 import ImageCapture, { ImageAnalysis, OCRResult } from './ImageCapture';
 import OCRReviewModal from './entries/OCRReviewModal';
 import TradeLinkSuggestions, { LinkSuggestion } from './entries/TradeLinkSuggestions';
+import TradeDetectionPrompt from './entries/TradeDetectionPrompt';
+import QuickTradeCapture from './trades/QuickTradeCapture';
 import { cn } from '@/lib/utils';
+import type { TradeDetectionResult } from '@/lib/tradeDetection';
+import type { TradeOutcome } from '@/lib/constants/taxonomy';
+
+type QuickCaptureTab = 'journal' | 'quick-trade';
 
 // Ticker detection regex - matches common stock ticker patterns
 const TICKER_REGEX = /\$([A-Z]{1,5})\b|\b([A-Z]{2,5})\b(?=\s*(call|put|spread|option|trade|position|stock|shares|buy|sell|long|short|bullish|bearish|strike))/gi;
@@ -105,6 +111,14 @@ export function QuickCapture({ isOpen, onClose, initialMode }: QuickCaptureProps
   const [selectedTradeId, setSelectedTradeId] = useState<string | null>(null);
   const [linkDismissed, setLinkDismissed] = useState(false);
 
+  // Trade detection prompt state (PRD-B)
+  const [savedEntryId, setSavedEntryId] = useState<string | null>(null);
+  const [tradeDetection, setTradeDetection] = useState<TradeDetectionResult | null>(null);
+  const [showTradePrompt, setShowTradePrompt] = useState(false);
+
+  // Tab state for Journal vs Quick Trade (PRD-B)
+  const [activeTab, setActiveTab] = useState<QuickCaptureTab>('journal');
+
   // Reset form when closed
   useEffect(() => {
     if (!isOpen) {
@@ -136,6 +150,10 @@ export function QuickCapture({ isOpen, onClose, initialMode }: QuickCaptureProps
         setInlineLinkSuggestions([]);
         setSelectedTradeId(null);
         setLinkDismissed(false);
+        setSavedEntryId(null);
+        setTradeDetection(null);
+        setShowTradePrompt(false);
+        setActiveTab('journal');
       }, 300);
       return () => clearTimeout(timer);
     }
@@ -160,9 +178,9 @@ export function QuickCapture({ isOpen, onClose, initialMode }: QuickCaptureProps
 
   // Handle voice recording complete
   const handleRecordingComplete = useCallback(
-    (data: { audioBlob: Blob; duration: number; transcription: string }) => {
+    (data: { audioBlob: Blob; audioUrl: string; duration: number; transcription: string }) => {
       setAudioBlob(data.audioBlob);
-      setAudioUrl(URL.createObjectURL(data.audioBlob));
+      setAudioUrl(data.audioUrl);
       setAudioDuration(data.duration);
       setTranscription(data.transcription);
       // Append transcription to content
@@ -479,19 +497,79 @@ export function QuickCapture({ isOpen, onClose, initialMode }: QuickCaptureProps
         throw new Error(data.error || 'Failed to create entry');
       }
 
+      const responseData = await response.json();
       setSubmitState('success');
 
-      // Close and redirect
-      setTimeout(() => {
-        onClose();
-        router.push('/journal');
-        router.refresh();
-      }, 500);
+      // Check if trade was detected with sufficient confidence
+      if (responseData.tradeDetection?.detected && responseData.entry?.id) {
+        // Show trade detection prompt instead of closing
+        setSavedEntryId(responseData.entry.id);
+        setTradeDetection({
+          detected: true,
+          confidence: responseData.tradeDetection.confidence,
+          signals: {
+            ticker: responseData.tradeDetection.signals.ticker || null,
+            tickerConfidence: 0.8,
+            action: responseData.tradeDetection.signals.action || null,
+            actionConfidence: 0.8,
+            outcome: responseData.tradeDetection.signals.outcome || null,
+            outcomeConfidence: 0.8,
+            approximatePnL: responseData.tradeDetection.signals.approximatePnL || null,
+            pnlConfidence: 0.8,
+          },
+          evidenceQuote: null,
+        });
+        setShowTradePrompt(true);
+      } else {
+        // Close and redirect normally
+        setTimeout(() => {
+          onClose();
+          router.push('/journal');
+          router.refresh();
+        }, 500);
+      }
     } catch (err) {
       console.error('Submit error:', err);
       setError(err instanceof Error ? err.message : 'Failed to save entry');
       setSubmitState('error');
     }
+  };
+
+  // Handle logging trade from detection prompt
+  const handleLogTrade = async (
+    outcome: TradeOutcome,
+    options?: { ticker?: string; pnl?: number }
+  ) => {
+    if (!savedEntryId) return;
+
+    const response = await fetch(`/api/entries/${savedEntryId}/log-trade`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        outcome,
+        ticker: options?.ticker,
+        approximatePnL: options?.pnl,
+      }),
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || 'Failed to log trade');
+    }
+
+    // Success - close and redirect
+    setShowTradePrompt(false);
+    onClose();
+    router.push('/journal');
+    router.refresh();
+  };
+
+  // Handle dismissing trade detection prompt
+  const handleDismissTradePrompt = () => {
+    setShowTradePrompt(false);
+    onClose();
+    router.push('/journal');
+    router.refresh();
   };
 
   // Handle escape key
@@ -529,37 +607,85 @@ export function QuickCapture({ isOpen, onClose, initialMode }: QuickCaptureProps
         aria-labelledby="quick-capture-title"
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 id="quick-capture-title" className="text-lg font-semibold">
-            Quick Capture
-          </h2>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="h-8 w-8"
-            aria-label="Close"
-          >
-            <X className="h-4 w-4" />
-          </Button>
+        <div className="p-4 border-b space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 id="quick-capture-title" className="text-lg font-semibold">
+              Quick Capture
+            </h2>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="h-8 w-8"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Tab switcher */}
+          <div className="flex gap-1 p-1 bg-muted rounded-lg">
+            <button
+              type="button"
+              onClick={() => setActiveTab('journal')}
+              className={cn(
+                'flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors',
+                activeTab === 'journal'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+              data-testid="journal-tab"
+            >
+              Journal
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('quick-trade')}
+              className={cn(
+                'flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors',
+                activeTab === 'quick-trade'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+              data-testid="quick-trade-tab"
+            >
+              Quick Trade
+            </button>
+          </div>
         </div>
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {/* Main textarea */}
-          <div className="space-y-2">
-            <Label htmlFor="quick-content" className="sr-only">
-              What&apos;s on your mind?
-            </Label>
-            <Textarea
-              id="quick-content"
-              placeholder="What's on your mind? Just start typing..."
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="min-h-[120px] resize-none text-base"
-              autoFocus
+          {/* Quick Trade Tab Content */}
+          {activeTab === 'quick-trade' && (
+            <QuickTradeCapture
+              defaultTicker={effectiveTicker || undefined}
+              onTradeCreated={() => {
+                onClose();
+                router.push('/theses');
+                router.refresh();
+              }}
+              onCancel={onClose}
             />
-          </div>
+          )}
+
+          {/* Journal Tab Content */}
+          {activeTab === 'journal' && (
+            <>
+              {/* Main textarea */}
+              <div className="space-y-2">
+                <Label htmlFor="quick-content" className="sr-only">
+                  What&apos;s on your mind?
+                </Label>
+                <Textarea
+                  id="quick-content"
+                  placeholder="What's on your mind? Just start typing..."
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  className="min-h-[120px] resize-none text-base"
+                  autoFocus={activeTab === 'journal'}
+                />
+              </div>
 
           {/* Voice recorder */}
           {showVoice && (
@@ -837,40 +963,54 @@ export function QuickCapture({ isOpen, onClose, initialMode }: QuickCaptureProps
             </div>
           )}
 
+          {/* Trade Detection Prompt (PRD-B) */}
+          {showTradePrompt && tradeDetection && savedEntryId && (
+            <TradeDetectionPrompt
+              detection={tradeDetection}
+              entryId={savedEntryId}
+              onLogTrade={handleLogTrade}
+              onDismiss={handleDismissTradePrompt}
+            />
+          )}
+
           {/* Error message */}
           {error && (
             <p className="text-sm text-destructive">{error}</p>
           )}
+            </>
+          )}
         </div>
 
-        {/* Footer */}
-        <div className="p-4 border-t">
-          <Button
-            onClick={handleSubmit}
-            disabled={
-              !content.trim() ||
-              submitState === 'submitting' ||
-              submitState === 'success'
-            }
-            className="w-full h-12 text-base gap-2"
-          >
-            {submitState === 'submitting' ? (
-              <>
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Saving...
-              </>
-            ) : submitState === 'success' ? (
-              <>
-                Saved!
-              </>
-            ) : (
-              <>
-                <Send className="h-5 w-5" />
-                Save Entry
-              </>
-            )}
-          </Button>
-        </div>
+        {/* Footer - hide when trade prompt is shown or on quick-trade tab */}
+        {activeTab === 'journal' && !showTradePrompt && (
+          <div className="p-4 border-t">
+            <Button
+              onClick={handleSubmit}
+              disabled={
+                !content.trim() ||
+                submitState === 'submitting' ||
+                submitState === 'success'
+              }
+              className="w-full h-12 text-base gap-2"
+            >
+              {submitState === 'submitting' ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Saving...
+                </>
+              ) : submitState === 'success' ? (
+                <>
+                  Saved!
+                </>
+              ) : (
+                <>
+                  <Send className="h-5 w-5" />
+                  Save Entry
+                </>
+              )}
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* OCR Review Modal */}

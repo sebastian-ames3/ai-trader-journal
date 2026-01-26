@@ -5,16 +5,21 @@ import { Mic, Square, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
+interface VoiceRecordingData {
+  audioBlob: Blob;
+  audioUrl: string;
+  duration: number;
+  transcription: string;
+}
+
 interface VoiceRecorderProps {
-  onRecordingComplete: (data: {
-    audioBlob: Blob;
-    duration: number;
-    transcription: string;
-  }) => void;
+  onRecordingComplete: (data: VoiceRecordingData) => void;
   onError?: (error: string) => void;
   disabled?: boolean;
   className?: string;
 }
+
+export type { VoiceRecordingData };
 
 type RecordingState = 'idle' | 'recording' | 'processing' | 'error';
 
@@ -92,9 +97,13 @@ export default function VoiceRecorder({
 
       const { text } = await response.json();
 
+      // Create audio URL for playback
+      const audioUrl = URL.createObjectURL(audioBlob);
+
       // Success - call the callback
       onRecordingCompleteRef.current({
         audioBlob,
+        audioUrl,
         duration: recordingDuration,
         transcription: text,
       });

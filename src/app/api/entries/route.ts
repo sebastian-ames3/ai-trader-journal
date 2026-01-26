@@ -3,6 +3,12 @@ import { prisma } from '@/lib/prisma';
 import { EntryType, EntryMood, ConvictionLevel, CaptureMethod, Prisma } from '@prisma/client';
 import { updateStreakAfterEntry, getCelebrationMessage } from '@/lib/streakTracking';
 import { requireAuth } from '@/lib/auth';
+import {
+  detectTradeInContent,
+  formatForStorage,
+  meetsConfidenceThreshold,
+  type TradeDetectionResult,
+} from '@/lib/tradeDetection';
 
 export const dynamic = 'force-dynamic';
 
@@ -309,6 +315,47 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Run trade detection on content (non-blocking for response)
+    // Only run for entries with sufficient content and not already OCR-scanned
+    let tradeDetection: TradeDetectionResult | null = null;
+    if (
+      body.content.length >= 20 &&
+      !body.isOcrScanned &&
+      !body.thesisTradeId
+    ) {
+      try {
+        tradeDetection = await detectTradeInContent(body.content);
+
+        // If trade detected with high confidence, update the entry
+        if (tradeDetection && meetsConfidenceThreshold(tradeDetection)) {
+          const storageData = formatForStorage(tradeDetection);
+          if (storageData) {
+            await prisma.entry.update({
+              where: { id: entry.id },
+              data: {
+                tradeDetected: true,
+                tradeDetectionConfidence: tradeDetection.confidence,
+                tradeDetectionData: storageData,
+                // Also update ticker if detected and not already set
+                ticker: entry.ticker || tradeDetection.signals.ticker || null,
+              },
+            });
+
+            // Update local entry object to reflect changes
+            entry.tradeDetected = true;
+            entry.tradeDetectionConfidence = tradeDetection.confidence;
+            entry.tradeDetectionData = storageData as Prisma.JsonValue;
+            if (!entry.ticker && tradeDetection.signals.ticker) {
+              entry.ticker = tradeDetection.signals.ticker;
+            }
+          }
+        }
+      } catch (detectionError) {
+        // Log but don't fail the request
+        console.error('Trade detection error (non-blocking):', detectionError);
+      }
+    }
+
     return NextResponse.json({
       entry,
       streak: {
@@ -316,7 +363,20 @@ export async function POST(request: NextRequest) {
         longestStreak: streakData.longestStreak,
         totalEntries: streakData.totalEntries,
         celebrationMessage
-      }
+      },
+      // Include trade detection result in response
+      tradeDetection: tradeDetection && meetsConfidenceThreshold(tradeDetection)
+        ? {
+            detected: tradeDetection.detected,
+            confidence: tradeDetection.confidence,
+            signals: {
+              ticker: tradeDetection.signals.ticker,
+              action: tradeDetection.signals.action,
+              outcome: tradeDetection.signals.outcome,
+              approximatePnL: tradeDetection.signals.approximatePnL,
+            },
+          }
+        : null,
     }, { status: 201 });
   } catch (error) {
     console.error('Error creating entry:', error);

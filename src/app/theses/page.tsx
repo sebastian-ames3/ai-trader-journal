@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import OptionStratImportWizard from '@/components/import/OptionStratImportWizard';
+import UnassignedTradesView from '@/components/theses/UnassignedTradesView';
 
 interface Thesis {
   id: string;
@@ -264,7 +265,10 @@ export default function ThesesPage() {
       </div>
 
       {/* Content */}
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+        {/* Unassigned Trades & AI Suggestions (PRD-B) */}
+        <UnassignedTradesView className="mb-4" />
+
         {loading ? (
           <div className="space-y-3">
             {[...Array(3)].map((_, i) => (

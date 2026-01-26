@@ -13,6 +13,8 @@ import {
   Loader2,
   FileText,
   Brain,
+  Camera,
+  Edit3,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -66,8 +68,11 @@ const STRATEGY_TYPES = [
   { value: 'CUSTOM', label: 'Custom/Other' },
 ];
 
+type CaptureMode = 'choose' | 'screenshot' | 'manual';
+
 interface VoiceData {
   audioBlob: Blob;
+  audioUrl: string;
   duration: number;
   transcription: string;
 }
@@ -88,6 +93,9 @@ export default function LogTradePage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [thesisData, setThesisData] = useState<ThesisData | null>(null);
+
+  // PRD-B: Screenshot-first capture mode
+  const [captureMode, setCaptureMode] = useState<CaptureMode>('choose');
 
   // Form state
   const [action, setAction] = useState<string>('INITIAL');
@@ -392,25 +400,197 @@ export default function LogTradePage() {
 
       {/* Form */}
       <div className="max-w-2xl mx-auto px-4 py-6">
+        {/* PRD-B: Mode chooser - screenshot-first approach */}
+        {captureMode === 'choose' && (
+          <div className="space-y-4 mb-6">
+            <p className="text-sm text-muted-foreground text-center">
+              How would you like to log this trade?
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setCaptureMode('screenshot');
+                  setShowExtractor(true);
+                }}
+                className={cn(
+                  'p-6 rounded-xl border-2 text-center transition-all',
+                  'border-primary/50 bg-primary/5 hover:bg-primary/10',
+                  'flex flex-col items-center gap-3'
+                )}
+              >
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Camera className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">Screenshot</p>
+                  <p className="text-xs text-muted-foreground">
+                    Snap or upload a trade screenshot
+                  </p>
+                </div>
+                <Badge variant="secondary" className="text-xs">Recommended</Badge>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCaptureMode('manual')}
+                className={cn(
+                  'p-6 rounded-xl border-2 text-center transition-all',
+                  'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800',
+                  'hover:border-slate-300 dark:hover:border-slate-600',
+                  'flex flex-col items-center gap-3'
+                )}
+              >
+                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+                  <Edit3 className="h-6 w-6 text-slate-600 dark:text-slate-300" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">Manual Entry</p>
+                  <p className="text-xs text-muted-foreground">
+                    Type in trade details
+                  </p>
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Screenshot capture mode */}
+        {captureMode === 'screenshot' && !screenshotFile && (
+          <div className="space-y-4 mb-6">
+            <div className="flex items-center justify-between">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setCaptureMode('choose')}
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Back
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setCaptureMode('manual')}
+              >
+                <Edit3 className="h-4 w-4 mr-1" />
+                Manual Entry
+              </Button>
+            </div>
+
+            <div className="p-8 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800/50 text-center space-y-4">
+              <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+                <Camera className="h-8 w-8 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold">Screenshot Trade</h3>
+                <p className="text-sm text-muted-foreground">
+                  Take a photo or upload a screenshot of your position
+                </p>
+              </div>
+              <div className="flex justify-center gap-3">
+                <label htmlFor="screenshot-camera" className="cursor-pointer">
+                  <Button type="button" variant="default" asChild>
+                    <span>
+                      <Camera className="h-4 w-4 mr-2" />
+                      Camera
+                    </span>
+                  </Button>
+                  <input
+                    id="screenshot-camera"
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setScreenshotFile(file);
+                        setAttachments(prev => [...prev, file]);
+                        setShowExtractor(true);
+                      }
+                    }}
+                    className="sr-only"
+                  />
+                </label>
+                <label htmlFor="screenshot-upload" className="cursor-pointer">
+                  <Button type="button" variant="outline" asChild>
+                    <span>
+                      <ImageIcon className="h-4 w-4 mr-2" />
+                      Upload
+                    </span>
+                  </Button>
+                  <input
+                    id="screenshot-upload"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setScreenshotFile(file);
+                        setAttachments(prev => [...prev, file]);
+                        setShowExtractor(true);
+                      }
+                    }}
+                    className="sr-only"
+                  />
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handlePreSubmit} className="space-y-6">
-          {/* Screenshot Extractor */}
+          {/* Screenshot Extractor - shown when screenshot is captured */}
           {showExtractor && screenshotFile && (
-            <ScreenshotExtractor
-              imageFile={screenshotFile}
-              onExtractComplete={handleExtractionComplete}
-              onRemove={() => {
-                setShowExtractor(false);
-                setScreenshotFile(null);
-                // Also remove from attachments
-                const index = attachments.indexOf(screenshotFile);
-                if (index > -1) {
-                  removeAttachment(index);
-                }
-              }}
-              className="mb-6"
-            />
+            <div className="space-y-4">
+              {captureMode === 'screenshot' && (
+                <div className="flex items-center justify-between">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setCaptureMode('choose');
+                      setShowExtractor(false);
+                      setScreenshotFile(null);
+                      setAttachments(prev => prev.filter(f => f !== screenshotFile));
+                    }}
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-1" />
+                    Back
+                  </Button>
+                </div>
+              )}
+              <ScreenshotExtractor
+                imageFile={screenshotFile}
+                onExtractComplete={(data) => {
+                  handleExtractionComplete(data);
+                  // After extraction, show the form for confirmation
+                  if (captureMode === 'screenshot') {
+                    setCaptureMode('manual');
+                  }
+                }}
+                onRemove={() => {
+                  setShowExtractor(false);
+                  setScreenshotFile(null);
+                  // Also remove from attachments
+                  const index = attachments.indexOf(screenshotFile);
+                  if (index > -1) {
+                    removeAttachment(index);
+                  }
+                  if (captureMode === 'screenshot') {
+                    setCaptureMode('choose');
+                  }
+                }}
+                className="mb-6"
+              />
+            </div>
           )}
 
+          {/* Only show form fields in manual mode or after screenshot extraction */}
+          {(captureMode === 'manual' || (captureMode === 'screenshot' && !showExtractor && screenshotFile)) && (
+            <>
           {/* Action Type */}
           <div className="space-y-3">
             <Label className="text-sm font-medium">What did you do?</Label>
@@ -732,6 +912,8 @@ export default function LogTradePage() {
               )}
             </Button>
           </div>
+            </>
+          )}
         </form>
       </div>
 
