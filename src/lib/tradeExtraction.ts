@@ -59,6 +59,11 @@ export interface ExtractedTradeData {
   platform?: string;
   confidence: number;
   rawExtraction?: string;
+  // PRD-B: Outcome detection fields
+  isClosed?: boolean;  // Is the position closed?
+  outcome?: 'WIN' | 'LOSS' | 'BREAKEVEN';  // Trade outcome if closed
+  netPnL?: number;  // Final profit/loss amount (signed)
+  pnlPercentage?: number;  // P/L as percentage
 }
 
 /**
@@ -85,6 +90,9 @@ Look for and extract:
 - P/L information
 - Breakeven prices
 - Platform name if identifiable
+- Whether the position is CLOSED or still OPEN
+- Trade outcome (WIN, LOSS, BREAKEVEN) if the position is closed
+- Final P/L amount and percentage if visible
 
 Return as JSON. If a field is not visible in the screenshot, omit it.
 Be specific about what you can see vs. what you are inferring.
@@ -101,6 +109,9 @@ const EXTRACTION_USER_PROMPT = `Extract trading data from this screenshot. Look 
 - Underlying price
 - P/L information
 - Breakeven prices
+- Position status (OPEN or CLOSED)
+- Trade outcome if closed (WIN, LOSS, BREAKEVEN)
+- Final realized P/L if position is closed
 
 Return as JSON with this structure:
 {
@@ -133,11 +144,16 @@ Return as JSON with this structure:
   "maxLoss": 250.00,
   "breakevens": [177.50, 192.50],
   "platform": "TastyTrade",
+  "isClosed": true,
+  "outcome": "WIN",
+  "netPnL": 125.00,
+  "pnlPercentage": 50.0,
   "confidence": 0.85
 }
 
 If a field is not visible, omit it from the response.
 For strategyType, use one of: LONG_CALL, LONG_PUT, SHORT_CALL, SHORT_PUT, CALL_SPREAD, PUT_SPREAD, IRON_CONDOR, IRON_BUTTERFLY, STRADDLE, STRANGLE, CALENDAR, DIAGONAL, RATIO, BUTTERFLY, STOCK, COVERED_CALL, CASH_SECURED_PUT, CUSTOM
+For outcome, use one of: WIN, LOSS, BREAKEVEN (only if isClosed is true)
 
 Return ONLY the JSON object, no markdown formatting.`;
 
@@ -263,6 +279,26 @@ function validateExtractionResponse(
 
   if (typeof raw.platform === 'string') {
     result.platform = raw.platform;
+  }
+
+  // PRD-B: Outcome detection fields
+  if (typeof raw.isClosed === 'boolean') {
+    result.isClosed = raw.isClosed;
+  }
+
+  if (
+    typeof raw.outcome === 'string' &&
+    ['WIN', 'LOSS', 'BREAKEVEN'].includes(raw.outcome.toUpperCase())
+  ) {
+    result.outcome = raw.outcome.toUpperCase() as 'WIN' | 'LOSS' | 'BREAKEVEN';
+  }
+
+  if (typeof raw.netPnL === 'number') {
+    result.netPnL = raw.netPnL;
+  }
+
+  if (typeof raw.pnlPercentage === 'number') {
+    result.pnlPercentage = raw.pnlPercentage;
   }
 
   return result;
