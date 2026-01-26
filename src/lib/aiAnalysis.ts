@@ -388,6 +388,7 @@ INSTRUCTIONS:
    - "anchoring": Fixated on specific price/outcome
    - "herd_mentality": Following crowd without independent analysis
    - "outcome_bias": Judging decision by result rather than process
+   - "sunk_cost": Continuing due to prior investment rather than future prospects
 
    Confidence guidelines:
    - 0.9-1.0: Explicit mention or very clear evidence
@@ -406,39 +407,35 @@ INSTRUCTIONS:
    - 0.5-0.8: Moderate emotional content
    - 0.0-0.5: Minimal emotional content or very analytical entry
 
-6. AI_TAGS: Extract 3-7 relevant tags from this taxonomy based on entry content:
+6. AI_TAGS: Extract 3-7 relevant tags from this psychology-focused taxonomy:
 
-   TRADE TYPE/STRATEGY:
-   - long-call, long-put, options, spreads, covered-call, cash-secured-put
-   - vertical-spread, iron-condor, iron-butterfly, straddle, strangle
-   - wheel-strategy, earnings-play
+   MINDSET (psychological state during trading):
+   - disciplined, patient, impulsive, emotional, rushed, focused
+   - distracted, confident, hesitant, anxious, calm, frustrated
+   - overthinking, clear-headed
 
-   MARKET VIEW:
-   - bullish, bearish, neutral, high-volatility, low-volatility
-   - trending, range-bound, uncertain-market
+   PROCESS (decision-making quality):
+   - well-researched, systematic, reactive, planned, spontaneous
+   - reasoned, gut-feel, rule-following, rule-breaking, checklist-used
 
-   ENTRY CATALYST:
-   - technical-analysis, chart-pattern, support-resistance, moving-average
-   - fundamental-analysis, news-catalyst, earnings, sector-rotation
-   - market-correlation, indicator-signal
+   STANCE (market view and position bias):
+   - bullish, bearish, neutral, uncertain, contrarian
+   - consensus, waiting, conflicted
 
-   PSYCHOLOGICAL STATE:
-   - disciplined, patient, well-researched, emotional, rushed
-   - impulse-trade, overthinking, stressed, focused, distracted
-   - confident-execution, hesitant
+   AWARENESS (metacognition and self-reflection):
+   - mistake-acknowledged, learning-captured, pattern-recognized
+   - blind-spot-identified, growth-oriented, defensive
+   - self-critical, accountable
 
-   RISK ASSESSMENT:
-   - defined-risk, undefined-risk, position-sized, stop-loss-planned
-   - profit-target-set, risk-reward-favorable, hedged, concentrated-position
-
-   OUTCOME CONTEXT:
-   - learning-experience, mistake-identified, good-process, bad-process, needs-review
+   CONTEXT (situational factors):
+   - high-stakes, routine, experimental, recovery-mode
+   - winning-streak, losing-streak, pre-market, post-close
 
    Rules:
    - Only use tags from the taxonomy above
    - Select 3-7 most relevant tags
-   - Consider: strategy mentioned, market view, emotional state, process quality
-   - Prioritize tags that add searchable context
+   - Focus on psychology and process, not trade specifics
+   - Prioritize tags that reveal emotional state and decision quality
 
 Return ONLY the JSON object, no markdown formatting.`;
 }

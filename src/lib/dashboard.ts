@@ -101,7 +101,7 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetDefinition> = {
           type: 'string',
           title: 'Default Entry Type',
           description: 'Pre-selected entry type for quick capture',
-          enum: ['TRADE_IDEA', 'TRADE', 'REFLECTION', 'OBSERVATION'],
+          enum: ['IDEA', 'DECISION', 'REFLECTION', 'OBSERVATION'],
           default: 'OBSERVATION',
         },
         showVoiceCapture: {
@@ -196,7 +196,7 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetDefinition> = {
           type: 'string',
           title: 'Filter by Type',
           description: 'Only show specific entry types',
-          enum: ['ALL', 'TRADE_IDEA', 'TRADE', 'REFLECTION', 'OBSERVATION'],
+          enum: ['ALL', 'IDEA', 'DECISION', 'REFLECTION', 'OBSERVATION'],
           default: 'ALL',
         },
       },
@@ -680,7 +680,7 @@ export const LAYOUT_TEMPLATES: LayoutTemplate[] = [
       {
         widgetId: generateWidgetId(),
         widgetType: 'QUICK_CAPTURE',
-        config: { defaultEntryType: 'TRADE_IDEA', showVoiceCapture: true },
+        config: { defaultEntryType: 'IDEA', showVoiceCapture: true },
         position: {
           mobile: { x: 1, y: 0, w: 1, h: 1 },
           tablet: { x: 1, y: 0, w: 1, h: 1 },
@@ -720,7 +720,7 @@ export const LAYOUT_TEMPLATES: LayoutTemplate[] = [
       {
         widgetId: generateWidgetId(),
         widgetType: 'RECENT_ENTRIES',
-        config: { limit: 3, filterType: 'TRADE' },
+        config: { limit: 3, filterType: 'DECISION' },
         position: {
           mobile: { x: 0, y: 4, w: 2, h: 2 },
           tablet: { x: 0, y: 3, w: 4, h: 1 },

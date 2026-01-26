@@ -7,7 +7,7 @@
  *
  * Request: { content: string }
  * Response: {
- *   entryType: 'TRADE_IDEA' | 'TRADE' | 'REFLECTION' | 'OBSERVATION',
+ *   entryType: 'IDEA' | 'DECISION' | 'REFLECTION' | 'OBSERVATION',
  *   mood: 'CONFIDENT' | 'NERVOUS' | 'EXCITED' | 'UNCERTAIN' | 'NEUTRAL',
  *   conviction: 'LOW' | 'MEDIUM' | 'HIGH',
  *   ticker: string | null,
@@ -28,7 +28,7 @@ import { requireAuth } from '@/lib/auth';
 
 // Response type
 export interface InferenceResult {
-  entryType: 'TRADE_IDEA' | 'TRADE' | 'REFLECTION' | 'OBSERVATION';
+  entryType: 'IDEA' | 'DECISION' | 'REFLECTION' | 'OBSERVATION';
   mood: 'CONFIDENT' | 'NERVOUS' | 'EXCITED' | 'UNCERTAIN' | 'NEUTRAL';
   conviction: 'LOW' | 'MEDIUM' | 'HIGH';
   ticker: string | null;
@@ -38,7 +38,7 @@ export interface InferenceResult {
 const INFERENCE_PROMPT = `Analyze this trading journal entry and infer the following metadata. Return ONLY valid JSON.
 
 {
-  "entryType": "TRADE_IDEA" | "TRADE" | "REFLECTION" | "OBSERVATION",
+  "entryType": "IDEA" | "DECISION" | "REFLECTION" | "OBSERVATION",
   "mood": "CONFIDENT" | "NERVOUS" | "EXCITED" | "UNCERTAIN" | "NEUTRAL",
   "conviction": "LOW" | "MEDIUM" | "HIGH",
   "ticker": "AAPL" | null,
@@ -47,8 +47,8 @@ const INFERENCE_PROMPT = `Analyze this trading journal entry and infer the follo
 
 RULES:
 1. entryType:
-   - TRADE_IDEA: Contains "thinking about", "might buy/sell", "looking at", future tense, potential trades
-   - TRADE: Contains "just bought/sold", "entered/exited", "filled at", past tense execution, actual trades
+   - IDEA: Contains "thinking about", "might buy/sell", "looking at", future tense, potential trades
+   - DECISION: Contains "just bought/sold", "entered/exited", "filled at", past tense execution, documenting an action taken
    - REFLECTION: Contains "looking back", "learned", "should have", past analysis, lessons learned
    - OBSERVATION: General market notes, sector commentary, neither trade-specific nor reflective
 
@@ -167,10 +167,10 @@ export async function POST(request: NextRequest) {
 
 function validateEntryType(
   value: unknown
-): 'TRADE_IDEA' | 'TRADE' | 'REFLECTION' | 'OBSERVATION' {
-  const validTypes = ['TRADE_IDEA', 'TRADE', 'REFLECTION', 'OBSERVATION'];
+): 'IDEA' | 'DECISION' | 'REFLECTION' | 'OBSERVATION' {
+  const validTypes = ['IDEA', 'DECISION', 'REFLECTION', 'OBSERVATION'];
   if (typeof value === 'string' && validTypes.includes(value)) {
-    return value as 'TRADE_IDEA' | 'TRADE' | 'REFLECTION' | 'OBSERVATION';
+    return value as 'IDEA' | 'DECISION' | 'REFLECTION' | 'OBSERVATION';
   }
   return 'OBSERVATION'; // Default
 }

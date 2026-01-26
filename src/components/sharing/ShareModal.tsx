@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-type EntryType = "TRADE_IDEA" | "TRADE" | "REFLECTION" | "OBSERVATION";
+type EntryType = "IDEA" | "DECISION" | "REFLECTION" | "OBSERVATION";
 
 interface ShareModalEntry {
   id: string;
@@ -55,12 +55,12 @@ export interface ShareOptions {
 }
 
 const TYPE_CONFIG: Record<EntryType, { label: string; bgColor: string }> = {
-  TRADE_IDEA: {
-    label: "Trade Idea",
+  IDEA: {
+    label: "Idea",
     bgColor: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
   },
-  TRADE: {
-    label: "Trade",
+  DECISION: {
+    label: "Decision",
     bgColor: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
   },
   REFLECTION: {

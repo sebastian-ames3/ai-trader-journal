@@ -108,10 +108,10 @@ export function EveningReviewCard({ className }: { className?: string }) {
 export function TradeIdeaCard({ className }: { className?: string }) {
   return (
     <ActionCard
-      title="New Trade Idea"
+      title="New Idea"
       description="Document your thesis and analysis"
       icon={<TrendingUp className="h-5 w-5 text-emerald-600" />}
-      href="/journal/new?type=TRADE_IDEA"
+      href="/journal/new?type=IDEA"
       gradient="from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30"
       iconBg="bg-emerald-100 dark:bg-emerald-900/50"
       className={className}

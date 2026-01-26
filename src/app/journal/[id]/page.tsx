@@ -24,7 +24,7 @@ interface LinkedTrade {
 
 interface Entry {
   id: string;
-  type: 'TRADE_IDEA' | 'TRADE' | 'REFLECTION' | 'OBSERVATION';
+  type: 'IDEA' | 'DECISION' | 'REFLECTION' | 'OBSERVATION';
   content: string;
   mood: 'CONFIDENT' | 'NERVOUS' | 'EXCITED' | 'UNCERTAIN' | 'NEUTRAL' | null;
   conviction: 'LOW' | 'MEDIUM' | 'HIGH' | null;
@@ -59,8 +59,8 @@ const moodLabels = {
 };
 
 const typeColors = {
-  TRADE_IDEA: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800',
-  TRADE: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800',
+  IDEA: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800',
+  DECISION: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800',
   REFLECTION: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800',
   OBSERVATION: 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950 dark:text-orange-300 dark:border-orange-800',
 };

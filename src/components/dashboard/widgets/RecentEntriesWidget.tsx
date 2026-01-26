@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
-type EntryType = 'TRADE_IDEA' | 'TRADE' | 'REFLECTION' | 'OBSERVATION';
+type EntryType = 'IDEA' | 'DECISION' | 'REFLECTION' | 'OBSERVATION';
 
 interface RecentEntry {
   id: string;
@@ -26,12 +26,12 @@ interface RecentEntriesWidgetProps {
 }
 
 const TYPE_CONFIG: Record<EntryType, { label: string; color: string }> = {
-  TRADE_IDEA: {
+  IDEA: {
     label: 'Idea',
     color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
   },
-  TRADE: {
-    label: 'Trade',
+  DECISION: {
+    label: 'Decision',
     color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
   },
   REFLECTION: {

@@ -6,7 +6,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EntryCard } from "@/components/ui/entry-card";
 
-type EntryType = "TRADE_IDEA" | "TRADE" | "REFLECTION" | "OBSERVATION";
+type EntryType = "IDEA" | "DECISION" | "REFLECTION" | "OBSERVATION";
 
 interface SwipeableEntryCardProps {
   id: string;

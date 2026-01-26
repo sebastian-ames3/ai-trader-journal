@@ -31,7 +31,7 @@ interface QuickCaptureProps {
 }
 
 interface InferredMetadata {
-  entryType: 'TRADE_IDEA' | 'TRADE' | 'REFLECTION' | 'OBSERVATION';
+  entryType: 'IDEA' | 'DECISION' | 'REFLECTION' | 'OBSERVATION';
   mood: 'CONFIDENT' | 'NERVOUS' | 'EXCITED' | 'UNCERTAIN' | 'NEUTRAL';
   conviction: 'LOW' | 'MEDIUM' | 'HIGH';
   ticker: string | null;
@@ -41,8 +41,8 @@ interface InferredMetadata {
 type SubmitState = 'idle' | 'inferring' | 'submitting' | 'success' | 'error';
 
 const ENTRY_TYPE_LABELS: Record<string, string> = {
-  TRADE_IDEA: 'Trade Idea',
-  TRADE: 'Trade',
+  IDEA: 'Idea',
+  DECISION: 'Decision',
   REFLECTION: 'Reflection',
   OBSERVATION: 'Observation',
 };

@@ -5,7 +5,7 @@ import { isOnline, queueEntry } from '@/lib/offlineQueue';
 import { useToast } from '@/hooks/use-toast';
 
 export interface EntryData {
-  type: 'TRADE_IDEA' | 'TRADE' | 'REFLECTION' | 'OBSERVATION';
+  type: 'IDEA' | 'DECISION' | 'REFLECTION' | 'OBSERVATION';
   content: string;
   mood?: string;
   conviction?: 'LOW' | 'MEDIUM' | 'HIGH';

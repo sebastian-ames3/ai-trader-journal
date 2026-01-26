@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { GuidedEntryWizard } from '@/components/GuidedEntryWizard';
 import { MoodSelector, MoodValue } from '@/components/ui/mood-selector';
 
-type EntryType = 'TRADE_IDEA' | 'TRADE' | 'REFLECTION' | 'OBSERVATION';
+type EntryType = 'IDEA' | 'DECISION' | 'REFLECTION' | 'OBSERVATION';
 type ConvictionLevel = 'LOW' | 'MEDIUM' | 'HIGH';
 
 interface TickerResult {
@@ -21,8 +21,8 @@ interface TickerResult {
 }
 
 const entryTypes: { value: EntryType; label: string }[] = [
-  { value: 'TRADE_IDEA', label: 'Trade Idea' },
-  { value: 'TRADE', label: 'Trade' },
+  { value: 'IDEA', label: 'Idea' },
+  { value: 'DECISION', label: 'Decision' },
   { value: 'REFLECTION', label: 'Reflection' },
   { value: 'OBSERVATION', label: 'Observation' },
 ];
@@ -38,7 +38,7 @@ export default function NewEntryPage() {
   const { toast } = useToast();
 
   const [mode, setMode] = useState<EntryMode>('FREE_FORM');
-  const [entryType, setEntryType] = useState<EntryType>('TRADE_IDEA');
+  const [entryType, setEntryType] = useState<EntryType>('IDEA');
   const [content, setContent] = useState('');
   const [mood, setMood] = useState<MoodValue>('NEUTRAL');
   const [conviction, setConviction] = useState<ConvictionLevel>('MEDIUM');
@@ -78,7 +78,7 @@ export default function NewEntryPage() {
         const draftAge = Date.now() - new Date(draft.timestamp).getTime();
         if (draftAge < 24 * 60 * 60 * 1000) {
           setMode(draft.mode || 'FREE_FORM');
-          setEntryType(draft.entryType || 'TRADE_IDEA');
+          setEntryType(draft.entryType || 'IDEA');
           setContent(draft.content || '');
           setMood(draft.mood || 'NEUTRAL');
           setConviction(draft.conviction || 'MEDIUM');

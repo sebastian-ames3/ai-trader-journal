@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { getMoodEmoji } from "@/components/ui/mood-selector";
 
-type EntryType = "TRADE_IDEA" | "TRADE" | "REFLECTION" | "OBSERVATION";
+type EntryType = "IDEA" | "DECISION" | "REFLECTION" | "OBSERVATION";
 
 interface EntryCardProps {
   id: string;
@@ -27,13 +27,13 @@ const TYPE_CONFIG: Record<
   EntryType,
   { label: string; color: string; bgColor: string }
 > = {
-  TRADE_IDEA: {
-    label: "Trade Idea",
+  IDEA: {
+    label: "Idea",
     color: "bg-blue-500",
     bgColor: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
   },
-  TRADE: {
-    label: "Trade",
+  DECISION: {
+    label: "Decision",
     color: "bg-green-500",
     bgColor:
       "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
