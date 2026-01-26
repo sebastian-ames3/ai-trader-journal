@@ -126,8 +126,8 @@ export async function generateWeeklyInsights(
   // Calculate basic statistics
   const stats = {
     totalEntries: entries.length,
-    totalTrades: entries.filter(e => e.type === 'TRADE').length,
-    tradeIdeas: entries.filter(e => e.type === 'TRADE_IDEA').length,
+    totalTrades: entries.filter(e => e.type === 'DECISION').length,
+    tradeIdeas: entries.filter(e => e.type === 'IDEA').length,
     reflections: entries.filter(e => e.type === 'REFLECTION').length,
     observations: entries.filter(e => e.type === 'OBSERVATION').length
   };

@@ -41,10 +41,10 @@ model User {
 
 // Entry types for journal entries
 enum EntryType {
-  TRADE_IDEA // Pre-trade thoughts and analysis
-  TRADE // Actual executed trade (links to Trade model)
-  REFLECTION // Post-trade analysis and lessons learned
-  OBSERVATION // General market observations and notes
+  IDEA // Pre-decision thinking and trade ideas (was: TRADE_IDEA)
+  DECISION // Documenting an action taken (was: TRADE)
+  REFLECTION // Post-hoc analysis and lessons learned
+  OBSERVATION // General notes and market observations
 }
 
 // Trader's emotional state when creating entry
@@ -213,13 +213,22 @@ model Entry {
   aiTags             String[] // AI-generated tags
   convictionInferred ConvictionLevel? // AI-inferred conviction vs user-selected
 
+  // Structured AI analysis fields (PRD-A)
+  aiTagsStructured         Json? // Array<{ tag: string, category: string, confidence: number }>
+  detectedBiasesStructured Json? // Array<{ bias: string, confidence: number, evidence: string, severity: string }>
+
+  // Trade detection fields (PRD-A/B)
+  tradeDetected            Boolean @default(false) // AI detected a trade in this entry
+  tradeDetectionConfidence Float? // 0-1 confidence score for trade detection
+  tradeDetectionData       Json? // { ticker, action, outcome, approximatePnL, evidenceQuote }
+
   // User ownership
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime? // Soft delete timestamp for undo functionality
 
   // Indexes for common query patterns
@@ -232,6 +241,7 @@ model Entry {
   @@index([thesisTradeId])
   @@index([userId])
   @@index([deletedAt])
+  @@index([tradeDetected])
 }
 
 model Snapshot {
@@ -531,6 +541,22 @@ enum TradeSource {
   SCREENSHOT
 }
 
+// Trade outcome for P/L tracking (PRD-A)
+enum TradeOutcome {
+  WIN
+  LOSS
+  BREAKEVEN
+}
+
+// How a trade was created (PRD-A/B)
+enum TradeSourceType {
+  MANUAL // User filled form
+  SCREENSHOT // Extracted from screenshot OCR
+  JOURNAL_DETECTED // AI detected from journal entry
+  VOICE_CAPTURED // From voice memo transcription
+  CSV_IMPORT // From broker CSV import
+}
+
 // Options strategy types
 enum StrategyType {
   LONG_CALL
@@ -634,14 +660,20 @@ model ThesisTrade {
   reasoningNote    String? @db.Text
 
   // Import tracking (PRD-digitization-import)
-  source       TradeSource @default(MANUAL)
-  importedAt   DateTime?
-  importBatch  String? // Group imports by batch ID
+  source      TradeSource @default(MANUAL)
+  importedAt  DateTime?
+  importBatch String? // Group imports by batch ID
+
+  // Independent ticker and outcome tracking (PRD-A)
+  ticker        String? // Independent ticker for thesis-less trades
+  outcome       TradeOutcome? // WIN, LOSS, BREAKEVEN
+  sourceType    TradeSourceType @default(MANUAL) // How trade was created
+  sourceEntryId String? // Journal entry that created this trade
 
   // Broker integration (future)
-  brokerOrderId  String?  @unique
-  brokerFees     Float?
-  brokerAccount  String?
+  brokerOrderId String? @unique
+  brokerFees    Float?
+  brokerAccount String?
 
   // User ownership
   userId String
@@ -659,6 +691,8 @@ model ThesisTrade {
   @@index([status])
   @@index([source])
   @@index([userId])
+  @@index([ticker])
+  @@index([outcome])
 }
 
 // Thesis updates - how the thesis evolved over time

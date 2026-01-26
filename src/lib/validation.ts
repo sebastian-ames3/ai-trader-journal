@@ -141,7 +141,7 @@ export function getFieldError(
  * Entry form validation schema
  */
 export const entryFormSchema = z.object({
-  type: z.enum(['TRADE_IDEA', 'TRADE', 'REFLECTION', 'OBSERVATION']),
+  type: z.enum(['IDEA', 'DECISION', 'REFLECTION', 'OBSERVATION']),
   content: z
     .string()
     .min(1, 'Content is required')

@@ -188,8 +188,8 @@ async function fetchWeeklyInsightsData(
   // Calculate stats
   const stats = {
     totalEntries: entries.length,
-    tradeIdeas: entries.filter((e) => e.type === 'TRADE_IDEA').length,
-    trades: entries.filter((e) => e.type === 'TRADE').length,
+    tradeIdeas: entries.filter((e) => e.type === 'IDEA').length,
+    trades: entries.filter((e) => e.type === 'DECISION').length,
     reflections: entries.filter((e) => e.type === 'REFLECTION').length,
     observations: entries.filter((e) => e.type === 'OBSERVATION').length,
   };

@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-type EntryType = 'TRADE_IDEA' | 'TRADE' | 'REFLECTION' | 'OBSERVATION';
+type EntryType = 'IDEA' | 'DECISION' | 'REFLECTION' | 'OBSERVATION';
 type EntryMood = 'CONFIDENT' | 'NERVOUS' | 'EXCITED' | 'UNCERTAIN' | 'NEUTRAL';
 type ConvictionLevel = 'LOW' | 'MEDIUM' | 'HIGH';
 
@@ -48,15 +48,15 @@ const moods: { value: EntryMood; emoji: string; label: string }[] = [
 const convictionLevels: ConvictionLevel[] = ['LOW', 'MEDIUM', 'HIGH'];
 
 const entryTypes: { value: EntryType; label: string }[] = [
-  { value: 'TRADE_IDEA', label: 'Trade Idea' },
-  { value: 'TRADE', label: 'Trade' },
+  { value: 'IDEA', label: 'Idea' },
+  { value: 'DECISION', label: 'Decision' },
   { value: 'REFLECTION', label: 'Reflection' },
   { value: 'OBSERVATION', label: 'Observation' },
 ];
 
 const entryTypePrompts: Record<EntryType, string> = {
-  TRADE_IDEA: "What's your thesis? What are you watching for?",
-  TRADE: "What did you execute? How did it align with your plan?",
+  IDEA: "What's your thesis? What are you watching for?",
+  DECISION: "What action did you take? How did it align with your plan?",
   REFLECTION: "What did you learn? What will you do differently?",
   OBSERVATION: "What patterns are you noticing in the market?",
 };

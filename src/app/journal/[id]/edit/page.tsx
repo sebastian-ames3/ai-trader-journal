@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { MoodSelector, MoodValue } from '@/components/ui/mood-selector';
 
-type EntryType = 'TRADE_IDEA' | 'TRADE' | 'REFLECTION' | 'OBSERVATION';
+type EntryType = 'IDEA' | 'DECISION' | 'REFLECTION' | 'OBSERVATION';
 type ConvictionLevel = 'LOW' | 'MEDIUM' | 'HIGH';
 
 interface TickerResult {
@@ -31,8 +31,8 @@ interface Entry {
 }
 
 const entryTypes: { value: EntryType; label: string }[] = [
-  { value: 'TRADE_IDEA', label: 'Trade Idea' },
-  { value: 'TRADE', label: 'Trade' },
+  { value: 'IDEA', label: 'Idea' },
+  { value: 'DECISION', label: 'Decision' },
   { value: 'REFLECTION', label: 'Reflection' },
   { value: 'OBSERVATION', label: 'Observation' },
 ];
@@ -48,7 +48,7 @@ export default function EditEntryPage() {
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
-  const [entryType, setEntryType] = useState<EntryType>('TRADE_IDEA');
+  const [entryType, setEntryType] = useState<EntryType>('IDEA');
   const [content, setContent] = useState('');
   const [mood, setMood] = useState<MoodValue>('NEUTRAL');
   const [conviction, setConviction] = useState<ConvictionLevel>('MEDIUM');

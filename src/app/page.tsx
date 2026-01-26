@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 
 interface RecentEntry {
   id: string;
-  type: 'TRADE_IDEA' | 'TRADE' | 'REFLECTION' | 'OBSERVATION';
+  type: 'IDEA' | 'DECISION' | 'REFLECTION' | 'OBSERVATION';
   content: string;
   createdAt: string;
 }

@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
  *
  * Query Parameters:
  * - search: Full-text search on content
- * - type: Entry type (TRADE_IDEA, TRADE, REFLECTION, OBSERVATION)
+ * - type: Entry type (IDEA, DECISION, REFLECTION, OBSERVATION)
  * - ticker: Ticker symbol
  * - mood: Emotional state
  * - conviction: Conviction level (LOW, MEDIUM, HIGH)

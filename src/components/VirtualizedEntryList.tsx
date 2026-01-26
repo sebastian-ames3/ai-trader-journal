@@ -6,7 +6,7 @@ import { SwipeableEntryCard } from '@/components/SwipeableEntryCard';
 
 interface Entry {
   id: string;
-  type: 'TRADE_IDEA' | 'TRADE' | 'REFLECTION' | 'OBSERVATION';
+  type: 'IDEA' | 'DECISION' | 'REFLECTION' | 'OBSERVATION';
   content: string;
   mood: 'CONFIDENT' | 'NERVOUS' | 'EXCITED' | 'UNCERTAIN' | 'NEUTRAL' | null;
   conviction: 'LOW' | 'MEDIUM' | 'HIGH' | null;

@@ -33,8 +33,8 @@ interface SearchFiltersProps {
 }
 
 const ENTRY_TYPES = [
-  { value: 'TRADE_IDEA', label: 'Trade Idea' },
-  { value: 'TRADE', label: 'Trade' },
+  { value: 'IDEA', label: 'Idea' },
+  { value: 'DECISION', label: 'Decision' },
   { value: 'REFLECTION', label: 'Reflection' },
   { value: 'OBSERVATION', label: 'Observation' },
 ];
@@ -78,36 +78,45 @@ const BIASES = [
   { value: 'anchoring', label: 'Anchoring' },
   { value: 'herd_mentality', label: 'Herd Mentality' },
   { value: 'outcome_bias', label: 'Outcome Bias' },
+  { value: 'sunk_cost', label: 'Sunk Cost Fallacy' },
 ];
 
 const AI_TAGS = [
-  // Trade Type/Strategy
-  { value: 'long-call', label: 'Long Call', category: 'Strategy' },
-  { value: 'long-put', label: 'Long Put', category: 'Strategy' },
-  { value: 'covered-call', label: 'Covered Call', category: 'Strategy' },
-  { value: 'cash-secured-put', label: 'Cash Secured Put', category: 'Strategy' },
-  { value: 'vertical-spread', label: 'Vertical Spread', category: 'Strategy' },
-  { value: 'iron-condor', label: 'Iron Condor', category: 'Strategy' },
-  { value: 'iron-butterfly', label: 'Iron Butterfly', category: 'Strategy' },
-  { value: 'wheel-strategy', label: 'Wheel Strategy', category: 'Strategy' },
-  // Market View
-  { value: 'bullish', label: 'Bullish', category: 'Market View' },
-  { value: 'bearish', label: 'Bearish', category: 'Market View' },
-  { value: 'high-volatility', label: 'High Volatility', category: 'Market View' },
-  { value: 'low-volatility', label: 'Low Volatility', category: 'Market View' },
-  // Psychological State
-  { value: 'disciplined', label: 'Disciplined', category: 'Psychology' },
-  { value: 'patient', label: 'Patient', category: 'Psychology' },
-  { value: 'well-researched', label: 'Well Researched', category: 'Psychology' },
-  { value: 'emotional', label: 'Emotional', category: 'Psychology' },
-  { value: 'impulse-trade', label: 'Impulse Trade', category: 'Psychology' },
-  { value: 'overthinking', label: 'Overthinking', category: 'Psychology' },
-  // Risk Assessment
-  { value: 'defined-risk', label: 'Defined Risk', category: 'Risk' },
-  { value: 'position-sized', label: 'Position Sized', category: 'Risk' },
-  // Entry Catalyst
-  { value: 'technical-analysis', label: 'Technical Analysis', category: 'Catalyst' },
-  { value: 'earnings', label: 'Earnings Play', category: 'Catalyst' },
+  // Mindset
+  { value: 'disciplined', label: 'Disciplined', category: 'Mindset' },
+  { value: 'patient', label: 'Patient', category: 'Mindset' },
+  { value: 'impulsive', label: 'Impulsive', category: 'Mindset' },
+  { value: 'emotional', label: 'Emotional', category: 'Mindset' },
+  { value: 'focused', label: 'Focused', category: 'Mindset' },
+  { value: 'confident', label: 'Confident', category: 'Mindset' },
+  { value: 'hesitant', label: 'Hesitant', category: 'Mindset' },
+  { value: 'anxious', label: 'Anxious', category: 'Mindset' },
+  { value: 'calm', label: 'Calm', category: 'Mindset' },
+  { value: 'overthinking', label: 'Overthinking', category: 'Mindset' },
+  // Process
+  { value: 'well-researched', label: 'Well Researched', category: 'Process' },
+  { value: 'systematic', label: 'Systematic', category: 'Process' },
+  { value: 'planned', label: 'Planned', category: 'Process' },
+  { value: 'reactive', label: 'Reactive', category: 'Process' },
+  { value: 'rule-following', label: 'Rule Following', category: 'Process' },
+  { value: 'rule-breaking', label: 'Rule Breaking', category: 'Process' },
+  // Stance
+  { value: 'bullish', label: 'Bullish', category: 'Stance' },
+  { value: 'bearish', label: 'Bearish', category: 'Stance' },
+  { value: 'neutral', label: 'Neutral', category: 'Stance' },
+  { value: 'uncertain', label: 'Uncertain', category: 'Stance' },
+  { value: 'contrarian', label: 'Contrarian', category: 'Stance' },
+  // Awareness
+  { value: 'mistake-acknowledged', label: 'Mistake Acknowledged', category: 'Awareness' },
+  { value: 'learning-captured', label: 'Learning Captured', category: 'Awareness' },
+  { value: 'pattern-recognized', label: 'Pattern Recognized', category: 'Awareness' },
+  { value: 'growth-oriented', label: 'Growth Oriented', category: 'Awareness' },
+  // Context
+  { value: 'high-stakes', label: 'High Stakes', category: 'Context' },
+  { value: 'routine', label: 'Routine', category: 'Context' },
+  { value: 'recovery-mode', label: 'Recovery Mode', category: 'Context' },
+  { value: 'winning-streak', label: 'Winning Streak', category: 'Context' },
+  { value: 'losing-streak', label: 'Losing Streak', category: 'Context' },
 ];
 
 export default function SearchFilters({

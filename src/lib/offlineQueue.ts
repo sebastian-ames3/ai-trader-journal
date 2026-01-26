@@ -9,7 +9,7 @@ import Dexie, { Table } from 'dexie';
 
 export interface QueuedEntry {
   id?: number;
-  type: 'TRADE_IDEA' | 'TRADE' | 'REFLECTION' | 'OBSERVATION';
+  type: 'IDEA' | 'DECISION' | 'REFLECTION' | 'OBSERVATION';
   content: string;
   mood?: string;
   conviction?: 'LOW' | 'MEDIUM' | 'HIGH';
