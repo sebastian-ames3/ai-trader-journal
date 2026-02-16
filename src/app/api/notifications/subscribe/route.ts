@@ -16,8 +16,9 @@ import { requireAuth } from '@/lib/auth';
 export async function POST(request: NextRequest) {
   try {
     // Authentication check
-    const { error: authError } = await requireAuth();
-    if (authError) return authError;
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const { user } = auth;
 
     const body = await request.json();
 
@@ -38,12 +39,14 @@ export async function POST(request: NextRequest) {
           p256dh: body.keys.p256dh,
           auth: body.keys.auth,
         },
+        userId: user.id,
       },
       update: {
         keys: {
           p256dh: body.keys.p256dh,
           auth: body.keys.auth,
         },
+        userId: user.id,
       },
     });
 
@@ -67,8 +70,8 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     // Authentication check
-    const { error: authError } = await requireAuth();
-    if (authError) return authError;
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
 
     const body = await request.json();
 
@@ -79,9 +82,9 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Delete subscription
-    await prisma.pushSubscription.delete({
-      where: { endpoint: body.endpoint },
+    // Delete subscription (only if owned by this user)
+    await prisma.pushSubscription.deleteMany({
+      where: { endpoint: body.endpoint, userId: auth.user.id },
     });
 
     return NextResponse.json({ success: true });

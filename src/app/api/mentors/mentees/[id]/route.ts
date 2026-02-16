@@ -96,7 +96,8 @@ export async function GET(
       const patterns = await prisma.patternInsight.findMany({
         where: {
           isActive: true,
-          isDismissed: false
+          isDismissed: false,
+          userId: relationship.userId
         },
         orderBy: [
           { confidence: 'desc' },

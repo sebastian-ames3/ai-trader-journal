@@ -305,8 +305,9 @@ export async function hasNotificationBeenSent(trigger: string): Promise<boolean>
 /**
  * Get days since last journal entry
  */
-export async function getDaysSinceLastEntry(): Promise<number> {
+export async function getDaysSinceLastEntry(userId?: string): Promise<number> {
   const lastEntry = await prisma.entry.findFirst({
+    where: userId ? { userId } : undefined,
     orderBy: { createdAt: 'desc' },
     select: { createdAt: true },
   });
@@ -323,11 +324,14 @@ export async function getDaysSinceLastEntry(): Promise<number> {
 /**
  * Get entries from this week for weekly review
  */
-export async function getWeeklyEntryCount(): Promise<number> {
+export async function getWeeklyEntryCount(userId?: string): Promise<number> {
   const weekAgo = new Date();
   weekAgo.setDate(weekAgo.getDate() - 7);
 
   return prisma.entry.count({
-    where: { createdAt: { gte: weekAgo } },
+    where: {
+      createdAt: { gte: weekAgo },
+      ...(userId ? { userId } : {}),
+    },
   });
 }

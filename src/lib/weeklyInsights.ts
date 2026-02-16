@@ -408,12 +408,12 @@ async function generateWeekComparison(
  * Gets active behavioral patterns for weekly insights (Phase 2)
  */
 async function getBehavioralPatterns(userId: string): Promise<WeeklyInsights['behavioralPatterns']> {
-  // Get active patterns
-  // Note: PatternInsight model lacks userId; security comes from user-scoped entries
+  // Get active patterns for this user
   const activePatterns = await prisma.patternInsight.findMany({
     where: {
       isActive: true,
       isDismissed: false,
+      userId,
     },
     orderBy: [
       { confidence: 'desc' },

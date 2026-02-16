@@ -4,7 +4,7 @@
  * GET /api/cron/pattern-analysis
  *
  * Called by Vercel Cron daily at 2 AM ET.
- * Runs full pattern analysis on recent entries.
+ * Runs full pattern analysis on recent entries for all users.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -26,14 +26,16 @@ export async function GET(request: NextRequest) {
       distinct: ['userId'],
     });
 
-    let patternBreakingMessage: string | null = null;
+    let totalPatterns = 0;
+    let patternBreaks = 0;
 
     for (const { userId } of users) {
       // Run pattern analysis per user
       const userPatterns = await analyzePatterns(userId);
+      totalPatterns += userPatterns.length;
+
       // Check for pattern-breaking behavior per user
-      const userBreakingMsg = await checkPatternBreaking(userId);
-      if (userBreakingMsg) patternBreakingMessage = userBreakingMsg;
+      const breakingMsg = await checkPatternBreaking(userId);
 
       // Check for new significant patterns to notify about
       const significantPatterns = userPatterns.filter(
@@ -42,7 +44,7 @@ export async function GET(request: NextRequest) {
 
       if (significantPatterns.length > 0) {
         const topPattern = significantPatterns[0];
-        const shouldSend = await shouldSendNotification('HISTORICAL_CONTEXT');
+        const shouldSend = await shouldSendNotification('HISTORICAL_CONTEXT', userId);
 
         if (shouldSend) {
           await sendAndLogNotification({
@@ -51,6 +53,7 @@ export async function GET(request: NextRequest) {
             title: 'Pattern Detected',
             body: topPattern.description,
             url: '/insights/patterns',
+            userId,
             data: {
               patternType: topPattern.patternType,
               patternName: topPattern.patternName,
@@ -59,36 +62,30 @@ export async function GET(request: NextRequest) {
           });
         }
       }
-    }
 
-    // Kept outside the loop for backwards compat with the original return shape
-    const patterns = users.length > 0 ? await analyzePatterns(users[0].userId) : [];
+      // Send notification for pattern-breaking (positive reinforcement)
+      if (breakingMsg) {
+        patternBreaks++;
+        const shouldSend = await shouldSendNotification('HISTORICAL_CONTEXT', userId);
 
-    // Send notification for pattern-breaking (positive reinforcement)
-    if (patternBreakingMessage) {
-      const shouldSend = await shouldSendNotification('HISTORICAL_CONTEXT');
-
-      if (shouldSend) {
-        await sendAndLogNotification({
-          type: 'HISTORICAL_CONTEXT',
-          trigger: 'pattern_breaking',
-          title: 'Pattern Broken!',
-          body: patternBreakingMessage,
-          url: '/insights',
-        });
+        if (shouldSend) {
+          await sendAndLogNotification({
+            type: 'HISTORICAL_CONTEXT',
+            trigger: 'pattern_breaking',
+            title: 'Pattern Broken!',
+            body: breakingMsg,
+            url: '/insights',
+            userId,
+          });
+        }
       }
     }
 
     return NextResponse.json({
       success: true,
-      patternsDetected: patterns.length,
-      patterns: patterns.map((p) => ({
-        name: p.patternName,
-        type: p.patternType,
-        occurrences: p.occurrences,
-        confidence: p.confidence,
-      })),
-      patternBreaking: !!patternBreakingMessage,
+      usersAnalyzed: users.length,
+      totalPatterns,
+      patternBreaks,
     });
   } catch (error) {
     console.error('Pattern analysis cron error:', error);

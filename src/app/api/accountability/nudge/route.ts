@@ -52,13 +52,14 @@ export async function POST(request: NextRequest) {
     // 2. Send an email notification
     // 3. Log the nudge for rate limiting
 
-    // Log the nudge in the notification log
+    // Log the nudge in the notification log (attributed to the pair owner)
     await prisma.notificationLog.create({
       data: {
         type: 'JOURNAL_NUDGE',
         trigger: 'accountability_partner_nudge',
         title: 'Nudge from Partner',
         body: nudgeMessage,
+        userId: pair.userId,
         data: {
           partnerId: pair.id,
           partnerEmail: pair.partnerEmail
