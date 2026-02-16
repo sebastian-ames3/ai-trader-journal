@@ -294,13 +294,26 @@ export function parseOptionStratCSV(csvContent: string): CSVParseResult {
 
   console.log('[CSV Import] Parsing CSV, first 200 chars:', cleanedContent.slice(0, 200));
 
-  // Parse CSV
+  // Parse CSV with row limit to prevent memory exhaustion
+  const MAX_CSV_ROWS = 10_000;
   const parseResult = Papa.parse<OptionStratCSVRow>(cleanedContent, {
     header: true,
     skipEmptyLines: true,
     transformHeader: (header) => header.trim(),
     transform: (value) => value.trim(),
+    preview: MAX_CSV_ROWS,
   });
+
+  if (parseResult.data.length >= MAX_CSV_ROWS) {
+    errors.push(`CSV exceeds maximum of ${MAX_CSV_ROWS.toLocaleString()} rows. Please split the file.`);
+    return {
+      success: false,
+      trades: [],
+      errors,
+      warnings,
+      summary: { totalRows: MAX_CSV_ROWS, validTrades: 0, invalidTrades: 0, duplicates: 0 },
+    };
+  }
 
   if (parseResult.errors.length > 0) {
     parseResult.errors.forEach((error) => {

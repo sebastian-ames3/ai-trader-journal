@@ -22,6 +22,15 @@ export async function POST() {
     if (auth.error) return auth.error;
     const { user } = auth;
 
+    // Admin role check: restrict to configured admin user
+    const adminUserId = process.env.ADMIN_USER_ID;
+    if (adminUserId && user.id !== adminUserId) {
+      return NextResponse.json(
+        { error: 'Forbidden: admin access required' },
+        { status: 403 }
+      );
+    }
+
     // Find all theses for this user with names ending in "Trade"
     const theses = await prisma.tradingThesis.findMany({
       where: {

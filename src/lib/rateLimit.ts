@@ -156,6 +156,69 @@ export const rateLimiters = {
     windowMs: 60 * 1000,
     keyPrefix: 'trade-extraction',
   }),
+
+  /** Entry creation: 30 requests per minute */
+  entryCreate: createRateLimiter({
+    maxRequests: 30,
+    windowMs: 60 * 1000,
+    keyPrefix: 'entry-create',
+  }),
+
+  /** Image upload: 10 requests per minute */
+  imageUpload: createRateLimiter({
+    maxRequests: 10,
+    windowMs: 60 * 1000,
+    keyPrefix: 'image-upload',
+  }),
+
+  /** Audio upload: 5 requests per minute */
+  audioUpload: createRateLimiter({
+    maxRequests: 5,
+    windowMs: 60 * 1000,
+    keyPrefix: 'audio-upload',
+  }),
+
+  /** Transcription: 5 requests per minute */
+  transcribe: createRateLimiter({
+    maxRequests: 5,
+    windowMs: 60 * 1000,
+    keyPrefix: 'transcribe',
+  }),
+
+  /** Image analysis: 5 requests per minute */
+  imageAnalysis: createRateLimiter({
+    maxRequests: 5,
+    windowMs: 60 * 1000,
+    keyPrefix: 'image-analysis',
+  }),
+
+  /** Search: 20 requests per minute */
+  search: createRateLimiter({
+    maxRequests: 20,
+    windowMs: 60 * 1000,
+    keyPrefix: 'search',
+  }),
+
+  /** Share link creation: 10 requests per minute */
+  shareCreate: createRateLimiter({
+    maxRequests: 10,
+    windowMs: 60 * 1000,
+    keyPrefix: 'share-create',
+  }),
+
+  /** Export: 5 requests per minute */
+  export: createRateLimiter({
+    maxRequests: 5,
+    windowMs: 60 * 1000,
+    keyPrefix: 'export',
+  }),
+
+  /** Infer (quick capture): 15 requests per minute */
+  infer: createRateLimiter({
+    maxRequests: 15,
+    windowMs: 60 * 1000,
+    keyPrefix: 'infer',
+  }),
 };
 
 /**

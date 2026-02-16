@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { EntryType, EntryMood, ConvictionLevel, CaptureMethod, Prisma } from '@prisma/client';
 import { updateStreakAfterEntry, getCelebrationMessage } from '@/lib/streakTracking';
 import { requireAuth } from '@/lib/auth';
+import { rateLimiters, checkRateLimit } from '@/lib/rateLimit';
 import {
   detectTradeInContent,
   formatForStorage,
@@ -174,6 +175,9 @@ export async function POST(request: NextRequest) {
   try {
     const { user, error } = await requireAuth();
     if (error) return error;
+
+    const rateLimited = checkRateLimit(rateLimiters.entryCreate, user.id);
+    if (rateLimited) return rateLimited;
 
     const body = await request.json();
 

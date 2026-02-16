@@ -25,6 +25,7 @@ import {
   handleClaudeError,
 } from '@/lib/claude';
 import { requireAuth } from '@/lib/auth';
+import { rateLimiters, checkRateLimit } from '@/lib/rateLimit';
 
 // Response type
 export interface InferenceResult {
@@ -79,8 +80,11 @@ Entry:`;
 export async function POST(request: NextRequest) {
   try {
     // Authentication check
-    const { error: authError } = await requireAuth();
+    const { user, error: authError } = await requireAuth();
     if (authError) return authError;
+
+    const rateLimited = checkRateLimit(rateLimiters.infer, user.id);
+    if (rateLimited) return rateLimited;
 
     // Check for Anthropic API key
     if (!isClaudeConfigured()) {

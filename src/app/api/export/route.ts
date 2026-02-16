@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth';
+import { rateLimiters, checkRateLimit } from '@/lib/rateLimit';
 
 /**
  * GET /api/export
@@ -15,6 +16,9 @@ export async function GET(request: NextRequest) {
     // Authentication check
     const { user, error: authError } = await requireAuth();
     if (authError) return authError;
+
+    const rateLimited = checkRateLimit(rateLimiters.export, user.id);
+    if (rateLimited) return rateLimited;
 
     const searchParams = request.nextUrl.searchParams;
     const format = searchParams.get('format') || 'json';
