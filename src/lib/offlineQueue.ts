@@ -36,23 +36,26 @@ export class OfflineQueueDB extends Dexie {
 let db: OfflineQueueDB | null = null;
 
 /**
- * Get the offline queue database instance
+ * Get the offline queue database instance.
+ * Returns null on the server (IndexedDB is browser-only).
  */
-export function getOfflineQueueDB(): OfflineQueueDB {
+export function getOfflineQueueDB(): OfflineQueueDB | null {
+  if (typeof window === 'undefined') return null;
   if (!db) {
     db = new OfflineQueueDB();
   }
   return db;
 }
 
-// Export singleton for direct access (used by clientCleanup)
-export const offlineDb = getOfflineQueueDB();
+// Lazy singleton — safe for SSR (returns null on server)
+export const offlineDb = typeof window !== 'undefined' ? getOfflineQueueDB() : null;
 
 /**
  * Add an entry to the offline queue
  */
 export async function queueEntry(entry: Omit<QueuedEntry, 'id' | 'createdAt' | 'retryCount'>): Promise<number> {
   const db = getOfflineQueueDB();
+  if (!db) return -1;
   const id = await db.queuedEntries.add({
     ...entry,
     createdAt: new Date(),
@@ -66,6 +69,7 @@ export async function queueEntry(entry: Omit<QueuedEntry, 'id' | 'createdAt' | '
  */
 export async function getQueuedEntries(): Promise<QueuedEntry[]> {
   const db = getOfflineQueueDB();
+  if (!db) return [];
   return db.queuedEntries.orderBy('createdAt').toArray();
 }
 
@@ -74,6 +78,7 @@ export async function getQueuedEntries(): Promise<QueuedEntry[]> {
  */
 export async function getQueuedEntriesCount(): Promise<number> {
   const db = getOfflineQueueDB();
+  if (!db) return 0;
   return db.queuedEntries.count();
 }
 
@@ -82,6 +87,7 @@ export async function getQueuedEntriesCount(): Promise<number> {
  */
 export async function removeQueuedEntry(id: number): Promise<void> {
   const db = getOfflineQueueDB();
+  if (!db) return;
   await db.queuedEntries.delete(id);
 }
 
@@ -90,6 +96,7 @@ export async function removeQueuedEntry(id: number): Promise<void> {
  */
 export async function incrementRetryCount(id: number, error?: string): Promise<void> {
   const db = getOfflineQueueDB();
+  if (!db) return;
   const entry = await db.queuedEntries.get(id);
   if (entry) {
     await db.queuedEntries.update(id, {
@@ -104,6 +111,7 @@ export async function incrementRetryCount(id: number, error?: string): Promise<v
  */
 export async function clearQueue(): Promise<void> {
   const db = getOfflineQueueDB();
+  if (!db) return;
   await db.queuedEntries.clear();
 }
 
