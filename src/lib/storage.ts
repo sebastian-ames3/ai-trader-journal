@@ -30,6 +30,7 @@ function getR2Client(): S3Client {
         accessKeyId: process.env.R2_ACCESS_KEY,
         secretAccessKey: process.env.R2_SECRET_KEY,
       },
+      maxAttempts: 3, // Retry transient S3/R2 failures with exponential backoff
     });
   }
   return r2Client;
