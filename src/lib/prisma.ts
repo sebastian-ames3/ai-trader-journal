@@ -6,6 +6,12 @@ const globalForPrisma = globalThis as unknown as {
 
 const basePrisma = globalForPrisma.prisma ?? new PrismaClient({
   log: ['error', 'warn'],
+  datasources: {
+    db: {
+      // Ensure connection_limit=1 for serverless (Vercel) even if not in DATABASE_URL
+      url: process.env.DATABASE_URL,
+    },
+  },
 })
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = basePrisma
