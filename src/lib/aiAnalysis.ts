@@ -399,6 +399,11 @@ INSTRUCTIONS:
    - "herd_mentality": Following crowd without independent analysis
    - "outcome_bias": Judging decision by result rather than process
    - "sunk_cost": Continuing due to prior investment rather than future prospects
+   - "disposition_effect": Selling winners too early, holding losers too long
+   - "gambler_fallacy": Believing a win is "due" after a losing streak
+   - "hindsight_bias": "I knew it all along" reasoning after seeing the outcome
+   - "availability_bias": Overweighting vivid or recent examples when making decisions
+   - "status_quo_bias": Defaulting to existing position, resisting change without reason
 
    Confidence guidelines:
    - 0.9-1.0: Explicit mention or very clear evidence
