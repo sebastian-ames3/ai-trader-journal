@@ -15,27 +15,7 @@ import {
   NOTIFICATION_COPY,
 } from '@/lib/notifications';
 import { getWeeklyEntryCount } from '@/lib/marketData';
-
-// Verify cron request
-function verifyCronRequest(request: NextRequest): boolean {
-  if (process.env.NODE_ENV === 'development') {
-    return true;
-  }
-
-  const authHeader = request.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
-
-  if (authHeader === `Bearer ${cronSecret}`) {
-    return true;
-  }
-
-  const vercelCron = request.headers.get('x-vercel-cron');
-  if (vercelCron) {
-    return true;
-  }
-
-  return false;
-}
+import { verifyCronRequest } from '@/lib/cronAuth';
 
 export async function GET(request: NextRequest) {
   if (!verifyCronRequest(request)) {

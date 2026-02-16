@@ -19,30 +19,7 @@ import {
   shouldSendNotification,
   NOTIFICATION_COPY,
 } from '@/lib/notifications';
-
-// Verify cron request (Vercel adds this header)
-function verifyCronRequest(request: NextRequest): boolean {
-  const authHeader = request.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
-
-  // In development, allow without auth
-  if (process.env.NODE_ENV === 'development') {
-    return true;
-  }
-
-  // Vercel Cron doesn't send CRON_SECRET, it uses Authorization Bearer
-  if (authHeader === `Bearer ${cronSecret}`) {
-    return true;
-  }
-
-  // Also accept Vercel's cron signature
-  const vercelCron = request.headers.get('x-vercel-cron');
-  if (vercelCron) {
-    return true;
-  }
-
-  return false;
-}
+import { verifyCronRequest } from '@/lib/cronAuth';
 
 export async function GET(request: NextRequest) {
   // Verify this is a legitimate cron request
