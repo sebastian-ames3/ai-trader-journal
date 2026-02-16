@@ -2,10 +2,11 @@
  * Pattern Detail API Route
  *
  * GET /api/patterns/[id]
- * Returns a specific pattern with its related entries.
+ * Returns a specific pattern with its related entries for the authenticated user.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth';
 import { getPatternWithEntries } from '@/lib/patternAnalysis';
 
 export async function GET(
@@ -13,6 +14,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const { user } = auth;
+
     const { id } = await params;
 
     if (!id) {
@@ -22,7 +27,7 @@ export async function GET(
       );
     }
 
-    const pattern = await getPatternWithEntries(id);
+    const pattern = await getPatternWithEntries(id, user.id);
 
     if (!pattern) {
       return NextResponse.json(

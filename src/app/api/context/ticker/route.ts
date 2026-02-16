@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 import {
@@ -15,6 +16,10 @@ import {
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const { user } = auth;
+
     const { searchParams } = new URL(request.url);
     const ticker = searchParams.get('ticker');
     const content = searchParams.get('content');
@@ -31,7 +36,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Get context for the first detected ticker
-      const context = await getFullTickerContext(detectedTickers[0]);
+      const context = await getFullTickerContext(detectedTickers[0], user.id);
 
       return NextResponse.json({
         tickers: detectedTickers,
@@ -46,7 +51,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const context = await getFullTickerContext(ticker.toUpperCase());
+    const context = await getFullTickerContext(ticker.toUpperCase(), user.id);
 
     return NextResponse.json(context);
   } catch (error) {

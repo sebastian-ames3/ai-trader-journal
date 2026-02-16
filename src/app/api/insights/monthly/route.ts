@@ -2,19 +2,24 @@
  * Monthly Insights API Route
  *
  * GET /api/insights/monthly
- * Returns a monthly behavioral report.
+ * Returns a monthly behavioral report for the authenticated user.
  *
  * Query params:
  * - month: YYYY-MM format (defaults to current month)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 import { generateMonthlyReport } from '@/lib/patternAnalysis';
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const { user } = auth;
+
     const { searchParams } = new URL(request.url);
     const monthParam = searchParams.get('month');
 
@@ -38,7 +43,7 @@ export async function GET(request: NextRequest) {
       month = now.getMonth() + 1;
     }
 
-    const report = await generateMonthlyReport(year, month);
+    const report = await generateMonthlyReport(year, month, user.id);
 
     return NextResponse.json(report);
   } catch (error) {

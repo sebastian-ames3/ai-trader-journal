@@ -6,10 +6,15 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth';
 import { dismissPattern } from '@/lib/patternAnalysis';
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const { user } = auth;
+
     const body = await request.json();
     const { patternId } = body;
 
@@ -20,7 +25,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await dismissPattern(patternId);
+    await dismissPattern(patternId, user.id);
 
     return NextResponse.json({
       success: true,

@@ -2,17 +2,22 @@
  * Patterns API Route
  *
  * GET /api/patterns
- * Returns all active detected patterns.
+ * Returns all active detected patterns for the authenticated user.
  */
 
 import { NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth';
 import { getActivePatterns } from '@/lib/patternAnalysis';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const patterns = await getActivePatterns();
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const { user } = auth;
+
+    const patterns = await getActivePatterns(user.id);
 
     return NextResponse.json({
       patterns,

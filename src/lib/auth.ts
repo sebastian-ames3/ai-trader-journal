@@ -351,6 +351,35 @@ export function getAuthedDb(userId: string) {
           return query(args)
         },
       },
+      thesisTrade: {
+        async findMany({ args, query }) {
+          args.where = { ...args.where, userId }
+          return query(args)
+        },
+        async findFirst({ args, query }) {
+          args.where = { ...args.where, userId }
+          return query(args)
+        },
+        async findUnique({ args, query }) {
+          const result = await query(args)
+          if (result && (result as { userId?: string }).userId !== userId) {
+            return null
+          }
+          return result
+        },
+        async create({ args, query }) {
+          ;(args.data as Record<string, unknown>).userId = userId
+          return query(args)
+        },
+        async update({ args, query }) {
+          args.where = { ...args.where, userId } as Prisma.ThesisTradeWhereUniqueInput
+          return query(args)
+        },
+        async delete({ args, query }) {
+          args.where = { ...args.where, userId } as Prisma.ThesisTradeWhereUniqueInput
+          return query(args)
+        },
+      },
     },
   })
 }

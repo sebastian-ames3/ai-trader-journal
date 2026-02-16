@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import {
   isValidWidgetType,
@@ -25,6 +26,9 @@ export async function PUT(
   { params }: RouteParams
 ) {
   try {
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+
     const { type } = await params;
 
     // Validate widget type
@@ -92,6 +96,9 @@ export async function GET(
   { params }: RouteParams
 ) {
   try {
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+
     const { type } = await params;
 
     // Validate widget type

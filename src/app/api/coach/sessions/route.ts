@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/coach/sessions
- * List coach conversation sessions
+ * List coach conversation sessions for the authenticated user
  *
  * Query parameters:
  * - limit: Max results (default: 20, max: 100)
@@ -18,16 +19,21 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const { user } = auth;
+
     const { searchParams } = new URL(request.url);
 
     const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 100);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
     const includeEnded = searchParams.get('includeEnded') !== 'false';
 
-    // Build where clause
-    const where = includeEnded
-      ? {}
-      : { endedAt: null };
+    // Build where clause scoped to user
+    const where: Record<string, unknown> = { userId: user.id };
+    if (!includeEnded) {
+      where.endedAt = null;
+    }
 
     // Fetch sessions with pagination
     const sessions = await prisma.coachSession.findMany({

@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { batchAnalyzeEntries } from '@/lib/aiAnalysis';
 
 /**
  * POST /api/entries/analyze-batch
- * Batch analyze multiple journal entries
+ * Batch analyze multiple journal entries for the authenticated user
  *
  * Request body:
  * {
@@ -14,17 +15,22 @@ import { batchAnalyzeEntries } from '@/lib/aiAnalysis';
  */
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const { user } = auth;
+
     const body = await request.json();
     const { entryIds, limit = 50 } = body;
 
-    // Fetch entries to analyze
+    // Fetch entries to analyze, scoped to user
     let entries;
 
     if (entryIds && Array.isArray(entryIds)) {
-      // Analyze specific entries
+      // Analyze specific entries owned by this user
       entries = await prisma.entry.findMany({
         where: {
-          id: { in: entryIds }
+          id: { in: entryIds },
+          userId: user.id
         },
         select: {
           id: true,
@@ -34,9 +40,10 @@ export async function POST(request: NextRequest) {
         }
       });
     } else {
-      // Analyze unanalyzed entries (where sentiment is null)
+      // Analyze unanalyzed entries (where sentiment is null) for this user
       entries = await prisma.entry.findMany({
         where: {
+          userId: user.id,
           sentiment: null
         },
         select: {
@@ -99,9 +106,9 @@ export async function POST(request: NextRequest) {
     console.error('Error in batch analysis:', error);
 
     // Check if it's an API key error
-    if (error instanceof Error && error.message.includes('OPENAI_API_KEY')) {
+    if (error instanceof Error && error.message.includes('ANTHROPIC_API_KEY')) {
       return NextResponse.json(
-        { error: 'AI analysis is not configured. Please set OPENAI_API_KEY.' },
+        { error: 'AI analysis is not configured. Please set ANTHROPIC_API_KEY.' },
         { status: 503 }
       );
     }
