@@ -51,8 +51,8 @@ export function BottomNav() {
   const pathname = usePathname();
   const [isQuickCaptureOpen, setIsQuickCaptureOpen] = useState(false);
 
-  // Hide navigation on login page
-  if (pathname === '/login') {
+  // Hide navigation on public/unauthenticated pages
+  if (pathname === '/login' || pathname === '/offline' || pathname?.startsWith('/share/')) {
     return null;
   }
 
