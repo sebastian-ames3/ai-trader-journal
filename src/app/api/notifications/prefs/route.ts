@@ -2,10 +2,10 @@
  * Notification Preferences API Route
  *
  * GET /api/notifications/prefs
- * Returns current notification preferences.
+ * Returns current notification preferences for the authenticated user.
  *
  * PUT /api/notifications/prefs
- * Updates notification preferences.
+ * Updates notification preferences for the authenticated user.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -17,19 +17,18 @@ export const dynamic = 'force-dynamic';
 // GET - Get notification preferences
 export async function GET() {
   try {
-    // Authentication check
-    const { error: authError } = await requireAuth();
-    if (authError) return authError;
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const { user } = auth;
 
-    // Note: Currently uses 'default' ID - should be per-user in future
     let prefs = await prisma.userNotificationPrefs.findFirst({
-      where: { id: 'default' },
+      where: { userId: user.id },
     });
 
     // Create default preferences if none exist
     if (!prefs) {
       prefs = await prisma.userNotificationPrefs.create({
-        data: { id: 'default' },
+        data: { userId: user.id },
       });
     }
 
@@ -46,9 +45,9 @@ export async function GET() {
 // PUT - Update notification preferences
 export async function PUT(request: NextRequest) {
   try {
-    // Authentication check
-    const { error: authError } = await requireAuth();
-    if (authError) return authError;
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const { user } = auth;
 
     const body = await request.json();
 
@@ -103,11 +102,11 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    // Upsert preferences
+    // Upsert preferences keyed by userId
     const prefs = await prisma.userNotificationPrefs.upsert({
-      where: { id: 'default' },
+      where: { userId: user.id },
       create: {
-        id: 'default',
+        userId: user.id,
         ...updateData,
       },
       update: updateData,

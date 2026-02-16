@@ -4,7 +4,7 @@
  * GET /api/cron/weekly-review
  *
  * Called by Vercel Cron on Sunday at 6 PM ET.
- * Sends weekly review prompts with summary stats.
+ * Sends weekly review prompts with summary stats to all users.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -16,6 +16,7 @@ import {
 } from '@/lib/notifications';
 import { getWeeklyEntryCount } from '@/lib/marketData';
 import { verifyCronRequest } from '@/lib/cronAuth';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
   if (!verifyCronRequest(request)) {
@@ -23,53 +24,59 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Check preferences
-    const prefs = await getNotificationPrefs();
-
-    if (!prefs.weeklyReview) {
-      return NextResponse.json({
-        success: true,
-        message: 'Weekly review disabled',
-      });
-    }
-
-    // Check if we should send notifications
-    const shouldSend = await shouldSendNotification('TIME_BASED');
-
-    if (!shouldSend) {
-      return NextResponse.json({
-        success: true,
-        message: 'Notifications disabled or quiet hours',
-      });
-    }
-
-    // Get weekly stats
-    const entryCount = await getWeeklyEntryCount();
-
-    // Generate notification copy
-    const copy = NOTIFICATION_COPY.weeklyReview(entryCount);
-
-    // Send notification
-    const result = await sendAndLogNotification({
-      type: 'TIME_BASED',
-      trigger: 'weekly_review',
-      title: copy.title,
-      body: copy.body,
-      url: '/insights',
-      data: {
-        entryCount,
-      },
-      actions: [
-        { action: 'review', title: 'Start Review' },
-        { action: 'later', title: 'Later' },
-      ],
+    // Get all users
+    const users = await prisma.user.findMany({
+      select: { id: true },
     });
+
+    let sent = 0;
+    let skipped = 0;
+
+    for (const { id: userId } of users) {
+      // Check preferences per user
+      const prefs = await getNotificationPrefs(userId);
+
+      if (!prefs.weeklyReview) {
+        skipped++;
+        continue;
+      }
+
+      // Check if we should send notifications
+      const shouldSend = await shouldSendNotification('TIME_BASED', userId);
+
+      if (!shouldSend) {
+        skipped++;
+        continue;
+      }
+
+      // Get weekly stats for this user
+      const entryCount = await getWeeklyEntryCount(userId);
+
+      // Generate notification copy
+      const copy = NOTIFICATION_COPY.weeklyReview(entryCount);
+
+      // Send notification
+      await sendAndLogNotification({
+        type: 'TIME_BASED',
+        trigger: 'weekly_review',
+        title: copy.title,
+        body: copy.body,
+        url: '/insights',
+        userId,
+        data: {
+          entryCount,
+        },
+        actions: [
+          { action: 'review', title: 'Start Review' },
+          { action: 'later', title: 'Later' },
+        ],
+      });
+      sent++;
+    }
 
     return NextResponse.json({
       success: true,
-      message: 'Weekly review sent',
-      entryCount,
-      notification: result,
+      message: `Weekly reviews: ${sent} sent, ${skipped} skipped`,
     });
   } catch (error) {
     console.error('Weekly review error:', error);

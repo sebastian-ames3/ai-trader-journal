@@ -20,6 +20,7 @@ import {
   NOTIFICATION_COPY,
 } from '@/lib/notifications';
 import { verifyCronRequest } from '@/lib/cronAuth';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
   // Verify this is a legitimate cron request
@@ -52,17 +53,6 @@ export async function GET(request: NextRequest) {
           spy: snapshot.spy,
           vix: snapshot.vix,
         },
-      });
-    }
-
-    // Check if we should send notifications
-    const shouldSend = await shouldSendNotification('MARKET_CONDITION');
-
-    if (!shouldSend) {
-      return NextResponse.json({
-        success: true,
-        message: 'Notifications disabled or quiet hours',
-        trigger: trigger.trigger,
       });
     }
 
@@ -100,28 +90,39 @@ export async function GET(request: NextRequest) {
         copy = { title: 'Market Alert', body: 'Market conditions have changed.' };
     }
 
-    // Send notification
-    const result = await sendAndLogNotification({
-      type: 'MARKET_CONDITION',
-      trigger: trigger.trigger,
-      title: copy.title,
-      body: copy.body,
-      url: '/journal/new',
-      data: {
-        spyChange: trigger.spy.change,
-        vixLevel: trigger.vix.price,
-      },
-      actions: [
-        { action: 'voice', title: 'Voice Note' },
-        { action: 'quick', title: 'Quick Text' },
-      ],
+    // Send to all users who have market alerts enabled
+    const users = await prisma.user.findMany({
+      select: { id: true },
     });
+
+    let sent = 0;
+    for (const { id: userId } of users) {
+      const shouldSend = await shouldSendNotification('MARKET_CONDITION', userId);
+      if (!shouldSend) continue;
+
+      await sendAndLogNotification({
+        type: 'MARKET_CONDITION',
+        trigger: trigger.trigger,
+        title: copy.title,
+        body: copy.body,
+        url: '/journal/new',
+        userId,
+        data: {
+          spyChange: trigger.spy.change,
+          vixLevel: trigger.vix.price,
+        },
+        actions: [
+          { action: 'voice', title: 'Voice Note' },
+          { action: 'quick', title: 'Quick Text' },
+        ],
+      });
+      sent++;
+    }
 
     return NextResponse.json({
       success: true,
-      message: 'Notification sent',
+      message: `Notification sent to ${sent} users`,
       trigger: trigger.trigger,
-      notification: result,
     });
   } catch (error) {
     console.error('Market check error:', error);
