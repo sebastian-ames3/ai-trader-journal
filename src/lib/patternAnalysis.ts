@@ -11,11 +11,12 @@
 import { prisma } from '@/lib/prisma';
 import { PatternType, Trend } from '@prisma/client';
 import {
-  getClaude,
+  createMessage,
   CLAUDE_MODELS,
   parseJsonResponse,
   extractTextContent,
   isClaudeConfigured,
+  sanitizeForPrompt,
 } from '@/lib/claude';
 
 // Types for pattern analysis
@@ -166,7 +167,7 @@ async function detectPatternsWithClaude(
       sentiment: e.sentiment,
       biases: e.detectedBiases,
       keywords: e.emotionalKeywords,
-      content: e.content.substring(0, 500), // Truncate for token efficiency
+      content: sanitizeForPrompt(e.content.substring(0, 500)), // Truncate + sanitize
       marketState: market?.marketState || 'UNKNOWN',
       spyChange: market?.spyChange || 0,
       vixLevel: market?.vixLevel || 0,
@@ -175,15 +176,15 @@ async function detectPatternsWithClaude(
   });
 
   try {
-    const claude = getClaude();
-
-    const response = await claude.messages.create({
-      model: CLAUDE_MODELS.DEEP, // Opus for complex pattern analysis
-      max_tokens: 4000,
-      messages: [
-        {
-          role: 'user',
-          content: `Analyze these ${entries.length} journal entries for behavioral patterns:
+    const response = await createMessage(
+      'patternDetection',
+      {
+        model: CLAUDE_MODELS.DEEP,
+        max_tokens: 4000,
+        messages: [
+          {
+            role: 'user',
+            content: `Analyze these ${entries.length} journal entries for behavioral patterns:
 
 ${JSON.stringify(entrySummaries, null, 2)}
 
@@ -203,9 +204,9 @@ Return JSON in this exact format:
     }
   ]
 }`,
-        },
-      ],
-      system: `You are analyzing a trader's journal entries to identify behavioral patterns.
+          },
+        ],
+        system: `You are analyzing a trader's journal entries to identify behavioral patterns.
 
 Look for these specific pattern categories:
 1. TIMING - Early profit taking, late loss cutting, FOMO entries, panic exits, revenge trading
@@ -221,7 +222,9 @@ For each pattern:
 - Include outcome data if trades are present
 
 Respond with valid JSON only, no markdown formatting.`,
-    });
+      },
+      { timeout: 60_000 } // 60s timeout for Opus deep analysis
+    );
 
     const result = parseJsonResponse<{ patterns: PatternDetectionResult[] }>(response);
 
@@ -327,22 +330,20 @@ export async function checkForPatternMatch(
   }
 
   try {
-    const claude = getClaude();
-
-    // Use Haiku for fast similarity check
-    const response = await claude.messages.create({
-      model: CLAUDE_MODELS.FAST, // Haiku for fast checks
+    const response = await createMessage('patternMatch', {
+      model: CLAUDE_MODELS.FAST,
       max_tokens: 500,
       messages: [
         {
           role: 'user',
-          content: `Current draft: "${draftContent}"
+          content: `Current draft:
+<draft_content>${sanitizeForPrompt(draftContent)}</draft_content>
 
 Past entries with negative outcomes:
 ${negativeEntries
   .map(
     (e) =>
-      `ID: ${e.id} | Date: ${e.createdAt.toISOString().split('T')[0]} | Biases: ${e.detectedBiases.join(', ')} | Content: "${e.content.substring(0, 200)}..."`
+      `ID: ${e.id} | Date: ${e.createdAt.toISOString().split('T')[0]} | Biases: ${e.detectedBiases.join(', ')} | Content: <entry_content>${sanitizeForPrompt(e.content.substring(0, 200))}</entry_content>`
   )
   .join('\n')}
 
@@ -599,10 +600,8 @@ async function generateKeyInsight(
     Object.entries(biasDistribution).sort(([, a], [, b]) => b - a)[0]?.[0] || 'none';
 
   try {
-    const claude = getClaude();
-
-    const response = await claude.messages.create({
-      model: CLAUDE_MODELS.FAST, // Haiku for quick insight
+    const response = await createMessage('monthlyInsight', {
+      model: CLAUDE_MODELS.FAST,
       max_tokens: 100,
       messages: [
         {
