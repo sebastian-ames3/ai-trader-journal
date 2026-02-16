@@ -10,6 +10,7 @@ import { rateLimiters, checkRateLimit } from '@/lib/rateLimit';
  * Query params:
  * - format: 'json' (default) | 'csv'
  * - type: 'all' (default) | 'entries' | 'theses' | 'trades' | 'goals'
+ * - limit: number (default 10000, max 50000) - cap per collection
  */
 export async function GET(request: NextRequest) {
   try {
@@ -23,6 +24,10 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const format = searchParams.get('format') || 'json';
     const type = searchParams.get('type') || 'all';
+    const limit = Math.min(
+      Math.max(1, parseInt(searchParams.get('limit') || '10000', 10) || 10000),
+      50000
+    );
 
     // Validate format
     if (!['json', 'csv'].includes(format)) {
@@ -62,6 +67,7 @@ export async function GET(request: NextRequest) {
           updatedAt: true,
         },
         orderBy: { createdAt: 'desc' },
+        take: limit,
       });
     }
 
@@ -85,6 +91,7 @@ export async function GET(request: NextRequest) {
           createdAt: true,
         },
         orderBy: { createdAt: 'desc' },
+        take: limit,
       });
     }
 
@@ -111,6 +118,7 @@ export async function GET(request: NextRequest) {
           },
         },
         orderBy: { openedAt: 'desc' },
+        take: limit,
       });
     }
 
@@ -134,6 +142,7 @@ export async function GET(request: NextRequest) {
           reflection: true,
         },
         orderBy: { createdAt: 'desc' },
+        take: limit,
       });
     }
 
