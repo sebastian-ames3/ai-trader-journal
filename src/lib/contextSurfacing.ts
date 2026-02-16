@@ -11,11 +11,12 @@
 
 import { prisma } from '@/lib/prisma';
 import {
-  getClaude,
+  createMessage,
   CLAUDE_MODELS,
   parseJsonResponse,
   extractTextContent,
   isClaudeConfigured,
+  sanitizeForPrompt,
 } from '@/lib/claude';
 
 // Common false positives for ticker detection
@@ -113,17 +114,15 @@ export async function detectTickers(content: string): Promise<string[]> {
   }
 
   try {
-    const claude = getClaude();
-
-    const response = await claude.messages.create({
-      model: CLAUDE_MODELS.FAST, // Haiku for fast validation
+    const response = await createMessage('tickerValidation', {
+      model: CLAUDE_MODELS.FAST,
       max_tokens: 100,
       messages: [
         {
           role: 'user',
           content: `Which of these are valid US stock tickers? Return ONLY the valid tickers as a JSON array.
 Candidates: ${filtered.join(', ')}
-Context: "${content.substring(0, 300)}"
+Context: <user_content>${sanitizeForPrompt(content.substring(0, 300))}</user_content>
 
 Return format: { "tickers": ["AAPL", "MSFT"] }`,
         },
@@ -353,10 +352,8 @@ export async function generateTickerInsight(
   }
 
   try {
-    const claude = getClaude();
-
-    const response = await claude.messages.create({
-      model: CLAUDE_MODELS.BALANCED, // Sonnet for nuanced insights
+    const response = await createMessage('tickerInsight', {
+      model: CLAUDE_MODELS.BALANCED,
       max_tokens: 100,
       messages: [
         {
@@ -373,7 +370,7 @@ Recent entries:
 ${history.recentEntries
   .map(
     (e) =>
-      `- ${e.createdAt.toLocaleDateString()}: "${e.content.substring(0, 100)}..." (${e.sentiment || 'no sentiment'})`
+      `- ${e.createdAt.toLocaleDateString()}: <user_content>${sanitizeForPrompt(e.content.substring(0, 100))}</user_content> (${e.sentiment || 'no sentiment'})`
   )
   .join('\n')}`,
         },

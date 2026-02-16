@@ -7,11 +7,12 @@
 
 import { prisma } from './prisma';
 import {
-  getClaude,
+  createMessage,
   CLAUDE_MODELS,
   extractTextContent,
   parseJsonResponse,
   isClaudeConfigured,
+  sanitizeForPrompt,
 } from './claude';
 import { Entry, CoachSession, CoachGoal, EntryMood, Prisma } from '@prisma/client';
 import { subDays, format } from 'date-fns';
@@ -419,7 +420,7 @@ function formatEntriesForContext(entries: Entry[]): string {
         entry.content.length > 200
           ? entry.content.slice(0, 200) + '...'
           : entry.content;
-      return `[${date}] (${entry.type}, ${entry.mood || 'no mood'}) ${excerpt}`;
+      return `[${date}] (${entry.type}, ${entry.mood || 'no mood'}) ${sanitizeForPrompt(excerpt)}`;
     })
     .join('\n\n');
 }
@@ -497,17 +498,16 @@ export async function processCoachMessage(
     enhancedMessage += `\n\n[Currently discussing entry ID: ${context.currentEntry}]`;
   }
 
-  // Build conversation history for Claude
+  // Build conversation history, stripping embedded context from prior messages
+  // to avoid sending duplicate journal excerpts on every turn
   const conversationHistory = existingMessages.slice(-20).map((m) => ({
     role: m.role as 'user' | 'assistant',
-    content: m.content,
+    content: m.content.replace(/\n\n\[RELEVANT JOURNAL ENTRIES FOR CONTEXT:\][\s\S]*$/, ''),
   }));
 
   try {
-    const claude = getClaude();
-
-    const response = await claude.messages.create({
-      model: CLAUDE_MODELS.BALANCED, // Sonnet for conversational quality
+    const response = await createMessage('coachChat', {
+      model: CLAUDE_MODELS.BALANCED,
       max_tokens: 1000,
       system: `${systemPrompt}
 
@@ -619,14 +619,12 @@ export async function generateSessionSummary(
   }
 
   const conversationText = messages
-    .map((m) => `${m.role === 'user' ? 'Trader' : 'Coach'}: ${m.content}`)
+    .map((m) => `${m.role === 'user' ? 'Trader' : 'Coach'}: ${sanitizeForPrompt(m.content)}`)
     .join('\n\n');
 
   try {
-    const claude = getClaude();
-
-    const response = await claude.messages.create({
-      model: CLAUDE_MODELS.FAST, // Haiku for quick summary
+    const response = await createMessage('sessionSummary', {
+      model: CLAUDE_MODELS.FAST,
       max_tokens: 300,
       messages: [
         {

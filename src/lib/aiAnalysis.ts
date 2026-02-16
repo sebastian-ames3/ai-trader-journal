@@ -14,10 +14,11 @@
 import { ConvictionLevel } from '@prisma/client';
 import { z } from 'zod';
 import {
-  getClaude,
+  createMessage,
   CLAUDE_MODELS,
   parseJsonResponse,
   isClaudeConfigured,
+  sanitizeForPrompt,
 } from '@/lib/claude';
 
 /**
@@ -168,10 +169,8 @@ export async function analyzeEntryText(
   const prompt = buildAnalysisPrompt(content, userMood, userConviction);
 
   try {
-    const claude = getClaude();
-
-    const response = await claude.messages.create({
-      model: CLAUDE_MODELS.FAST, // Haiku for fast, cheap analysis
+    const response = await createMessage('entryAnalysis', {
+      model: CLAUDE_MODELS.FAST,
       max_tokens: 500,
       messages: [
         {
@@ -341,15 +340,18 @@ function buildAnalysisPrompt(
   userMood?: string,
   userConviction?: string
 ): string {
+  const safeContent = sanitizeForPrompt(content);
+  const safeMood = userMood ? sanitizeForPrompt(userMood) : '';
+  const safeConviction = userConviction ? sanitizeForPrompt(userConviction) : '';
+
   return `Analyze this trading journal entry and extract psychological insights.
 
-JOURNAL ENTRY:
-"""
-${content}
-"""
+<journal_entry>
+${safeContent}
+</journal_entry>
 
-${userMood ? `USER'S SELF-REPORTED MOOD: ${userMood}` : ''}
-${userConviction ? `USER'S SELF-REPORTED CONVICTION: ${userConviction}` : ''}
+${safeMood ? `USER'S SELF-REPORTED MOOD: ${safeMood}` : ''}
+${safeConviction ? `USER'S SELF-REPORTED CONVICTION: ${safeConviction}` : ''}
 
 Respond with ONLY valid JSON in this exact format:
 {

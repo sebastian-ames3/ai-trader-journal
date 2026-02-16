@@ -18,7 +18,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import {
-  getClaude,
+  createMessage,
   CLAUDE_MODELS,
   parseJsonResponse,
   isClaudeConfigured,
@@ -108,17 +108,13 @@ export async function POST(request: NextRequest) {
     // Limit content length to prevent abuse
     const truncatedContent = content.slice(0, 2000);
 
-    // Get Claude client
-    const claude = getClaude();
-
-    // Call Claude Haiku for inference
-    const response = await claude.messages.create({
-      model: CLAUDE_MODELS.FAST, // Haiku for fast, cheap inference
+    const response = await createMessage('quickInference', {
+      model: CLAUDE_MODELS.FAST,
       max_tokens: 200,
       messages: [
         {
           role: 'user',
-          content: `${INFERENCE_PROMPT}\n"${truncatedContent}"`,
+          content: `${INFERENCE_PROMPT}\n<entry_content>${truncatedContent}</entry_content>`,
         },
       ],
       system:
