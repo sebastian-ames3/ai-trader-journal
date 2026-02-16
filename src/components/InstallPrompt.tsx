@@ -118,7 +118,7 @@ export default function InstallPrompt() {
   }
 
   return (
-    <div className="fixed bottom-20 left-4 right-4 z-40 md:left-auto md:right-4 md:max-w-sm">
+    <div className="fixed bottom-20 left-4 right-4 z-40 md:bottom-4 md:left-auto md:right-4 md:max-w-sm">
       <div className="bg-card border border-border rounded-lg shadow-lg p-4">
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0 w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
