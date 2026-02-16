@@ -11,6 +11,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { z, ZodSchema } from 'zod';
 
 /**
  * Claude model constants with tiering strategy
@@ -137,6 +138,30 @@ export function parseJsonResponse<T>(response: Anthropic.Message): T | null {
     console.error('Response text:', text);
     return null;
   }
+}
+
+/**
+ * Parse JSON from Claude response and validate against a Zod schema.
+ * Returns null if parsing or validation fails (with error logging).
+ */
+export function parseAndValidate<T extends ZodSchema>(
+  response: Anthropic.Message,
+  schema: T,
+  caller: string
+): z.infer<T> | null {
+  const raw = parseJsonResponse<unknown>(response);
+  if (raw === null) {
+    console.error(`[${caller}] Failed to parse JSON from Claude response`);
+    return null;
+  }
+
+  const result = schema.safeParse(raw);
+  if (!result.success) {
+    console.error(`[${caller}] Zod validation failed:`, result.error.issues);
+    return null;
+  }
+
+  return result.data;
 }
 
 /**

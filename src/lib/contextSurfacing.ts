@@ -13,11 +13,12 @@ import { prisma } from '@/lib/prisma';
 import {
   createMessage,
   CLAUDE_MODELS,
-  parseJsonResponse,
+  parseAndValidate,
   extractTextContent,
   isClaudeConfigured,
   sanitizeForPrompt,
 } from '@/lib/claude';
+import { z } from 'zod';
 
 // Common false positives for ticker detection
 const FALSE_POSITIVE_TICKERS = [
@@ -36,6 +37,13 @@ const KNOWN_STRATEGIES = [
   'bull put spread', 'bear call spread', 'bull call spread', 'bear put spread',
   'collar', 'protective put', 'married put', 'poor mans covered call',
 ];
+
+/**
+ * Zod schema for ticker validation response
+ */
+const TickerValidationResponseSchema = z.object({
+  tickers: z.array(z.string()).default([]),
+}).passthrough();
 
 // Types
 export interface TickerContext {
@@ -130,7 +138,7 @@ Return format: { "tickers": ["AAPL", "MSFT"] }`,
       system: 'You are a financial assistant. Respond with valid JSON only, no markdown.',
     });
 
-    const result = parseJsonResponse<{ tickers: string[] }>(response);
+    const result = parseAndValidate(response, TickerValidationResponseSchema, 'detectTickers');
     return result?.tickers || [];
   } catch (error) {
     console.error('Ticker validation error:', error);

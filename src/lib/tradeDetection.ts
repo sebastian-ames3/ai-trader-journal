@@ -15,7 +15,7 @@ import { z } from 'zod';
 import {
   createMessage,
   CLAUDE_MODELS,
-  parseJsonResponse,
+  parseAndValidate,
   isClaudeConfigured,
   sanitizeForPrompt,
 } from '@/lib/claude';
@@ -97,8 +97,6 @@ const TradeDetectionResponseSchema = z.object({
   pnlConfidence: z.number().min(0).max(1).catch(0),
   evidenceQuote: z.string().max(100).nullable().catch(null),
 });
-
-type TradeDetectionResponse = z.infer<typeof TradeDetectionResponseSchema>;
 
 /**
  * System prompt for trade detection
@@ -202,14 +200,11 @@ export async function detectTradeInContent(
       ],
     });
 
-    const parsed = parseJsonResponse<TradeDetectionResponse>(response);
-    if (!parsed) {
+    const validated = parseAndValidate(response, TradeDetectionResponseSchema, 'detectTradeInContent');
+    if (!validated) {
       console.error('Failed to parse trade detection response');
       return EMPTY_DETECTION_RESULT;
     }
-
-    // Validate with Zod
-    const validated = TradeDetectionResponseSchema.parse(parsed);
 
     return {
       detected: validated.detected,

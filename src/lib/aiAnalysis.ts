@@ -16,7 +16,7 @@ import { z } from 'zod';
 import {
   createMessage,
   CLAUDE_MODELS,
-  parseJsonResponse,
+  parseAndValidate,
   isClaudeConfigured,
   sanitizeForPrompt,
 } from '@/lib/claude';
@@ -83,6 +83,22 @@ export interface BiasWithConfidence {
   bias: string;
   confidence: number;
 }
+
+/**
+ * Zod schema for raw AI analysis response
+ */
+const RawAnalysisResponseSchema = z.object({
+  sentiment: z.enum(['positive', 'negative', 'neutral']).optional(),
+  emotionalKeywords: z.array(z.string()).optional(),
+  detectedBiases: z.union([
+    z.array(BiasWithConfidenceSchema),
+    z.array(z.string()),
+  ]).optional(),
+  convictionInferred: z.string().optional(),
+  confidence: z.number().optional(),
+  aiTags: z.array(z.string()).optional(),
+  insufficientContent: z.boolean().optional(),
+}).passthrough();
 
 /**
  * Safe default values for when AI analysis fails completely
@@ -182,8 +198,8 @@ export async function analyzeEntryText(
         'You are a trading psychology analyst. Extract psychological insights from trading journal entries. Always respond with valid JSON only, no markdown formatting.',
     });
 
-    // Parse the JSON response
-    const parsed = parseJsonResponse<RawAnalysisResponse>(response);
+    // Parse and validate the JSON response
+    const parsed = parseAndValidate(response, RawAnalysisResponseSchema, 'analyzeEntryText');
 
     // Validate with Zod schema - this will use .catch() defaults for invalid fields
     const validated = validateAnalysisResponse(parsed, content);
@@ -210,15 +226,7 @@ export async function analyzeEntryText(
   }
 }
 
-interface RawAnalysisResponse {
-  sentiment?: string;
-  emotionalKeywords?: string[];
-  detectedBiases?: Array<{ bias: string; confidence: number }> | string[];
-  convictionInferred?: string;
-  confidence?: number;
-  aiTags?: string[];
-  insufficientContent?: boolean;
-}
+type RawAnalysisResponse = z.infer<typeof RawAnalysisResponseSchema>;
 
 /**
  * Normalizes bias data from AI response to ensure consistent format.

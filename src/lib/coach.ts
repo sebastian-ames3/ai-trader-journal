@@ -10,12 +10,13 @@ import {
   createMessage,
   CLAUDE_MODELS,
   extractTextContent,
-  parseJsonResponse,
+  parseAndValidate,
   isClaudeConfigured,
   sanitizeForPrompt,
 } from './claude';
 import { Entry, CoachSession, CoachGoal, EntryMood, Prisma } from '@prisma/client';
 import { subDays, format } from 'date-fns';
+import { z } from 'zod';
 
 /**
  * Goal templates for common trading psychology objectives
@@ -425,17 +426,20 @@ function formatEntriesForContext(entries: Entry[]): string {
     .join('\n\n');
 }
 
-interface RawCoachResponse {
-  content?: string;
-  suggestions?: string[];
-  entryReferences?: Array<{
-    entryId: string;
-    excerpt: string;
-    date: string;
-    relevance: string;
-  }>;
-  actionItems?: string[];
-}
+/**
+ * Zod schema for raw coach response
+ */
+const RawCoachResponseSchema = z.object({
+  content: z.string().optional(),
+  suggestions: z.array(z.string()).optional().default([]),
+  entryReferences: z.array(z.object({
+    entryId: z.string(),
+    excerpt: z.string(),
+    date: z.string(),
+    relevance: z.string(),
+  })).optional().default([]),
+  actionItems: z.array(z.string()).optional().default([]),
+}).passthrough();
 
 /**
  * Processes a user message and generates a coach response
@@ -533,7 +537,7 @@ Include actionItems when there are clear next steps for the user.`,
 
     // Try to parse structured response
     let coachResponse: CoachResponse;
-    const parsed = parseJsonResponse<RawCoachResponse>(response);
+    const parsed = parseAndValidate(response, RawCoachResponseSchema, 'processCoachMessage');
 
     if (parsed && parsed.content) {
       coachResponse = {

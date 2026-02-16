@@ -20,10 +20,11 @@
 import {
   createMessage,
   CLAUDE_MODELS,
-  parseJsonResponse,
+  parseAndValidate,
   isClaudeConfigured,
 } from '@/lib/claude';
 import { StrategyType } from '@prisma/client';
+import { z } from 'zod';
 
 /**
  * Extracted trade data from screenshot analysis
@@ -75,6 +76,45 @@ export interface ExtractionResult {
   error?: string;
   processingTimeMs?: number;
 }
+
+/**
+ * Zod schema for trade extraction response
+ */
+const TradeExtractionResponseSchema = z.object({
+  ticker: z.string().optional(),
+  strategyType: z.string().optional(),
+  strategyDescription: z.string().optional(),
+  strikes: z.array(z.object({
+    strike: z.number(),
+    type: z.string(),
+    action: z.string(),
+  })).optional(),
+  expiration: z.string().optional(),
+  premium: z.number().optional(),
+  premiumType: z.string().optional(),
+  quantity: z.number().optional(),
+  greeks: z.object({
+    delta: z.number().optional(),
+    theta: z.number().optional(),
+    gamma: z.number().optional(),
+    vega: z.number().optional(),
+  }).optional(),
+  iv: z.number().optional(),
+  hv: z.number().optional(),
+  ivRank: z.number().optional(),
+  ivPercentile: z.number().optional(),
+  underlyingPrice: z.number().optional(),
+  currentPL: z.number().optional(),
+  maxProfit: z.number().optional(),
+  maxLoss: z.number().optional(),
+  breakevens: z.array(z.number()).optional(),
+  platform: z.string().optional(),
+  isClosed: z.boolean().optional(),
+  outcome: z.string().optional(),
+  netPnL: z.number().optional(),
+  pnlPercentage: z.number().optional(),
+  confidence: z.number().min(0).max(1).default(0.5),
+}).passthrough();
 
 const VISION_SYSTEM_PROMPT = `You are a trading screenshot analyzer. Your task is to extract structured trade data from screenshots of trading platforms.
 
@@ -354,7 +394,7 @@ export async function extractTradeData(
       ],
     });
 
-    const parsed = parseJsonResponse<Record<string, unknown>>(response);
+    const parsed = parseAndValidate(response, TradeExtractionResponseSchema, 'extractTradeData');
     const extractedData = validateExtractionResponse(parsed);
 
     return {
@@ -437,7 +477,7 @@ export async function extractTradeDataFromBase64(
       ],
     });
 
-    const parsed = parseJsonResponse<Record<string, unknown>>(response);
+    const parsed = parseAndValidate(response, TradeExtractionResponseSchema, 'extractTradeDataFromBase64');
     const extractedData = validateExtractionResponse(parsed);
 
     return {
