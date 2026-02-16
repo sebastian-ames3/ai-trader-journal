@@ -30,22 +30,6 @@ export const CLAUDE_MODELS = {
 
 export type ClaudeModel = (typeof CLAUDE_MODELS)[keyof typeof CLAUDE_MODELS];
 
-/**
- * Model selection helper based on task complexity
- */
-export function selectModel(task: 'fast' | 'balanced' | 'deep'): ClaudeModel {
-  switch (task) {
-    case 'fast':
-      return CLAUDE_MODELS.FAST;
-    case 'balanced':
-      return CLAUDE_MODELS.BALANCED;
-    case 'deep':
-      return CLAUDE_MODELS.DEEP;
-    default:
-      return CLAUDE_MODELS.BALANCED;
-  }
-}
-
 // Lazy-initialized Anthropic client
 let anthropicClient: Anthropic | null = null;
 

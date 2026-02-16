@@ -249,6 +249,7 @@ model Entry {
   @@index([userId])
   @@index([deletedAt])
   @@index([tradeDetected])
+  @@index([userId, deletedAt, createdAt(sort: Desc)])
 }
 
 model Snapshot {
