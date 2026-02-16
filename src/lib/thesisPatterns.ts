@@ -144,9 +144,10 @@ export interface PatternAnalysisResult {
  *
  * @returns Pattern analysis results
  */
-export async function analyzeThesisPatterns(): Promise<PatternAnalysisResult> {
+export async function analyzeThesisPatterns(userId: string): Promise<PatternAnalysisResult> {
   const theses = await prisma.tradingThesis.findMany({
     where: {
+      userId,
       status: ThesisStatus.CLOSED,
     },
     include: {
@@ -166,7 +167,7 @@ export async function analyzeThesisPatterns(): Promise<PatternAnalysisResult> {
     },
   });
 
-  const totalTheses = await prisma.tradingThesis.count();
+  const totalTheses = await prisma.tradingThesis.count({ where: { userId } });
   const closedTheses = theses.length;
 
   if (closedTheses === 0) {
@@ -527,6 +528,7 @@ function generateRecentInsights(
  */
 export async function getThesisReminders(
   ticker: string,
+  userId: string,
   strategyType?: StrategyType,
   extractedData?: ExtractedTradeData
 ): Promise<{
@@ -538,6 +540,7 @@ export async function getThesisReminders(
   // Find related closed theses
   const closedTheses = await prisma.tradingThesis.findMany({
     where: {
+      userId,
       status: ThesisStatus.CLOSED,
       OR: [
         { ticker: normalizedTicker },
@@ -664,6 +667,7 @@ export async function getThesisReminders(
   if (extractedData?.iv && extractedData?.hv) {
     const ivHvRatio = extractedData.iv / extractedData.hv;
     const performance = await calculateHistoricalIvHvPerformance(
+      userId,
       strategyType,
       ivHvRatio
     );
@@ -702,12 +706,14 @@ export async function getThesisReminders(
  */
 export async function findSimilarTheses(
   ticker: string,
+  userId: string,
   strategyType?: StrategyType
 ): Promise<SimilarThesis[]> {
   const normalizedTicker = ticker.toUpperCase();
 
   const theses = await prisma.tradingThesis.findMany({
     where: {
+      userId,
       OR: [
         { ticker: normalizedTicker },
         ...(strategyType
@@ -797,11 +803,13 @@ export async function findSimilarTheses(
  * @returns Performance metrics for the IV/HV range
  */
 export async function calculateHistoricalIvHvPerformance(
+  userId: string,
   strategyType?: StrategyType,
   ivHvRatio?: number
 ): Promise<IvHvPerformance | null> {
   const theses = await prisma.tradingThesis.findMany({
     where: {
+      userId,
       status: ThesisStatus.CLOSED,
       ...(strategyType
         ? {

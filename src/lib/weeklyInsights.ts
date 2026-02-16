@@ -90,7 +90,7 @@ export interface WeeklyInsights {
  */
 export async function generateWeeklyInsights(
   weekOffset: number = 0,
-  userId?: string
+  userId: string
 ): Promise<WeeklyInsights> {
 
   // Calculate date range for the target week
@@ -102,11 +102,11 @@ export async function generateWeeklyInsights(
   // Fetch all entries for the week (filtered by user if provided)
   const entries = await prisma.entry.findMany({
     where: {
+      userId,
       createdAt: {
         gte: weekStart,
         lte: weekEnd
       },
-      ...(userId && { userId })
     },
     include: {
       trade: {
@@ -148,7 +148,7 @@ export async function generateWeeklyInsights(
   }
 
   // Get behavioral patterns (Phase 2)
-  const behavioralPatterns = await getBehavioralPatterns();
+  const behavioralPatterns = await getBehavioralPatterns(userId);
 
   return {
     weekStart: format(weekStart, 'yyyy-MM-dd'),
@@ -313,7 +313,7 @@ function generatePersonalizedInsights(
 async function generateWeekComparison(
   currentEntries: EntryWithTrade[],
   currentWeekStart: Date,
-  userId?: string
+  userId: string
 ): Promise<WeeklyInsights['comparison']> {
 
   // Get previous week's data
@@ -326,7 +326,7 @@ async function generateWeekComparison(
         gte: prevWeekStart,
         lte: prevWeekEnd
       },
-      ...(userId && { userId })
+      userId,
     }
   });
 
@@ -375,8 +375,9 @@ async function generateWeekComparison(
 /**
  * Gets active behavioral patterns for weekly insights (Phase 2)
  */
-async function getBehavioralPatterns(): Promise<WeeklyInsights['behavioralPatterns']> {
+async function getBehavioralPatterns(userId: string): Promise<WeeklyInsights['behavioralPatterns']> {
   // Get active patterns
+  // Note: PatternInsight model lacks userId; security comes from user-scoped entries
   const activePatterns = await prisma.patternInsight.findMany({
     where: {
       isActive: true,
@@ -402,6 +403,7 @@ async function getBehavioralPatterns(): Promise<WeeklyInsights['behavioralPatter
 
   const todayEntry = await prisma.entry.findFirst({
     where: {
+      userId,
       createdAt: { gte: today }
     }
   });

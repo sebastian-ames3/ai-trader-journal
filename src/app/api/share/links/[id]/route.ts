@@ -64,12 +64,12 @@ export async function GET(
 
       case ShareType.WEEKLY_INSIGHTS:
         const weekOffset = link.weekOffset ?? 0;
-        response.weeklyInsights = await generateWeeklyInsights(weekOffset);
+        response.weeklyInsights = await generateWeeklyInsights(weekOffset, link.userId);
         break;
 
       case ShareType.STATS_SUMMARY:
         // Stats summary is a subset of weekly insights
-        const stats = await generateWeeklyInsights(0);
+        const stats = await generateWeeklyInsights(0, link.userId);
         response.weeklyInsights = {
           stats: stats.stats,
           emotional: {
@@ -86,7 +86,7 @@ export async function GET(
       case ShareType.ACCOUNTABILITY:
         // These types get entries plus insights
         response.entries = await getSharedEntries(link);
-        response.weeklyInsights = await generateWeeklyInsights(0);
+        response.weeklyInsights = await generateWeeklyInsights(0, link.userId);
         break;
     }
 

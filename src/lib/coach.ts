@@ -114,12 +114,13 @@ interface UserContext {
 /**
  * Fetches user context for building the system prompt
  */
-async function getUserContext(): Promise<UserContext> {
+async function getUserContext(userId: string): Promise<UserContext> {
   const fourteenDaysAgo = subDays(new Date(), 14);
 
   // Fetch recent entries from the last 14 days
   const recentEntries = await prisma.entry.findMany({
     where: {
+      userId,
       createdAt: {
         gte: fourteenDaysAgo,
       },
@@ -155,13 +156,14 @@ async function getUserContext(): Promise<UserContext> {
 
   // Get current streak from settings
   const settings = await prisma.settings.findFirst({
-    where: { id: 'default' },
+    where: { userId },
   });
   const currentStreak = settings?.currentStreak || 0;
 
   // Get active goals
   const activeGoals = await prisma.coachGoal.findMany({
     where: {
+      userId,
       status: 'ACTIVE',
     },
     orderBy: {
@@ -222,8 +224,8 @@ function formatGoals(goals: CoachGoal[]): string {
 /**
  * Builds the context-aware system prompt for the coach
  */
-export async function buildCoachSystemPrompt(): Promise<string> {
-  const context = await getUserContext();
+export async function buildCoachSystemPrompt(userId: string): Promise<string> {
+  const context = await getUserContext(userId);
 
   const topBiasStr =
     context.topBiases.length > 0
@@ -278,6 +280,7 @@ Provide 2-3 suggested follow-up responses the user might want to explore.`;
  */
 export async function findRelevantEntries(
   query: string,
+  userId: string,
   limit: number = 5
 ): Promise<Entry[]> {
   // Extract potential keywords from the query
@@ -378,6 +381,9 @@ export async function findRelevantEntries(
   // If no specific conditions, get recent entries
   if (searchConditions.length === 0) {
     return prisma.entry.findMany({
+      where: {
+        userId,
+      },
       orderBy: {
         createdAt: 'desc',
       },
@@ -388,6 +394,7 @@ export async function findRelevantEntries(
   // Query with OR conditions
   const entries = await prisma.entry.findMany({
     where: {
+      userId,
       OR: searchConditions,
     },
     orderBy: {
@@ -475,10 +482,10 @@ export async function processCoachMessage(
   const existingMessages = (session.messages as unknown as CoachMessage[]) || [];
 
   // Build system prompt
-  const systemPrompt = await buildCoachSystemPrompt();
+  const systemPrompt = await buildCoachSystemPrompt(userId);
 
   // Find relevant entries for context
-  const relevantEntries = await findRelevantEntries(userMessage);
+  const relevantEntries = await findRelevantEntries(userMessage, userId);
   const entriesContext = formatEntriesForContext(relevantEntries);
 
   // Build the user message with context
