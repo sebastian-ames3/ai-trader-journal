@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { RelationshipStatus } from '@prisma/client';
 
@@ -16,6 +17,10 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const { user } = auth;
+
     const body = await request.json();
 
     // Validate required fields
@@ -58,6 +63,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Mentor relationship not found' },
         { status: 404 }
+      );
+    }
+
+    // Verify the caller is a participant in this relationship
+    if (relationship.userId !== user.id && relationship.mentorEmail !== user.email) {
+      return NextResponse.json(
+        { error: 'Not authorized to comment on this relationship' },
+        { status: 403 }
       );
     }
 
@@ -132,6 +145,10 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const { user } = auth;
+
     const { searchParams } = new URL(request.url);
     const relationshipId = searchParams.get('relationshipId');
     const entryId = searchParams.get('entryId');
@@ -143,7 +160,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Verify relationship exists
+    // Verify relationship exists and caller is a participant
     const relationship = await prisma.mentorRelationship.findUnique({
       where: { id: relationshipId }
     });
@@ -152,6 +169,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { error: 'Mentor relationship not found' },
         { status: 404 }
+      );
+    }
+
+    if (relationship.userId !== user.id && relationship.mentorEmail !== user.email) {
+      return NextResponse.json(
+        { error: 'Not authorized to view comments for this relationship' },
+        { status: 403 }
       );
     }
 

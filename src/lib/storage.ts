@@ -170,7 +170,7 @@ export function validateContentType(contentType: string, type: 'audio' | 'image'
     image: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
   };
 
-  if (!allowedTypes[type].some(t => contentType.includes(t.split('/')[1]))) {
+  if (!allowedTypes[type].includes(contentType)) {
     throw new Error(`Invalid content type for ${type}. Allowed: ${allowedTypes[type].join(', ')}`);
   }
 }

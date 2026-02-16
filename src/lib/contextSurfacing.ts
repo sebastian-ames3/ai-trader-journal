@@ -201,10 +201,11 @@ export async function getTickerMarketData(ticker: string): Promise<TickerContext
 /**
  * Get user's historical entries for a ticker
  */
-export async function getTickerHistory(ticker: string): Promise<TickerHistory> {
+export async function getTickerHistory(ticker: string, userId: string): Promise<TickerHistory> {
   // Find entries that mention this ticker
   const entries = await prisma.entry.findMany({
     where: {
+      userId,
       OR: [
         { ticker: { equals: ticker, mode: 'insensitive' } },
         { content: { contains: ticker, mode: 'insensitive' } },
@@ -293,10 +294,11 @@ export async function getTickerHistory(ticker: string): Promise<TickerHistory> {
 /**
  * Get strategy history
  */
-export async function getStrategyHistory(strategy: string): Promise<StrategyHistory> {
+export async function getStrategyHistory(strategy: string, userId: string): Promise<StrategyHistory> {
   // Find entries mentioning this strategy
   const entries = await prisma.entry.findMany({
     where: {
+      userId,
       content: { contains: strategy, mode: 'insensitive' },
     },
     select: {
@@ -390,11 +392,11 @@ Be specific and reference their history. Max 2 sentences. Be empathetic but dire
 /**
  * Get full context for a ticker
  */
-export async function getFullTickerContext(ticker: string): Promise<FullTickerContext> {
+export async function getFullTickerContext(ticker: string, userId: string): Promise<FullTickerContext> {
   // Fetch market data and history in parallel
   const [market, history] = await Promise.all([
     getTickerMarketData(ticker),
-    getTickerHistory(ticker),
+    getTickerHistory(ticker, userId),
   ]);
 
   // Generate insight if there's enough history
@@ -471,9 +473,9 @@ export async function saveMarketSnapshot(
 /**
  * Get historical market data for an entry's ticker
  */
-export async function getEntryHistoricalContext(entryId: string) {
-  const entry = await prisma.entry.findUnique({
-    where: { id: entryId },
+export async function getEntryHistoricalContext(entryId: string, userId: string) {
+  const entry = await prisma.entry.findFirst({
+    where: { id: entryId, userId },
     select: {
       ticker: true,
       createdAt: true,
@@ -529,6 +531,7 @@ export async function getEntryHistoricalContext(entryId: string) {
   // Get next entry about this ticker
   const nextEntry = await prisma.entry.findFirst({
     where: {
+      userId,
       OR: [
         { ticker: entry.ticker },
         { content: { contains: entry.ticker, mode: 'insensitive' } },

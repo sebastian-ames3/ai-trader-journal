@@ -7,6 +7,7 @@ import {
   getExpirationDate
 } from '@/lib/sharing';
 import { requireAuth } from '@/lib/auth';
+import { rateLimiters, checkRateLimit } from '@/lib/rateLimit';
 
 /**
  * GET /api/share/links
@@ -54,6 +55,9 @@ export async function POST(request: NextRequest) {
   try {
     const { user, error } = await requireAuth();
     if (error) return error;
+
+    const rateLimited = checkRateLimit(rateLimiters.shareCreate, user.id);
+    if (rateLimited) return rateLimited;
 
     const body = await request.json();
 

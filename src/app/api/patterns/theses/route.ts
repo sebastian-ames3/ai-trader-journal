@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { analyzeThesisPatterns } from '@/lib/thesisPatterns';
+import { requireAuth } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +16,10 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(): Promise<NextResponse> {
   try {
-    const analysis = await analyzeThesisPatterns();
+    const { user, error: authError } = await requireAuth();
+    if (authError) return authError;
+
+    const analysis = await analyzeThesisPatterns(user.id);
 
     return NextResponse.json({
       success: true,

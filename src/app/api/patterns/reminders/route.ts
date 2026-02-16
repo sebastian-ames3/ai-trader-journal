@@ -6,6 +6,7 @@ import {
   calculateHistoricalIvHvPerformance,
 } from '@/lib/thesisPatterns';
 import { ExtractedTradeData } from '@/lib/tradeExtraction';
+import { requireAuth } from '@/lib/auth';
 
 /**
  * POST /api/patterns/reminders
@@ -24,6 +25,9 @@ import { ExtractedTradeData } from '@/lib/tradeExtraction';
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
+    const { user, error: authError } = await requireAuth();
+    if (authError) return authError;
+
     const body = await request.json();
 
     // Validate required fields
@@ -60,18 +64,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Get reminders and lessons
     const { reminders, lessons } = await getThesisReminders(
       ticker,
+      user.id,
       strategyType,
       extractedData
     );
 
     // Find similar theses
-    const similarTheses = await findSimilarTheses(ticker, strategyType);
+    const similarTheses = await findSimilarTheses(ticker, user.id, strategyType);
 
     // Get IV/HV performance if we have that data
     let ivHvPerformance = null;
     if (extractedData?.iv && extractedData?.hv && extractedData.hv > 0) {
       const ivHvRatio = extractedData.iv / extractedData.hv;
       ivHvPerformance = await calculateHistoricalIvHvPerformance(
+        user.id,
         strategyType,
         ivHvRatio
       );

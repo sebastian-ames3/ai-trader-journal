@@ -17,6 +17,7 @@ import {
   handleClaudeError,
 } from '@/lib/claude';
 import { requireAuth } from '@/lib/auth';
+import { rateLimiters, checkRateLimit } from '@/lib/rateLimit';
 
 // Chart analysis prompt
 const CHART_ANALYSIS_PROMPT = `Analyze this trading chart or screenshot. Extract the following information if visible:
@@ -67,8 +68,11 @@ interface ChartAnalysis {
 export async function POST(request: NextRequest) {
   try {
     // Authentication check
-    const { error: authError } = await requireAuth();
+    const { user, error: authError } = await requireAuth();
     if (authError) return authError;
+
+    const rateLimited = checkRateLimit(rateLimiters.imageAnalysis, user.id);
+    if (rateLimited) return rateLimited;
 
     // Check for Anthropic API key
     if (!isClaudeConfigured()) {

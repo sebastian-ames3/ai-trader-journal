@@ -22,6 +22,7 @@ import {
   ThesisLesson,
   ThesisPattern,
 } from '@/lib/thesisPatterns';
+import { requireAuth } from '@/lib/auth';
 
 // Map TradeReminder types to RiskWarning types expected by the component
 type RiskWarningType =
@@ -160,6 +161,9 @@ function mapPatternToInsight(pattern: ThesisPattern, index: number): PatternInsi
 
 export async function GET(request: NextRequest) {
   try {
+    const { user, error: authError } = await requireAuth();
+    if (authError) return authError;
+
     const searchParams = request.nextUrl.searchParams;
     const ticker = searchParams.get('ticker');
     const thesisId = searchParams.get('thesisId');
@@ -189,11 +193,12 @@ export async function GET(request: NextRequest) {
     // Get reminders and lessons from the pattern service
     const { reminders, lessons } = await getThesisReminders(
       ticker,
+      user.id,
       strategyType
     );
 
     // Get pattern analysis for additional insights
-    const patternAnalysis = await analyzeThesisPatterns();
+    const patternAnalysis = await analyzeThesisPatterns(user.id);
 
     // Filter patterns relevant to the current ticker or strategy
     const relevantPatterns = patternAnalysis.patterns.filter((pattern) => {

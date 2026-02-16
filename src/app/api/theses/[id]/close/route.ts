@@ -114,12 +114,13 @@ export async function POST(
 
     try {
       // Analyze patterns from all closed theses including this one
-      const patternAnalysis = await analyzeThesisPatterns();
+      const patternAnalysis = await analyzeThesisPatterns(user.id);
 
       // Find patterns related to this thesis's characteristics
       // Note: similarTheses result is computed for potential future use
       await findSimilarTheses(
         existingThesis.ticker,
+        user.id,
         existingThesis.thesisTrades[0]?.strategyType || undefined
       );
 

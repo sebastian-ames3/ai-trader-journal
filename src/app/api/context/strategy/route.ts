@@ -6,12 +6,17 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 import { getStrategyHistory, detectStrategy } from '@/lib/contextSurfacing';
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const { user } = auth;
+
     const { searchParams } = new URL(request.url);
     const strategy = searchParams.get('strategy');
     const content = searchParams.get('content');
@@ -27,7 +32,7 @@ export async function GET(request: NextRequest) {
         });
       }
 
-      const history = await getStrategyHistory(detectedStrategy);
+      const history = await getStrategyHistory(detectedStrategy, user.id);
 
       return NextResponse.json({
         strategy: detectedStrategy,
@@ -44,7 +49,7 @@ export async function GET(request: NextRequest) {
 
     // Normalize strategy name (replace hyphens with spaces)
     const normalizedStrategy = strategy.replace(/-/g, ' ').toLowerCase();
-    const history = await getStrategyHistory(normalizedStrategy);
+    const history = await getStrategyHistory(normalizedStrategy, user.id);
 
     return NextResponse.json({
       strategy: normalizedStrategy,

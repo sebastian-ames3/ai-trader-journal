@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
@@ -29,6 +30,10 @@ export async function GET(
   { params }: RouteParams
 ) {
   try {
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const { user } = auth;
+
     const { type } = await params;
 
     // Validate widget type
@@ -59,8 +64,8 @@ export async function GET(
     // Parse query parameters for dynamic config
     const { searchParams } = new URL(request.url);
 
-    // Fetch widget-specific data
-    const data = await fetchWidgetData(widgetType, config as Record<string, unknown>, searchParams);
+    // Fetch widget-specific data scoped to user
+    const data = await fetchWidgetData(widgetType, config as Record<string, unknown>, searchParams, user.id);
 
     return NextResponse.json({
       type: widgetType,
@@ -83,47 +88,48 @@ export async function GET(
 async function fetchWidgetData(
   type: WidgetType,
   config: Record<string, unknown>,
-  searchParams: URLSearchParams
+  searchParams: URLSearchParams,
+  userId: string
 ): Promise<unknown> {
   switch (type) {
     case 'STREAK':
-      return fetchStreakData();
+      return fetchStreakData(userId);
 
     case 'WEEKLY_INSIGHTS':
-      return fetchWeeklyInsightsData(config, searchParams);
+      return fetchWeeklyInsightsData(config, searchParams, userId);
 
     case 'RECENT_ENTRIES':
-      return fetchRecentEntriesData(config, searchParams);
+      return fetchRecentEntriesData(config, searchParams, userId);
 
     case 'MOOD_TREND':
-      return fetchMoodTrendData(config, searchParams);
+      return fetchMoodTrendData(config, searchParams, userId);
 
     case 'BIAS_TRACKER':
-      return fetchBiasTrackerData(config, searchParams);
+      return fetchBiasTrackerData(config, searchParams, userId);
 
     case 'CONVICTION_ANALYSIS':
-      return fetchConvictionAnalysisData();
+      return fetchConvictionAnalysisData(userId);
 
     case 'OPEN_POSITIONS':
-      return fetchOpenPositionsData(config, searchParams);
+      return fetchOpenPositionsData(config, searchParams, userId);
 
     case 'MARKET_CONDITIONS':
       return fetchMarketConditionsData();
 
     case 'GOALS_PROGRESS':
-      return fetchGoalsProgressData(config);
+      return fetchGoalsProgressData(config, userId);
 
     case 'TAG_CLOUD':
-      return fetchTagCloudData(config, searchParams);
+      return fetchTagCloudData(config, searchParams, userId);
 
     case 'CALENDAR_HEATMAP':
-      return fetchCalendarHeatmapData(config);
+      return fetchCalendarHeatmapData(config, userId);
 
     case 'COACH_PROMPT':
-      return fetchCoachPromptData(config);
+      return fetchCoachPromptData(config, userId);
 
     case 'ACCOUNTABILITY':
-      return fetchAccountabilityData();
+      return fetchAccountabilityData(userId);
 
     case 'QUICK_CAPTURE':
       // Quick capture doesn't need pre-fetched data
@@ -134,9 +140,9 @@ async function fetchWidgetData(
   }
 }
 
-async function fetchStreakData() {
-  const settings = await prisma.settings.findUnique({
-    where: { id: 'default' },
+async function fetchStreakData(userId: string) {
+  const settings = await prisma.settings.findFirst({
+    where: { userId },
     select: {
       currentStreak: true,
       longestStreak: true,
@@ -155,7 +161,8 @@ async function fetchStreakData() {
 
 async function fetchWeeklyInsightsData(
   config: Record<string, unknown>,
-  searchParams: URLSearchParams
+  searchParams: URLSearchParams,
+  userId: string
 ) {
   const weekOffset = parseInt(
     searchParams.get('weekOffset') || String(config.weekOffset || 0),
@@ -170,6 +177,7 @@ async function fetchWeeklyInsightsData(
 
   const entries = await prisma.entry.findMany({
     where: {
+      userId,
       createdAt: {
         gte: targetWeekStart,
         lte: targetWeekEnd,
@@ -211,7 +219,8 @@ async function fetchWeeklyInsightsData(
 
 async function fetchRecentEntriesData(
   config: Record<string, unknown>,
-  searchParams: URLSearchParams
+  searchParams: URLSearchParams,
+  userId: string
 ) {
   const limit = parseInt(
     searchParams.get('limit') || String(config.limit || 5),
@@ -219,7 +228,7 @@ async function fetchRecentEntriesData(
   );
   const filterType = searchParams.get('filterType') || config.filterType;
 
-  const where: Record<string, unknown> = {};
+  const where: Record<string, unknown> = { userId };
   if (filterType && filterType !== 'ALL') {
     where.type = filterType;
   }
@@ -244,7 +253,8 @@ async function fetchRecentEntriesData(
 
 async function fetchMoodTrendData(
   config: Record<string, unknown>,
-  searchParams: URLSearchParams
+  searchParams: URLSearchParams,
+  userId: string
 ) {
   const timeRange = searchParams.get('timeRange') || String(config.timeRange || '7d');
   const days = parseInt(timeRange.replace('d', ''), 10);
@@ -252,6 +262,7 @@ async function fetchMoodTrendData(
 
   const entries = await prisma.entry.findMany({
     where: {
+      userId,
       createdAt: { gte: startDate },
       mood: { not: null },
     },
@@ -280,7 +291,8 @@ async function fetchMoodTrendData(
 
 async function fetchBiasTrackerData(
   config: Record<string, unknown>,
-  searchParams: URLSearchParams
+  searchParams: URLSearchParams,
+  userId: string
 ) {
   const timeRange = searchParams.get('timeRange') || String(config.timeRange || '30d');
   const topCount = parseInt(String(config.topBiasCount || 5), 10);
@@ -289,6 +301,7 @@ async function fetchBiasTrackerData(
 
   const entries = await prisma.entry.findMany({
     where: {
+      userId,
       createdAt: { gte: startDate },
     },
     select: {
@@ -319,9 +332,10 @@ async function fetchBiasTrackerData(
   };
 }
 
-async function fetchConvictionAnalysisData() {
+async function fetchConvictionAnalysisData(userId: string) {
   const entries = await prisma.entry.findMany({
     where: {
+      userId,
       OR: [
         { conviction: { not: null } },
         { convictionInferred: { not: null } },
@@ -354,7 +368,8 @@ async function fetchConvictionAnalysisData() {
 
 async function fetchOpenPositionsData(
   config: Record<string, unknown>,
-  searchParams: URLSearchParams
+  searchParams: URLSearchParams,
+  userId: string
 ) {
   const sortBy = searchParams.get('sortBy') || config.sortBy || 'recent';
 
@@ -366,7 +381,7 @@ async function fetchOpenPositionsData(
   }
 
   const theses = await prisma.tradingThesis.findMany({
-    where: { status: 'ACTIVE' },
+    where: { userId, status: 'ACTIVE' },
     orderBy,
     take: 10,
     include: {
@@ -406,13 +421,13 @@ async function fetchMarketConditionsData() {
   return latestCondition || null;
 }
 
-async function fetchGoalsProgressData(config: Record<string, unknown>) {
+async function fetchGoalsProgressData(config: Record<string, unknown>, userId: string) {
   const showCompleted = config.showCompleted === true;
   const limit = parseInt(String(config.limit || 3), 10);
 
   const where: Record<string, unknown> = showCompleted
-    ? {}
-    : { status: 'ACTIVE' };
+    ? { userId }
+    : { userId, status: 'ACTIVE' };
 
   const goals = await prisma.coachGoal.findMany({
     where,
@@ -437,17 +452,16 @@ async function fetchGoalsProgressData(config: Record<string, unknown>) {
 
 async function fetchTagCloudData(
   config: Record<string, unknown>,
-  searchParams: URLSearchParams
+  searchParams: URLSearchParams,
+  userId: string
 ) {
   const timeRange = searchParams.get('timeRange') || String(config.timeRange || '30d');
   const maxTags = parseInt(String(config.maxTags || 15), 10);
 
-  let where: Record<string, unknown> = {};
+  const where: Record<string, unknown> = { userId };
   if (timeRange !== 'all') {
     const days = parseInt(timeRange.replace('d', ''), 10);
-    where = {
-      createdAt: { gte: subDays(new Date(), days) },
-    };
+    where.createdAt = { gte: subDays(new Date(), days) };
   }
 
   const entries = await prisma.entry.findMany({
@@ -477,7 +491,8 @@ async function fetchTagCloudData(
 }
 
 async function fetchCalendarHeatmapData(
-  config: Record<string, unknown>
+  config: Record<string, unknown>,
+  userId: string
 ) {
   const months = parseInt(String(config.months || 3), 10);
   const startDate = subDays(new Date(), months * 30);
@@ -485,6 +500,7 @@ async function fetchCalendarHeatmapData(
   const entries = await prisma.entry.groupBy({
     by: ['createdAt'],
     where: {
+      userId,
       createdAt: { gte: startDate },
     },
     _count: true,
@@ -505,10 +521,10 @@ async function fetchCalendarHeatmapData(
   return { data };
 }
 
-async function fetchCoachPromptData(config: Record<string, unknown>) {
+async function fetchCoachPromptData(config: Record<string, unknown>, userId: string) {
   const promptType = config.promptType || 'all';
 
-  const where: Record<string, unknown> = { status: 'PENDING' };
+  const where: Record<string, unknown> = { userId, status: 'PENDING' };
   if (promptType !== 'all') {
     where.triggerType = promptType;
   }
@@ -528,9 +544,9 @@ async function fetchCoachPromptData(config: Record<string, unknown>) {
   return { prompts };
 }
 
-async function fetchAccountabilityData() {
+async function fetchAccountabilityData(userId: string) {
   const pairs = await prisma.accountabilityPair.findMany({
-    where: { status: 'ACTIVE' },
+    where: { userId, status: 'ACTIVE' },
     take: 5,
     select: {
       id: true,

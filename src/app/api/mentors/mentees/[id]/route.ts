@@ -80,7 +80,7 @@ export async function GET(
 
     // Get weekly insights if permitted
     if (relationship.shareWeeklyInsights) {
-      const weeklyInsights = await generateWeeklyInsights(0);
+      const weeklyInsights = await generateWeeklyInsights(0, relationship.userId);
 
       // Optionally filter out P/L data if not shared
       if (!relationship.sharePLData) {

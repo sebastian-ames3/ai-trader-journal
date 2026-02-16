@@ -10,30 +10,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzePatterns, checkPatternBreaking } from '@/lib/patternAnalysis';
 import { sendAndLogNotification, shouldSendNotification } from '@/lib/notifications';
-
-// Verify cron request (Vercel adds this header)
-function verifyCronRequest(request: NextRequest): boolean {
-  const authHeader = request.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
-
-  // In development, allow without auth
-  if (process.env.NODE_ENV === 'development') {
-    return true;
-  }
-
-  // Vercel Cron doesn't send CRON_SECRET, it uses Authorization Bearer
-  if (authHeader === `Bearer ${cronSecret}`) {
-    return true;
-  }
-
-  // Also accept Vercel's cron signature
-  const vercelCron = request.headers.get('x-vercel-cron');
-  if (vercelCron) {
-    return true;
-  }
-
-  return false;
-}
+import { verifyCronRequest } from '@/lib/cronAuth';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
   // Verify this is a legitimate cron request
@@ -42,11 +20,49 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Run pattern analysis
-    const patterns = await analyzePatterns();
+    // Get all distinct userIds that have entries
+    const users = await prisma.entry.findMany({
+      select: { userId: true },
+      distinct: ['userId'],
+    });
 
-    // Check for pattern-breaking behavior
-    const patternBreakingMessage = await checkPatternBreaking();
+    let patternBreakingMessage: string | null = null;
+
+    for (const { userId } of users) {
+      // Run pattern analysis per user
+      const userPatterns = await analyzePatterns(userId);
+      // Check for pattern-breaking behavior per user
+      const userBreakingMsg = await checkPatternBreaking(userId);
+      if (userBreakingMsg) patternBreakingMessage = userBreakingMsg;
+
+      // Check for new significant patterns to notify about
+      const significantPatterns = userPatterns.filter(
+        (p) => p.confidence > 0.8 && p.occurrences >= 5
+      );
+
+      if (significantPatterns.length > 0) {
+        const topPattern = significantPatterns[0];
+        const shouldSend = await shouldSendNotification('HISTORICAL_CONTEXT');
+
+        if (shouldSend) {
+          await sendAndLogNotification({
+            type: 'HISTORICAL_CONTEXT',
+            trigger: `pattern_detected_${topPattern.patternName}`,
+            title: 'Pattern Detected',
+            body: topPattern.description,
+            url: '/insights/patterns',
+            data: {
+              patternType: topPattern.patternType,
+              patternName: topPattern.patternName,
+              occurrences: topPattern.occurrences,
+            },
+          });
+        }
+      }
+    }
+
+    // Kept outside the loop for backwards compat with the original return shape
+    const patterns = users.length > 0 ? await analyzePatterns(users[0].userId) : [];
 
     // Send notification for pattern-breaking (positive reinforcement)
     if (patternBreakingMessage) {
@@ -59,31 +75,6 @@ export async function GET(request: NextRequest) {
           title: 'Pattern Broken!',
           body: patternBreakingMessage,
           url: '/insights',
-        });
-      }
-    }
-
-    // Check for new significant patterns to notify about
-    const significantPatterns = patterns.filter(
-      (p) => p.confidence > 0.8 && p.occurrences >= 5
-    );
-
-    if (significantPatterns.length > 0) {
-      const topPattern = significantPatterns[0];
-      const shouldSend = await shouldSendNotification('HISTORICAL_CONTEXT');
-
-      if (shouldSend) {
-        await sendAndLogNotification({
-          type: 'HISTORICAL_CONTEXT',
-          trigger: `pattern_detected_${topPattern.patternName}`,
-          title: 'Pattern Detected',
-          body: topPattern.description,
-          url: '/insights/patterns',
-          data: {
-            patternType: topPattern.patternType,
-            patternName: topPattern.patternName,
-            occurrences: topPattern.occurrences,
-          },
         });
       }
     }

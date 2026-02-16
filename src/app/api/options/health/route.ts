@@ -30,7 +30,7 @@ export async function GET() {
         {
           status: 'unhealthy',
           error: 'Options service returned non-OK status',
-          serviceUrl: OPTIONS_SERVICE_URL
+          ...(process.env.NODE_ENV === 'development' ? { serviceUrl: OPTIONS_SERVICE_URL } : {})
         },
         { status: 503 }
       );
@@ -40,7 +40,7 @@ export async function GET() {
     return NextResponse.json({
       ...data,
       proxyStatus: 'healthy',
-      serviceUrl: OPTIONS_SERVICE_URL
+      ...(process.env.NODE_ENV === 'development' ? { serviceUrl: OPTIONS_SERVICE_URL } : {})
     });
 
   } catch (error) {
@@ -50,7 +50,7 @@ export async function GET() {
       {
         status: 'unhealthy',
         error: error instanceof Error ? error.message : 'Unknown error',
-        serviceUrl: OPTIONS_SERVICE_URL,
+        ...(process.env.NODE_ENV === 'development' ? { serviceUrl: OPTIONS_SERVICE_URL } : {}),
         suggestion: 'Ensure OPTIONS_SERVICE_URL environment variable is set correctly'
       },
       { status: 503 }

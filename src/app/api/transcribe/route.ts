@@ -28,6 +28,7 @@ import {
   isAssemblyAIConfigured,
 } from '@/lib/assemblyai';
 import { requireAuth } from '@/lib/auth';
+import { rateLimiters, checkRateLimit } from '@/lib/rateLimit';
 
 // Lazy-initialize OpenAI client
 let openaiClient: OpenAI | null = null;
@@ -118,8 +119,11 @@ async function transcribeWithAssemblyAIProvider(
 export async function POST(request: NextRequest) {
   try {
     // Authentication check
-    const { error: authError } = await requireAuth();
+    const { user, error: authError } = await requireAuth();
     if (authError) return authError;
+
+    const rateLimited = checkRateLimit(rateLimiters.transcribe, user.id);
+    if (rateLimited) return rateLimited;
 
     // Get provider from query params
     const { searchParams } = new URL(request.url);

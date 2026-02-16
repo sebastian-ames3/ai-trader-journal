@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { generateSessionSummary } from '@/lib/coach';
 
@@ -16,12 +17,16 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const { user } = auth;
+
     const { id } = await params;
     const body = await request.json();
 
-    // Check if session exists
-    const existingSession = await prisma.coachSession.findUnique({
-      where: { id },
+    // Check if session exists and belongs to user
+    const existingSession = await prisma.coachSession.findFirst({
+      where: { id, userId: user.id },
     });
 
     if (!existingSession) {

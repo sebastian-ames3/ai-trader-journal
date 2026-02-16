@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth';
+import { rateLimiters, checkRateLimit } from '@/lib/rateLimit';
 
 /**
  * Search result types
@@ -62,6 +63,9 @@ export async function GET(request: NextRequest) {
     // Authentication check
     const { user, error: authError } = await requireAuth();
     if (authError) return authError;
+
+    const rateLimited = checkRateLimit(rateLimiters.search, user.id);
+    if (rateLimited) return rateLimited;
 
     const searchParams = request.nextUrl.searchParams;
     const query = searchParams.get('q')?.trim() || '';

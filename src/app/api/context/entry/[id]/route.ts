@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 import { getEntryHistoricalContext } from '@/lib/contextSurfacing';
@@ -15,6 +16,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const { user } = auth;
+
     const { id } = await params;
 
     if (!id) {
@@ -24,7 +29,7 @@ export async function GET(
       );
     }
 
-    const context = await getEntryHistoricalContext(id);
+    const context = await getEntryHistoricalContext(id, user.id);
 
     if (!context) {
       return NextResponse.json(

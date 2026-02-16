@@ -16,12 +16,16 @@ import {
   isStorageConfigured,
 } from '@/lib/storage';
 import { requireAuth } from '@/lib/auth';
+import { rateLimiters, checkRateLimit } from '@/lib/rateLimit';
 
 export async function POST(request: NextRequest) {
   try {
     // Authentication check
-    const { error: authError } = await requireAuth();
+    const { user, error: authError } = await requireAuth();
     if (authError) return authError;
+
+    const rateLimited = checkRateLimit(rateLimiters.imageUpload, user.id);
+    if (rateLimited) return rateLimited;
 
     // Check if storage is configured
     if (!isStorageConfigured()) {
