@@ -132,23 +132,54 @@ export async function generateWeeklyInsights(
     observations: entries.filter(e => e.type === 'OBSERVATION').length
   };
 
-  // Analyze emotional data
-  const emotional = analyzeEmotionalTrends(entries);
+  // Each section is isolated so one failure doesn't break the whole response
+  const warnings: string[] = [];
 
-  // Analyze cognitive patterns
-  const patterns = analyzeCognitivePatterns(entries);
-
-  // Generate personalized insights
-  const insights = generatePersonalizedInsights(entries, emotional, patterns);
-
-  // Get comparison with previous week if requested for current week
-  let comparison;
-  if (weekOffset === 0) {
-    comparison = await generateWeekComparison(entries, weekStart, userId);
+  let emotional: WeeklyInsights['emotional'];
+  try {
+    emotional = analyzeEmotionalTrends(entries);
+  } catch (e) {
+    console.error('[WeeklyInsights] Emotional analysis failed:', e);
+    warnings.push('Emotional analysis unavailable');
+    emotional = { dominantSentiment: null, sentimentBreakdown: { positive: 0, negative: 0, neutral: 0 }, topEmotions: [], moodFrequency: [] };
   }
 
-  // Get behavioral patterns (Phase 2)
-  const behavioralPatterns = await getBehavioralPatterns(userId);
+  let patterns: WeeklyInsights['patterns'];
+  try {
+    patterns = analyzeCognitivePatterns(entries);
+  } catch (e) {
+    console.error('[WeeklyInsights] Pattern analysis failed:', e);
+    warnings.push('Cognitive pattern analysis unavailable');
+    patterns = { detectedBiases: [], convictionDistribution: { high: 0, medium: 0, low: 0 } };
+  }
+
+  let insights: string[];
+  try {
+    insights = generatePersonalizedInsights(entries, emotional, patterns);
+  } catch (e) {
+    console.error('[WeeklyInsights] Insight generation failed:', e);
+    warnings.push('Personalized insights unavailable');
+    insights = [];
+  }
+
+  let comparison;
+  if (weekOffset === 0) {
+    try {
+      comparison = await generateWeekComparison(entries, weekStart, userId);
+    } catch (e) {
+      console.error('[WeeklyInsights] Week comparison failed:', e);
+      warnings.push('Week comparison unavailable');
+    }
+  }
+
+  let behavioralPatterns: WeeklyInsights['behavioralPatterns'];
+  try {
+    behavioralPatterns = await getBehavioralPatterns(userId);
+  } catch (e) {
+    console.error('[WeeklyInsights] Behavioral patterns failed:', e);
+    warnings.push('Behavioral patterns unavailable');
+    behavioralPatterns = { activePatterns: [] };
+  }
 
   return {
     weekStart: format(weekStart, 'yyyy-MM-dd'),
@@ -158,7 +189,8 @@ export async function generateWeeklyInsights(
     patterns,
     insights,
     comparison,
-    behavioralPatterns
+    behavioralPatterns,
+    ...(warnings.length > 0 ? { warnings } : {}),
   };
 }
 

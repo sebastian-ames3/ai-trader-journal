@@ -12,7 +12,7 @@ import { offlineDb } from './offlineQueue'
 export async function clearAllLocalData(): Promise<void> {
   // Clear IndexedDB (Dexie offline queue)
   try {
-    await offlineDb.queuedEntries.clear()
+    if (offlineDb) await offlineDb.queuedEntries.clear()
   } catch {
     // Database might not exist yet
   }
@@ -34,10 +34,12 @@ export async function clearAllLocalData(): Promise<void> {
  */
 export async function clearUserOfflineData(userId: string): Promise<void> {
   try {
-    await offlineDb.queuedEntries
-      .where('userId')
-      .equals(userId)
-      .delete()
+    if (offlineDb) {
+      await offlineDb.queuedEntries
+        .where('userId')
+        .equals(userId)
+        .delete()
+    }
   } catch {
     // Database might not exist or userId column not yet added
   }

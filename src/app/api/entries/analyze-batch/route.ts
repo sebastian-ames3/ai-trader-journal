@@ -76,21 +76,25 @@ export async function POST(request: NextRequest) {
       }))
     );
 
-    // Update all entries with analysis results
-    const updatePromises = results.map(({ id, analysis }) =>
-      prisma.entry.update({
-        where: { id },
-        data: {
-          sentiment: analysis.sentiment,
-          emotionalKeywords: analysis.emotionalKeywords,
-          detectedBiases: analysis.detectedBiases,
-          convictionInferred: analysis.convictionInferred,
-          aiTags: analysis.aiTags
-        }
-      })
-    );
-
-    await Promise.all(updatePromises);
+    // Update entries in batches of 10 to avoid overwhelming the connection pool
+    const BATCH_SIZE = 10;
+    for (let i = 0; i < results.length; i += BATCH_SIZE) {
+      const batch = results.slice(i, i + BATCH_SIZE);
+      await Promise.all(
+        batch.map(({ id, analysis }) =>
+          prisma.entry.update({
+            where: { id },
+            data: {
+              sentiment: analysis.sentiment,
+              emotionalKeywords: analysis.emotionalKeywords,
+              detectedBiases: analysis.detectedBiases,
+              convictionInferred: analysis.convictionInferred,
+              aiTags: analysis.aiTags
+            }
+          })
+        )
+      );
+    }
 
     return NextResponse.json({
       message: `Successfully analyzed ${results.length} entries`,
