@@ -13,11 +13,12 @@ import { PatternType, Trend } from '@prisma/client';
 import {
   createMessage,
   CLAUDE_MODELS,
-  parseJsonResponse,
+  parseAndValidate,
   extractTextContent,
   isClaudeConfigured,
   sanitizeForPrompt,
 } from '@/lib/claude';
+import { z } from 'zod';
 
 // Types for pattern analysis
 export interface PatternDetectionResult {
@@ -64,6 +65,35 @@ export interface MonthlyReport {
 // Minimum entries required for pattern detection
 const MIN_ENTRIES_FOR_PATTERNS = 20;
 const MIN_OCCURRENCES_FOR_PATTERN = 3;
+
+/**
+ * Zod schema for pattern detection response
+ */
+const PatternDetectionResponseSchema = z.object({
+  patterns: z.array(z.object({
+    patternType: z.enum(['TIMING', 'CONVICTION', 'EMOTIONAL', 'MARKET_CONDITION', 'BIAS_FREQUENCY']),
+    patternName: z.string(),
+    description: z.string(),
+    occurrences: z.number(),
+    evidence: z.array(z.string()).default([]),
+    trend: z.enum(['INCREASING', 'STABLE', 'DECREASING']),
+    confidence: z.number().min(0).max(1),
+    relatedEntryIds: z.array(z.string()).default([]),
+    outcomeData: z.object({
+      winRate: z.number().optional(),
+      avgReturn: z.number().optional(),
+      sampleSize: z.number().optional(),
+    }).optional(),
+  })).default([]),
+}).passthrough();
+
+/**
+ * Zod schema for pattern match response
+ */
+const PatternMatchResponseSchema = z.object({
+  alert: z.string().nullable(),
+  matchingEntryIds: z.array(z.string()).default([]),
+}).passthrough();
 
 /**
  * Run full pattern analysis on recent entries
@@ -226,7 +256,7 @@ Respond with valid JSON only, no markdown formatting.`,
       { timeout: 60_000 } // 60s timeout for Opus deep analysis
     );
 
-    const result = parseJsonResponse<{ patterns: PatternDetectionResult[] }>(response);
+    const result = parseAndValidate(response, PatternDetectionResponseSchema, 'detectPatternsWithClaude');
 
     if (!result?.patterns) {
       console.error('No patterns in Claude response');
@@ -359,10 +389,7 @@ Return JSON with "alert" (string or null) and "matchingEntryIds" (array of IDs).
 Respond with valid JSON only, no markdown.`,
     });
 
-    const result = parseJsonResponse<{
-      alert: string | null;
-      matchingEntryIds: string[];
-    }>(response);
+    const result = parseAndValidate(response, PatternMatchResponseSchema, 'checkForPatternMatch');
 
     if (!result?.alert || !result?.matchingEntryIds?.length) {
       return null;
