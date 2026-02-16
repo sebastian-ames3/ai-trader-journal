@@ -232,13 +232,17 @@ export async function bulkLinkEntries(
     errors: [] as { entryId: string; error: string }[],
   };
 
+  // Batch-fetch all entries upfront (fixes N+1 query)
+  const entries = await prisma.entry.findMany({
+    where: { id: { in: entryIds }, userId },
+    include: { tickerMentions: true },
+  });
+
+  const entryMap = new Map(entries.map((e) => [e.id, e]));
+
   for (const entryId of entryIds) {
     try {
-      // Get entry data
-      const entry = await prisma.entry.findUnique({
-        where: { id: entryId, userId },
-        include: { tickerMentions: true },
-      });
+      const entry = entryMap.get(entryId);
 
       if (!entry) {
         result.errors.push({ entryId, error: 'Entry not found' });
