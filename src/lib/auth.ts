@@ -40,29 +40,41 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
   })
 
   if (!user) {
-    // Create new user with default settings in a transaction
-    user = await prisma.$transaction(async (tx) => {
-      const newUser = await tx.user.create({
-        data: {
-          supabaseId: supabaseUser.id,
-          email: supabaseUser.email!,
-          displayName: supabaseUser.user_metadata?.display_name || null,
-        },
-      })
+    // Use upsert to handle concurrent first-login race condition (P2002)
+    try {
+      user = await prisma.$transaction(async (tx) => {
+        const newUser = await tx.user.upsert({
+          where: { supabaseId: supabaseUser.id },
+          update: {}, // No-op if already exists
+          create: {
+            supabaseId: supabaseUser.id,
+            email: supabaseUser.email!,
+            displayName: supabaseUser.user_metadata?.display_name || null,
+          },
+        })
 
-      // Create default settings for new user
-      await tx.settings.create({
-        data: {
-          userId: newUser.id,
-          defaultRisk: 1.0,
-          accountSize: 10000,
-          liquidityThreshold: 100,
-          ivThreshold: 80,
-        },
-      })
+        // Create default settings if they don't exist
+        await tx.settings.upsert({
+          where: { userId: newUser.id },
+          update: {}, // No-op if already exists
+          create: {
+            userId: newUser.id,
+            defaultRisk: 1.0,
+            accountSize: 10000,
+            liquidityThreshold: 100,
+            ivThreshold: 80,
+          },
+        })
 
-      return newUser
-    })
+        return newUser
+      })
+    } catch (e) {
+      // If upsert still races, retry the findUnique
+      user = await prisma.user.findUnique({
+        where: { supabaseId: supabaseUser.id },
+      })
+      if (!user) throw e
+    }
   }
 
   return {
