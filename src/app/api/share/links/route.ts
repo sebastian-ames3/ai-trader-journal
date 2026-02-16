@@ -20,7 +20,8 @@ export async function GET() {
 
     const links = await prisma.shareLink.findMany({
       where: { userId: user.id },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      take: 100,
     });
 
     return NextResponse.json({ links });
