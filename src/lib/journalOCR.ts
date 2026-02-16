@@ -1,6 +1,6 @@
 import { EntryMood } from '@prisma/client';
 import { parseISO } from 'date-fns';
-import { getClaude, CLAUDE_MODELS } from '@/lib/claude';
+import { createMessage, CLAUDE_MODELS } from '@/lib/claude';
 
 export interface OCRResult {
   content: string; // Transcribed markdown text
@@ -21,8 +21,7 @@ export async function extractJournalData(
   imageUrl: string
 ): Promise<OCRResult> {
   try {
-    const claude = getClaude();
-    const response = await claude.messages.create({
+    const response = await createMessage('journalOCR', {
       model: CLAUDE_MODELS.BALANCED,
       max_tokens: 2048,
       messages: [

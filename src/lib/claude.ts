@@ -67,6 +67,24 @@ export function getClaude(): Anthropic {
 }
 
 /**
+ * Instrumented wrapper around claude.messages.create() that automatically
+ * logs usage metrics (tokens, cost, duration) for every AI call.
+ *
+ * Usage: `const response = await createMessage('entryAnalysis', { model, ... })`
+ */
+export async function createMessage(
+  caller: string,
+  params: Anthropic.MessageCreateParamsNonStreaming,
+  options?: Parameters<Anthropic.Messages['create']>[1]
+): Promise<Anthropic.Message> {
+  const claude = getClaude();
+  const start = Date.now();
+  const response = await claude.messages.create(params, options);
+  logAIUsage(caller, params.model, response, Date.now() - start);
+  return response;
+}
+
+/**
  * Check if the Claude API is configured
  */
 export function isClaudeConfigured(): boolean {
@@ -122,6 +140,24 @@ export function parseJsonResponse<T>(response: Anthropic.Message): T | null {
 }
 
 /**
+ * Sanitize user content before embedding in AI prompts.
+ * Strips XML-like tags that could be confused with prompt structure delimiters.
+ */
+export function sanitizeForPrompt(text: string): string {
+  return text
+    .replace(/<\/?(?:journal_entry|user_content|system|assistant|human|entry_content|trade_data|draft_content)[^>]*>/gi, '')
+    .replace(/"""/g, '\\"\\"\\\"');
+}
+
+/**
+ * Rough token estimation (1 token ≈ 4 characters).
+ * Useful for usage monitoring and logging.
+ */
+export function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}
+
+/**
  * Default max tokens for different task types
  */
 export const DEFAULT_MAX_TOKENS = {
@@ -155,4 +191,113 @@ export function handleClaudeError(error: unknown): {
   }
 
   return { status: 500, message: 'An unknown error occurred' };
+}
+
+// ── AI Usage Monitoring ─────────────────────────────────────────────
+
+/** Cost per 1M tokens by model (input / output) */
+const MODEL_COSTS: Record<string, { input: number; output: number }> = {
+  'claude-haiku-4-5-20251001': { input: 0.25, output: 1.25 },
+  'claude-sonnet-4-5-20250929': { input: 3, output: 15 },
+  'claude-opus-4-5-20251101': { input: 15, output: 75 },
+};
+
+interface AIUsageEntry {
+  timestamp: string;
+  caller: string;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  estimatedCost: number;
+  durationMs: number;
+}
+
+// Rolling in-memory log of recent API calls (last 100)
+const usageLog: AIUsageEntry[] = [];
+const MAX_USAGE_LOG = 100;
+
+/**
+ * Log AI API usage after a Claude call.
+ * Call this after every claude.messages.create() to track costs.
+ */
+export function logAIUsage(
+  caller: string,
+  model: string,
+  response: Anthropic.Message,
+  durationMs: number
+): void {
+  const { input_tokens, output_tokens } = response.usage;
+  const costs = MODEL_COSTS[model] || { input: 3, output: 15 }; // default to Sonnet pricing
+  const estimatedCost =
+    (input_tokens / 1_000_000) * costs.input +
+    (output_tokens / 1_000_000) * costs.output;
+
+  const entry: AIUsageEntry = {
+    timestamp: new Date().toISOString(),
+    caller,
+    model,
+    inputTokens: input_tokens,
+    outputTokens: output_tokens,
+    estimatedCost,
+    durationMs,
+  };
+
+  usageLog.push(entry);
+  if (usageLog.length > MAX_USAGE_LOG) {
+    usageLog.shift();
+  }
+
+  // Always log to console so it shows in Vercel logs
+  console.log(
+    `[AI Usage] ${caller} | ${model.split('-').slice(1, 3).join('-')} | ${input_tokens}→${output_tokens} tokens | $${estimatedCost.toFixed(4)} | ${durationMs}ms`
+  );
+}
+
+/**
+ * Get recent AI usage entries for the monitoring dashboard.
+ */
+export function getAIUsageLog(): AIUsageEntry[] {
+  return [...usageLog];
+}
+
+/**
+ * Get aggregate AI usage stats.
+ */
+export function getAIUsageStats(): {
+  totalCalls: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalEstimatedCost: number;
+  byModel: Record<string, { calls: number; cost: number }>;
+  byCaller: Record<string, { calls: number; cost: number }>;
+} {
+  const byModel: Record<string, { calls: number; cost: number }> = {};
+  const byCaller: Record<string, { calls: number; cost: number }> = {};
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
+  let totalEstimatedCost = 0;
+
+  for (const entry of usageLog) {
+    totalInputTokens += entry.inputTokens;
+    totalOutputTokens += entry.outputTokens;
+    totalEstimatedCost += entry.estimatedCost;
+
+    const modelKey = entry.model.split('-').slice(1, 3).join('-');
+    if (!byModel[modelKey]) byModel[modelKey] = { calls: 0, cost: 0 };
+    byModel[modelKey].calls++;
+    byModel[modelKey].cost += entry.estimatedCost;
+
+    if (!byCaller[entry.caller]) byCaller[entry.caller] = { calls: 0, cost: 0 };
+    byCaller[entry.caller].calls++;
+    byCaller[entry.caller].cost += entry.estimatedCost;
+  }
+
+  return {
+    totalCalls: usageLog.length,
+    totalInputTokens,
+    totalOutputTokens,
+    totalEstimatedCost,
+    byModel,
+    byCaller,
+  };
 }

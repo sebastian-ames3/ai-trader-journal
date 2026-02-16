@@ -18,7 +18,7 @@
  */
 
 import {
-  getClaude,
+  createMessage,
   CLAUDE_MODELS,
   parseJsonResponse,
   isClaudeConfigured,
@@ -330,9 +330,7 @@ export async function extractTradeData(
   }
 
   try {
-    const claude = getClaude();
-
-    const response = await claude.messages.create({
+    const response = await createMessage('tradeExtraction', {
       model: CLAUDE_MODELS.BALANCED,
       max_tokens: 1500,
       system: VISION_SYSTEM_PROMPT,
@@ -414,9 +412,7 @@ export async function extractTradeDataFromBase64(
   }
 
   try {
-    const claude = getClaude();
-
-    const response = await claude.messages.create({
+    const response = await createMessage('tradeExtraction', {
       model: CLAUDE_MODELS.BALANCED,
       max_tokens: 1500,
       system: VISION_SYSTEM_PROMPT,

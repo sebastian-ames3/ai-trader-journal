@@ -13,10 +13,11 @@
 
 import { z } from 'zod';
 import {
-  getClaude,
+  createMessage,
   CLAUDE_MODELS,
   parseJsonResponse,
   isClaudeConfigured,
+  sanitizeForPrompt,
 } from '@/lib/claude';
 import type { TradeOutcome } from '@/lib/constants/taxonomy';
 
@@ -142,9 +143,9 @@ Return JSON with your analysis.`;
  */
 const TRADE_DETECTION_USER_PROMPT = `Analyze this journal entry for trade activity:
 
-"""
+<entry_content>
 {content}
-"""
+</entry_content>
 
 Return JSON:
 {
@@ -189,16 +190,14 @@ export async function detectTradeInContent(
   }
 
   try {
-    const claude = getClaude();
-
-    const response = await claude.messages.create({
+    const response = await createMessage('tradeDetection', {
       model: CLAUDE_MODELS.FAST,
       max_tokens: 500,
       system: TRADE_DETECTION_SYSTEM_PROMPT,
       messages: [
         {
           role: 'user',
-          content: TRADE_DETECTION_USER_PROMPT.replace('{content}', content),
+          content: TRADE_DETECTION_USER_PROMPT.replace('{content}', sanitizeForPrompt(content)),
         },
       ],
     });

@@ -10,7 +10,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import {
-  getClaude,
+  createMessage,
   CLAUDE_MODELS,
   isClaudeConfigured,
   parseJsonResponse,
@@ -103,11 +103,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get Claude client
-    const claude = getClaude();
-
-    // Call Claude Sonnet with vision
-    const response = await claude.messages.create({
+    const response = await createMessage('imageAnalysis', {
       model: CLAUDE_MODELS.BALANCED,
       max_tokens: 1000,
       messages: [

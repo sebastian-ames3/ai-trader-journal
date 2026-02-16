@@ -8,7 +8,7 @@
  * from accumulated trading patterns.
  */
 
-import { getClaude, CLAUDE_MODELS, parseJsonResponse, isClaudeConfigured } from '@/lib/claude';
+import { createMessage, CLAUDE_MODELS, parseJsonResponse, isClaudeConfigured, sanitizeForPrompt } from '@/lib/claude';
 import { z } from 'zod';
 
 /**
@@ -182,20 +182,22 @@ export async function generateThesisSuggestion(
   const tradesSummary = group.trades.map((t) => {
     const outcome = t.outcome || 'unknown';
     const pnl = t.realizedPL !== null ? `$${t.realizedPL.toFixed(2)}` : 'N/A';
-    return `- ${t.createdAt.toISOString().split('T')[0]}: ${outcome} (P/L: ${pnl}) - ${t.strategyType || 'unknown strategy'}${t.description ? `: ${t.description.slice(0, 100)}` : ''}`;
+    return `- ${t.createdAt.toISOString().split('T')[0]}: ${outcome} (P/L: ${pnl}) - ${t.strategyType || 'unknown strategy'}${t.description ? `: ${sanitizeForPrompt(t.description.slice(0, 100))}` : ''}`;
   }).join('\n');
 
   const entriesSummary = group.relatedEntries.slice(0, 5).map((e) => {
     const mood = e.mood || 'neutral';
-    return `- ${e.createdAt.toISOString().split('T')[0]} (${e.entryType}, mood: ${mood}): "${e.content.slice(0, 200)}${e.content.length > 200 ? '...' : ''}"`;
+    return `- ${e.createdAt.toISOString().split('T')[0]} (${e.entryType}, mood: ${mood}): <user_content>${sanitizeForPrompt(e.content.slice(0, 200))}</user_content>`;
   }).join('\n');
 
   const prompt = `Analyze this trader's activity on ${group.ticker} and suggest a trading thesis.
 
+<trade_data>
 TRADES (${group.stats.totalTrades} total, ${group.stats.wins}W/${group.stats.losses}L/${group.stats.breakevens}BE):
 ${tradesSummary}
 
 ${group.relatedEntries.length > 0 ? `RELATED JOURNAL ENTRIES:\n${entriesSummary}` : 'No related journal entries found.'}
+</trade_data>
 
 Based on this activity:
 1. What appears to be the trader's view/thesis on ${group.ticker}?
@@ -214,9 +216,7 @@ Return JSON:
 Return ONLY the JSON object, no markdown.`;
 
   try {
-    const claude = getClaude();
-
-    const response = await claude.messages.create({
+    const response = await createMessage('thesisSuggestion', {
       model: CLAUDE_MODELS.FAST,
       max_tokens: 500,
       messages: [
