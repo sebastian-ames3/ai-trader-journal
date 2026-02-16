@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     if (auth.error) return auth.error;
 
     // Check rate limit
-    const rateLimitError = checkRateLimit(rateLimiters.ocr, auth.user.id);
+    const rateLimitError = await checkRateLimit(rateLimiters.ocr, auth.user.id);
     if (rateLimitError) return rateLimitError;
 
     // Parse request body

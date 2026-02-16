@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     if (error) return error;
 
     // Check rate limit
-    const rateLimitError = checkRateLimit(rateLimiters.coachChat, user.id);
+    const rateLimitError = await checkRateLimit(rateLimiters.coachChat, user.id);
     if (rateLimitError) return rateLimitError;
 
     // Check if Claude is configured

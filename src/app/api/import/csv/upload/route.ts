@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     const { user } = auth;
 
     // Check rate limit
-    const rateLimitError = checkRateLimit(rateLimiters.csvImport, user.id);
+    const rateLimitError = await checkRateLimit(rateLimiters.csvImport, user.id);
     if (rateLimitError) return rateLimitError;
 
     // Parse request body

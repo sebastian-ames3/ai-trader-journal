@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
     const { user, error } = await requireAuth();
     if (error) return error;
 
-    const rateLimited = checkRateLimit(rateLimiters.entryCreate, user.id);
+    const rateLimited = await checkRateLimit(rateLimiters.entryCreate, user.id);
     if (rateLimited) return rateLimited;
 
     const body = await request.json();
