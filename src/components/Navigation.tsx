@@ -12,12 +12,12 @@ export default function Navigation() {
   const [streak, setStreak] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
-  // Hide navigation on login page
-  const isLoginPage = pathname === '/login';
+  // Hide navigation on public/unauthenticated pages
+  const isPublicPage = pathname === '/login' || pathname === '/offline' || pathname?.startsWith('/share/');
 
   useEffect(() => {
-    // Don't fetch streak on login page
-    if (isLoginPage) return;
+    // Don't fetch streak on public pages
+    if (isPublicPage) return;
 
     async function fetchStreak() {
       try {
@@ -34,9 +34,9 @@ export default function Navigation() {
     }
 
     fetchStreak();
-  }, [pathname, isLoginPage]); // Refetch when navigating
+  }, [pathname, isPublicPage]); // Refetch when navigating
 
-  if (isLoginPage) {
+  if (isPublicPage) {
     return null;
   }
 

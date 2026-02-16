@@ -63,7 +63,8 @@ function initWebPush(): void {
  * Send a push notification to all subscribed devices
  */
 export async function sendPushNotification(
-  payload: NotificationPayload
+  payload: NotificationPayload,
+  userId?: string
 ): Promise<{ success: number; failed: number }> {
   if (!isPushConfigured()) {
     console.log('Push notifications not configured, skipping');
@@ -72,8 +73,10 @@ export async function sendPushNotification(
 
   initWebPush();
 
-  // Get all subscriptions
-  const subscriptions = await prisma.pushSubscription.findMany();
+  // Get subscriptions (filtered by user if provided)
+  const subscriptions = await prisma.pushSubscription.findMany({
+    where: userId ? { userId } : undefined,
+  });
 
   if (subscriptions.length === 0) {
     console.log('No push subscriptions found');
@@ -125,6 +128,7 @@ export async function logNotification(params: {
   title: string;
   body: string;
   data?: Record<string, unknown>;
+  userId: string;
 }): Promise<string> {
   const log = await prisma.notificationLog.create({
     data: {
@@ -133,6 +137,7 @@ export async function logNotification(params: {
       title: params.title,
       body: params.body,
       data: params.data ? JSON.parse(JSON.stringify(params.data)) : undefined,
+      userId: params.userId,
     },
   });
 
@@ -150,6 +155,7 @@ export async function sendAndLogNotification(params: {
   url?: string;
   actions?: NotificationPayload['actions'];
   data?: Record<string, unknown>;
+  userId: string;
 }): Promise<{ notificationId: string; success: number; failed: number }> {
   // Log the notification first
   const notificationId = await logNotification({
@@ -158,9 +164,10 @@ export async function sendAndLogNotification(params: {
     title: params.title,
     body: params.body,
     data: params.data,
+    userId: params.userId,
   });
 
-  // Send push notification
+  // Send push notification to this user's devices
   const result = await sendPushNotification({
     title: params.title,
     body: params.body,
@@ -175,7 +182,7 @@ export async function sendAndLogNotification(params: {
       ...params.data,
     },
     actions: params.actions,
-  });
+  }, params.userId);
 
   return {
     notificationId,
@@ -265,15 +272,15 @@ export function isQuietHours(
 /**
  * Get notification preferences (or defaults)
  */
-export async function getNotificationPrefs() {
+export async function getNotificationPrefs(userId: string) {
   let prefs = await prisma.userNotificationPrefs.findFirst({
-    where: { id: 'default' },
+    where: { userId },
   });
 
   if (!prefs) {
-    // Create default preferences
+    // Create default preferences for this user
     prefs = await prisma.userNotificationPrefs.create({
-      data: { id: 'default' },
+      data: { userId },
     });
   }
 
@@ -284,9 +291,10 @@ export async function getNotificationPrefs() {
  * Check if notifications should be sent based on preferences
  */
 export async function shouldSendNotification(
-  type: NotificationType
+  type: NotificationType,
+  userId: string
 ): Promise<boolean> {
-  const prefs = await getNotificationPrefs();
+  const prefs = await getNotificationPrefs(userId);
 
   // Check quiet hours
   if (isQuietHours(prefs.quietHoursStart, prefs.quietHoursEnd)) {

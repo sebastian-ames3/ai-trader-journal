@@ -35,6 +35,13 @@ model User {
   dashboardLayouts    DashboardLayout[]
   settings            Settings? // One-to-one
 
+  // Notification & integration models
+  pushSubscriptions      PushSubscription[]
+  notificationPrefs      UserNotificationPrefs? // One-to-one
+  notificationLogs       NotificationLog[]
+  patternInsights        PatternInsight[]
+  discordWebhooks        DiscordWebhook[]
+
   @@index([supabaseId])
   @@index([email])
 }
@@ -143,7 +150,7 @@ model Note {
   type    String @default("general")
 
   tradeId String?
-  trade   Trade?  @relation(fields: [tradeId], references: [id])
+  trade   Trade?  @relation(fields: [tradeId], references: [id], onDelete: SetNull)
 
   // User ownership
   userId String
@@ -325,12 +332,17 @@ model PushSubscription {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // User ownership
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([endpoint])
+  @@index([userId])
 }
 
 // User notification preferences
 model UserNotificationPrefs {
-  id String @id @default("default")
+  id String @id @default(cuid())
 
   // Market alerts
   marketAlerts Boolean @default(true) // Big market moves
@@ -350,6 +362,10 @@ model UserNotificationPrefs {
   quietHoursStart String @default("21:00")
   quietHoursEnd   String @default("07:00")
 
+  // User ownership
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   updatedAt DateTime @updatedAt
 }
 
@@ -366,8 +382,13 @@ model NotificationLog {
   dismissed Boolean          @default(false)
   snoozedTo DateTime? // If snoozed, when to remind again
 
+  // User ownership
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([type])
   @@index([sentAt(sort: Desc)])
+  @@index([userId])
 }
 
 // Daily market conditions snapshot
@@ -426,10 +447,15 @@ model PatternInsight {
   isActive        Boolean     @default(true)
   isDismissed     Boolean     @default(false)
 
+  // User ownership
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([patternType])
   @@index([patternName])
   @@index([isActive])
   @@index([lastUpdated(sort: Desc)])
+  @@index([userId])
 }
 
 // ============================================
@@ -1067,9 +1093,14 @@ model DiscordWebhook {
   isActive   Boolean   @default(true)
   lastUsedAt DateTime?
 
+  // User ownership
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now())
 
   @@index([isActive])
+  @@index([userId])
 }
 
 // ============================================

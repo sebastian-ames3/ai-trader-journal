@@ -13,8 +13,6 @@ const inter = Inter({ subsets: ["latin"] });
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   themeColor: "#171717",
 };
 
@@ -70,9 +68,7 @@ export const metadata: Metadata = {
   },
   other: {
     "mobile-web-app-capable": "yes",
-    "apple-mobile-web-app-capable": "yes",
     "application-name": "Trader Journal",
-    "apple-mobile-web-app-title": "Trader Journal",
     "msapplication-TileColor": "#171717",
     "msapplication-config": "/browserconfig.xml",
   },

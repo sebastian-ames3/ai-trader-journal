@@ -13,11 +13,12 @@ import { PatternType, Trend } from '@prisma/client';
 import {
   createMessage,
   CLAUDE_MODELS,
-  parseJsonResponse,
+  parseAndValidate,
   extractTextContent,
   isClaudeConfigured,
   sanitizeForPrompt,
 } from '@/lib/claude';
+import { z } from 'zod';
 
 // Types for pattern analysis
 export interface PatternDetectionResult {
@@ -66,6 +67,35 @@ const MIN_ENTRIES_FOR_PATTERNS = 20;
 const MIN_OCCURRENCES_FOR_PATTERN = 3;
 
 /**
+ * Zod schema for pattern detection response
+ */
+const PatternDetectionResponseSchema = z.object({
+  patterns: z.array(z.object({
+    patternType: z.enum(['TIMING', 'CONVICTION', 'EMOTIONAL', 'MARKET_CONDITION', 'BIAS_FREQUENCY']),
+    patternName: z.string(),
+    description: z.string(),
+    occurrences: z.number(),
+    evidence: z.array(z.string()).default([]),
+    trend: z.enum(['INCREASING', 'STABLE', 'DECREASING']),
+    confidence: z.number().min(0).max(1),
+    relatedEntryIds: z.array(z.string()).default([]),
+    outcomeData: z.object({
+      winRate: z.number().optional(),
+      avgReturn: z.number().optional(),
+      sampleSize: z.number().optional(),
+    }).optional(),
+  })).default([]),
+}).passthrough();
+
+/**
+ * Zod schema for pattern match response
+ */
+const PatternMatchResponseSchema = z.object({
+  alert: z.string().nullable(),
+  matchingEntryIds: z.array(z.string()).default([]),
+}).passthrough();
+
+/**
  * Run full pattern analysis on recent entries
  */
 export async function analyzePatterns(userId: string): Promise<PatternDetectionResult[]> {
@@ -112,7 +142,7 @@ export async function analyzePatterns(userId: string): Promise<PatternDetectionR
 
   // Store patterns in database
   for (const pattern of validPatterns) {
-    await upsertPattern(pattern);
+    await upsertPattern(pattern, userId);
   }
 
   return validPatterns;
@@ -226,7 +256,7 @@ Respond with valid JSON only, no markdown formatting.`,
       { timeout: 60_000 } // 60s timeout for Opus deep analysis
     );
 
-    const result = parseJsonResponse<{ patterns: PatternDetectionResult[] }>(response);
+    const result = parseAndValidate(response, PatternDetectionResponseSchema, 'detectPatternsWithClaude');
 
     if (!result?.patterns) {
       console.error('No patterns in Claude response');
@@ -247,11 +277,12 @@ Respond with valid JSON only, no markdown formatting.`,
 /**
  * Upsert a pattern in the database
  */
-async function upsertPattern(pattern: PatternDetectionResult): Promise<void> {
+async function upsertPattern(pattern: PatternDetectionResult, userId: string): Promise<void> {
   const existing = await prisma.patternInsight.findFirst({
     where: {
       patternName: pattern.patternName,
       isActive: true,
+      userId,
     },
   });
 
@@ -285,6 +316,7 @@ async function upsertPattern(pattern: PatternDetectionResult): Promise<void> {
         outcomeData: pattern.outcomeData
           ? JSON.parse(JSON.stringify(pattern.outcomeData))
           : undefined,
+        userId,
       },
     });
   }
@@ -357,10 +389,7 @@ Return JSON with "alert" (string or null) and "matchingEntryIds" (array of IDs).
 Respond with valid JSON only, no markdown.`,
     });
 
-    const result = parseJsonResponse<{
-      alert: string | null;
-      matchingEntryIds: string[];
-    }>(response);
+    const result = parseAndValidate(response, PatternMatchResponseSchema, 'checkForPatternMatch');
 
     if (!result?.alert || !result?.matchingEntryIds?.length) {
       return null;
@@ -389,14 +418,12 @@ Respond with valid JSON only, no markdown.`,
 /**
  * Get all active patterns
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export async function getActivePatterns(_userId: string) {
-  // Note: PatternInsight model lacks userId field; access control comes
-  // from the fact that patterns are derived from user-scoped entries.
+export async function getActivePatterns(userId: string) {
   return prisma.patternInsight.findMany({
     where: {
       isActive: true,
       isDismissed: false,
+      userId,
     },
     orderBy: [{ confidence: 'desc' }, { occurrences: 'desc' }],
   });
@@ -407,7 +434,7 @@ export async function getActivePatterns(_userId: string) {
  */
 export async function getPatternWithEntries(patternId: string, userId: string) {
   const pattern = await prisma.patternInsight.findFirst({
-    where: { id: patternId },
+    where: { id: patternId, userId },
   });
 
   if (!pattern) {
@@ -431,10 +458,9 @@ export async function getPatternWithEntries(patternId: string, userId: string) {
 /**
  * Dismiss a pattern
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export async function dismissPattern(patternId: string, _userId: string): Promise<void> {
+export async function dismissPattern(patternId: string, userId: string): Promise<void> {
   await prisma.patternInsight.updateMany({
-    where: { id: patternId },
+    where: { id: patternId, userId },
     data: { isDismissed: true },
   });
 }
@@ -523,6 +549,7 @@ export async function generateMonthlyReport(
   const patterns = await prisma.patternInsight.findMany({
     where: {
       isActive: true,
+      userId,
       lastUpdated: {
         gte: startDate,
       },
@@ -660,6 +687,7 @@ export async function checkPatternBreaking(userId: string): Promise<string | nul
     where: {
       isActive: true,
       isDismissed: false,
+      userId,
       patternName: {
         in: ['drawdown_silence', 'fomo_trading', 'panic_selling', 'revenge_trading'],
       },
