@@ -17,8 +17,8 @@ import Anthropic from '@anthropic-ai/sdk';
  * Using -latest aliases for automatic updates to newest versions
  */
 export const CLAUDE_MODELS = {
-  /** Fast, cheap tasks - ticker validation, quick inference */
-  FAST: 'claude-sonnet-4-20250514',
+  /** Fast, cheap tasks - ticker validation, quick inference (Haiku) */
+  FAST: 'claude-haiku-4-5-20251001',
 
   /** Balanced tasks - entry analysis, vision, insights, chart analysis */
   BALANCED: 'claude-sonnet-4-5-20250929',
