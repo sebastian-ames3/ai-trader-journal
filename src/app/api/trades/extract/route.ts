@@ -24,7 +24,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (authError) return authError;
 
     // Check rate limit
-    const rateLimitError = checkRateLimit(rateLimiters.tradeExtraction, user.id);
+    const rateLimitError = await checkRateLimit(rateLimiters.tradeExtraction, user.id);
     if (rateLimitError) return rateLimitError;
 
     const contentType = request.headers.get('content-type') || '';

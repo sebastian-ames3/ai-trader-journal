@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     const { user, error: authError } = await requireAuth();
     if (authError) return authError;
 
-    const rateLimited = checkRateLimit(rateLimiters.infer, user.id);
+    const rateLimited = await checkRateLimit(rateLimiters.infer, user.id);
     if (rateLimited) return rateLimited;
 
     // Check for Anthropic API key

@@ -8,8 +8,8 @@ import {
   detectTradeInContent,
   formatForStorage,
   meetsConfidenceThreshold,
-  type TradeDetectionResult,
 } from '@/lib/tradeDetection';
+import { sanitizeContent } from '@/lib/sanitize';
 
 export const dynamic = 'force-dynamic';
 
@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
     const { user, error } = await requireAuth();
     if (error) return error;
 
-    const rateLimited = checkRateLimit(rateLimiters.entryCreate, user.id);
+    const rateLimited = await checkRateLimit(rateLimiters.entryCreate, user.id);
     if (rateLimited) return rateLimited;
 
     const body = await request.json();
@@ -276,12 +276,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Sanitize content before storage (defense-in-depth against stored XSS)
+    const sanitizedContent = sanitizeContent(body.content);
+
     // Create entry with media fields and OCR data
     const entry = await prisma.entry.create({
       data: {
         userId: user.id,
         type: body.type,
-        content: body.content,
+        content: sanitizedContent,
         mood: body.mood || null,
         conviction: body.conviction || null,
         ticker: body.ticker || null,
@@ -319,45 +322,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Run trade detection on content (non-blocking for response)
+    // Fire-and-forget trade detection in background (truly non-blocking)
     // Only run for entries with sufficient content and not already OCR-scanned
-    let tradeDetection: TradeDetectionResult | null = null;
     if (
-      body.content.length >= 20 &&
+      sanitizedContent.length >= 20 &&
       !body.isOcrScanned &&
       !body.thesisTradeId
     ) {
-      try {
-        tradeDetection = await detectTradeInContent(body.content);
-
-        // If trade detected with high confidence, update the entry
-        if (tradeDetection && meetsConfidenceThreshold(tradeDetection)) {
-          const storageData = formatForStorage(tradeDetection);
-          if (storageData) {
-            await prisma.entry.update({
-              where: { id: entry.id },
-              data: {
-                tradeDetected: true,
-                tradeDetectionConfidence: tradeDetection.confidence,
-                tradeDetectionData: storageData,
-                // Also update ticker if detected and not already set
-                ticker: entry.ticker || tradeDetection.signals.ticker || null,
-              },
-            });
-
-            // Update local entry object to reflect changes
-            entry.tradeDetected = true;
-            entry.tradeDetectionConfidence = tradeDetection.confidence;
-            entry.tradeDetectionData = storageData as Prisma.JsonValue;
-            if (!entry.ticker && tradeDetection.signals.ticker) {
-              entry.ticker = tradeDetection.signals.ticker;
+      detectTradeInContent(sanitizedContent)
+        .then(async (tradeDetection) => {
+          if (tradeDetection && meetsConfidenceThreshold(tradeDetection)) {
+            const storageData = formatForStorage(tradeDetection);
+            if (storageData) {
+              await prisma.entry.update({
+                where: { id: entry.id },
+                data: {
+                  tradeDetected: true,
+                  tradeDetectionConfidence: tradeDetection.confidence,
+                  tradeDetectionData: storageData,
+                  ticker: entry.ticker || tradeDetection.signals.ticker || null,
+                },
+              });
             }
           }
-        }
-      } catch (detectionError) {
-        // Log but don't fail the request
-        console.error('Trade detection error (non-blocking):', detectionError);
-      }
+        })
+        .catch((detectionError) => {
+          console.error('Trade detection error (background):', detectionError);
+        });
     }
 
     return NextResponse.json({
@@ -368,19 +359,6 @@ export async function POST(request: NextRequest) {
         totalEntries: streakData.totalEntries,
         celebrationMessage
       },
-      // Include trade detection result in response
-      tradeDetection: tradeDetection && meetsConfidenceThreshold(tradeDetection)
-        ? {
-            detected: tradeDetection.detected,
-            confidence: tradeDetection.confidence,
-            signals: {
-              ticker: tradeDetection.signals.ticker,
-              action: tradeDetection.signals.action,
-              outcome: tradeDetection.signals.outcome,
-              approximatePnL: tradeDetection.signals.approximatePnL,
-            },
-          }
-        : null,
     }, { status: 201 });
   } catch (error) {
     console.error('Error creating entry:', error);

@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const { user, error: authError } = await requireAuth();
     if (authError) return authError;
 
-    const rateLimited = checkRateLimit(rateLimiters.export, user.id);
+    const rateLimited = await checkRateLimit(rateLimiters.export, user.id);
     if (rateLimited) return rateLimited;
 
     const searchParams = request.nextUrl.searchParams;

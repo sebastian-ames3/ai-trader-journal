@@ -24,7 +24,7 @@ export async function POST(
     if (authError) return authError;
 
     // Check rate limit
-    const rateLimitError = checkRateLimit(rateLimiters.aiAnalysis, user.id);
+    const rateLimitError = await checkRateLimit(rateLimiters.aiAnalysis, user.id);
     if (rateLimitError) return rateLimitError;
 
     const { id } = await params;

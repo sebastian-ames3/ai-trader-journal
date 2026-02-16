@@ -4,6 +4,7 @@ import { extractJournalData, validateOCRResult, OCRResult } from '@/lib/journalO
 import { cache, CacheKeys, CacheTTL } from '@/lib/cache';
 import { createHash } from 'crypto';
 import { rateLimiters, checkRateLimit } from '@/lib/rateLimit';
+import { errorResponse, validationError } from '@/lib/errors';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
     if (auth.error) return auth.error;
 
     // Check rate limit
-    const rateLimitError = checkRateLimit(rateLimiters.ocr, auth.user.id);
+    const rateLimitError = await checkRateLimit(rateLimiters.ocr, auth.user.id);
     if (rateLimitError) return rateLimitError;
 
     // Parse request body
@@ -26,20 +27,14 @@ export async function POST(request: NextRequest) {
     const { imageUrl } = body;
 
     if (!imageUrl || typeof imageUrl !== 'string') {
-      return NextResponse.json(
-        { error: 'imageUrl is required and must be a string' },
-        { status: 400 }
-      );
+      return validationError('imageUrl is required and must be a string');
     }
 
     // Validate image URL
     try {
       new URL(imageUrl);
     } catch {
-      return NextResponse.json(
-        { error: 'Invalid imageUrl format' },
-        { status: 400 }
-      );
+      return validationError('Invalid imageUrl format');
     }
 
     // Generate cache key from image URL
@@ -69,33 +64,29 @@ export async function POST(request: NextRequest) {
         if (error instanceof Error) {
           const msg = error.message.toLowerCase();
           if (msg.includes('rate limit')) {
-            return NextResponse.json(
-              { error: 'Rate limit exceeded. Please try again in a moment.', debug: errorDetails },
-              { status: 429 }
-            );
+            return errorResponse('Rate limit exceeded. Please try again in a moment.', {
+              status: 429,
+              debugContext: errorDetails,
+            });
           }
           if (msg.includes('overloaded')) {
-            return NextResponse.json(
-              { error: 'OCR service temporarily unavailable. Please try again.', debug: errorDetails },
-              { status: 503 }
-            );
+            return errorResponse('OCR service temporarily unavailable. Please try again.', {
+              status: 503,
+              debugContext: errorDetails,
+            });
           }
           if (msg.includes('could not process') || msg.includes('download') || msg.includes('fetch')) {
-            return NextResponse.json(
-              { error: 'Could not access the uploaded image. The image URL may not be publicly accessible.', debug: errorDetails },
-              { status: 502 }
-            );
+            return errorResponse('Could not access the uploaded image. The image URL may not be publicly accessible.', {
+              status: 502,
+              debugContext: errorDetails,
+            });
           }
         }
 
-        // Return detailed error for debugging
-        return NextResponse.json(
-          {
-            error: 'Failed to extract journal data. Please try again.',
-            debug: process.env.NODE_ENV === 'development' ? errorDetails : { message: errorDetails.message }
-          },
-          { status: 500 }
-        );
+        return errorResponse('Failed to extract journal data. Please try again.', {
+          status: 500,
+          debugContext: errorDetails,
+        });
       }
 
       // Cache the result for 15 minutes
@@ -114,13 +105,11 @@ export async function POST(request: NextRequest) {
       warnings: validation.warnings.length > 0 ? validation.warnings : undefined,
     });
   } catch (error) {
-    console.error('[OCR] Unexpected error:', error);
-    return NextResponse.json(
-      {
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error',
+    return errorResponse('Internal server error', {
+      status: 500,
+      debugContext: {
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
-      { status: 500 }
-    );
+    });
   }
 }
