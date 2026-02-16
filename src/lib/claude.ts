@@ -59,6 +59,8 @@ export function getClaude(): Anthropic {
     }
     anthropicClient = new Anthropic({
       apiKey,
+      timeout: 30_000, // 30s default timeout for all API calls
+      maxRetries: 2, // Retry on 429/529 with exponential backoff
     });
   }
   return anthropicClient;

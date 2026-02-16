@@ -177,13 +177,14 @@ async function detectPatternsWithClaude(
   try {
     const claude = getClaude();
 
-    const response = await claude.messages.create({
-      model: CLAUDE_MODELS.DEEP, // Opus for complex pattern analysis
-      max_tokens: 4000,
-      messages: [
-        {
-          role: 'user',
-          content: `Analyze these ${entries.length} journal entries for behavioral patterns:
+    const response = await claude.messages.create(
+      {
+        model: CLAUDE_MODELS.DEEP, // Opus for complex pattern analysis
+        max_tokens: 4000,
+        messages: [
+          {
+            role: 'user',
+            content: `Analyze these ${entries.length} journal entries for behavioral patterns:
 
 ${JSON.stringify(entrySummaries, null, 2)}
 
@@ -203,9 +204,9 @@ Return JSON in this exact format:
     }
   ]
 }`,
-        },
-      ],
-      system: `You are analyzing a trader's journal entries to identify behavioral patterns.
+          },
+        ],
+        system: `You are analyzing a trader's journal entries to identify behavioral patterns.
 
 Look for these specific pattern categories:
 1. TIMING - Early profit taking, late loss cutting, FOMO entries, panic exits, revenge trading
@@ -221,7 +222,9 @@ For each pattern:
 - Include outcome data if trades are present
 
 Respond with valid JSON only, no markdown formatting.`,
-    });
+      },
+      { timeout: 60_000 } // 60s timeout for Opus deep analysis
+    );
 
     const result = parseJsonResponse<{ patterns: PatternDetectionResult[] }>(response);
 
