@@ -124,6 +124,11 @@ export default function ThesisDetailPage() {
   const [closeLessons, setCloseLessons] = useState('');
   const [isClosing, setIsClosing] = useState(false);
 
+  // Quick outcome state
+  const [showQuickOutcome, setShowQuickOutcome] = useState(false);
+  const [quickOutcomePnl, setQuickOutcomePnl] = useState('');
+  const [isLoggingQuickOutcome, setIsLoggingQuickOutcome] = useState(false);
+
   // Add trade form state
   const [tradeAction, setTradeAction] = useState<string>('INITIAL');
   const [tradeDescription, setTradeDescription] = useState('');
@@ -236,6 +241,44 @@ export default function ThesisDetailPage() {
       });
     } finally {
       setIsAddingTrade(false);
+    }
+  };
+
+  const handleQuickOutcome = async (outcome: 'WIN' | 'LOSS' | 'BREAKEVEN') => {
+    if (!thesis || isLoggingQuickOutcome) return;
+    setIsLoggingQuickOutcome(true);
+
+    try {
+      const response = await fetch('/api/trades/quick', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ticker: thesis.ticker,
+          outcome,
+          approximatePnL: quickOutcomePnl ? parseFloat(quickOutcomePnl) : undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to log trade');
+      }
+
+      await fetchThesis();
+      setShowQuickOutcome(false);
+      setQuickOutcomePnl('');
+      toast({
+        title: 'Trade logged',
+        description: `${thesis.ticker} ${outcome} recorded`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to log trade',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoggingQuickOutcome(false);
     }
   };
 
@@ -514,16 +557,87 @@ export default function ThesisDetailPage() {
               </h2>
             </div>
             {thesis.status === 'ACTIVE' && (
-              <Button
-                size="sm"
-                onClick={() => router.push(`/theses/${thesisId}/log-trade`)}
-                className="min-h-[36px]"
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Log Trade
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowQuickOutcome(!showQuickOutcome)}
+                  className="min-h-[36px]"
+                >
+                  {showQuickOutcome ? (
+                    <>
+                      <X className="h-4 w-4 mr-1" />
+                      Cancel
+                    </>
+                  ) : (
+                    <>
+                      <TrendingUp className="h-4 w-4 mr-1" />
+                      Quick Outcome
+                    </>
+                  )}
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => router.push(`/theses/${thesisId}/log-trade`)}
+                  className="min-h-[36px]"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Log Trade
+                </Button>
+              </div>
             )}
           </div>
+
+          {/* Quick Outcome Panel */}
+          {showQuickOutcome && thesis.status === 'ACTIVE' && (
+            <div className="mb-4 p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-3">
+              <div className="grid grid-cols-3 gap-2">
+                <Button
+                  variant="outline"
+                  className="h-12 flex-col gap-1 bg-green-50 hover:bg-green-100 border-green-200 dark:bg-green-900/20 dark:hover:bg-green-900/40 dark:border-green-800"
+                  onClick={() => handleQuickOutcome('WIN')}
+                  disabled={isLoggingQuickOutcome}
+                >
+                  <TrendingUp className="h-4 w-4 text-green-600" />
+                  <span className="text-xs text-green-700 dark:text-green-400">Win</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-12 flex-col gap-1 bg-red-50 hover:bg-red-100 border-red-200 dark:bg-red-900/20 dark:hover:bg-red-900/40 dark:border-red-800"
+                  onClick={() => handleQuickOutcome('LOSS')}
+                  disabled={isLoggingQuickOutcome}
+                >
+                  <TrendingDown className="h-4 w-4 text-red-600" />
+                  <span className="text-xs text-red-700 dark:text-red-400">Loss</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-12 flex-col gap-1"
+                  onClick={() => handleQuickOutcome('BREAKEVEN')}
+                  disabled={isLoggingQuickOutcome}
+                >
+                  <Minus className="h-4 w-4" />
+                  <span className="text-xs">Even</span>
+                </Button>
+              </div>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="quick-outcome-pnl" className="text-xs text-muted-foreground whitespace-nowrap">
+                  P/L
+                </Label>
+                <div className="relative flex-1">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                  <Input
+                    id="quick-outcome-pnl"
+                    type="number"
+                    value={quickOutcomePnl}
+                    onChange={(e) => setQuickOutcomePnl(e.target.value)}
+                    placeholder="optional"
+                    className="h-8 pl-6 text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           <TradeTimeline
             trades={thesis.thesisTrades}
