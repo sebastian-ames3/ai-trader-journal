@@ -69,13 +69,15 @@ export function QuickTradeCapture({
       t.ticker.toLowerCase() !== ticker.toLowerCase()
   );
 
-  const handleSubmit = useCallback(async () => {
+  const handleSubmit = useCallback(async (outcomeOverride?: TradeOutcome) => {
+    const effectiveOutcome = outcomeOverride || outcome;
+
     if (!ticker.trim()) {
       setError('Ticker is required');
       return;
     }
 
-    if (!outcome) {
+    if (!effectiveOutcome) {
       setError('Select an outcome');
       return;
     }
@@ -89,7 +91,7 @@ export function QuickTradeCapture({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ticker: ticker.toUpperCase(),
-          outcome,
+          outcome: effectiveOutcome,
           approximatePnL: pnl ? parseFloat(pnl) : undefined,
         }),
       });
@@ -123,11 +125,11 @@ export function QuickTradeCapture({
   const handleOutcomeSelect = (selected: TradeOutcome) => {
     setOutcome(selected);
     // If ticker is already filled, submit automatically for faster UX
+    // Pass outcome directly to avoid stale closure reading null state
     if (ticker.trim() && !error) {
-      // Small delay to show selection feedback
       setTimeout(() => {
         if (ticker.trim()) {
-          handleSubmit();
+          handleSubmit(selected);
         }
       }, 150);
     }
@@ -288,7 +290,7 @@ export function QuickTradeCapture({
 
         <Button
           className="flex-1 h-11"
-          onClick={handleSubmit}
+          onClick={() => handleSubmit()}
           disabled={!ticker.trim() || !outcome || isSubmitting}
           data-testid="save-quick-trade"
         >

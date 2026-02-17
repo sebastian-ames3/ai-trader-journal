@@ -93,6 +93,11 @@ export function TradeDetectionPrompt({
                 {summaryParts.join(' · ')}
               </p>
             )}
+            {detection.evidenceQuote && (
+              <p className="text-xs text-muted-foreground italic mt-0.5">
+                &ldquo;{detection.evidenceQuote}&rdquo;
+              </p>
+            )}
           </div>
         </div>
         <Button
