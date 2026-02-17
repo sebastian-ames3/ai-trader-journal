@@ -34,6 +34,7 @@ interface QuickCaptureProps {
   isOpen: boolean;
   onClose: () => void;
   initialMode?: 'text' | 'voice' | 'photo' | null;
+  initialTab?: QuickCaptureTab;
 }
 
 interface InferredMetadata {
@@ -68,7 +69,7 @@ const CONVICTION_LABELS: Record<string, string> = {
 };
 
 // Also export as named export for flexibility
-export function QuickCapture({ isOpen, onClose, initialMode }: QuickCaptureProps) {
+export function QuickCapture({ isOpen, onClose, initialMode, initialTab: initialTabProp }: QuickCaptureProps) {
   const router = useRouter();
 
   // Form state
@@ -117,7 +118,7 @@ export function QuickCapture({ isOpen, onClose, initialMode }: QuickCaptureProps
   const [showTradePrompt, setShowTradePrompt] = useState(false);
 
   // Tab state for Journal vs Quick Trade (PRD-B)
-  const [activeTab, setActiveTab] = useState<QuickCaptureTab>('journal');
+  const [activeTab, setActiveTab] = useState<QuickCaptureTab>(initialTabProp || 'journal');
 
   // Reset form when closed
   useEffect(() => {
@@ -153,7 +154,7 @@ export function QuickCapture({ isOpen, onClose, initialMode }: QuickCaptureProps
         setSavedEntryId(null);
         setTradeDetection(null);
         setShowTradePrompt(false);
-        setActiveTab('journal');
+        setActiveTab(initialTabProp || 'journal');
       }, 300);
       return () => clearTimeout(timer);
     }
@@ -502,22 +503,23 @@ export function QuickCapture({ isOpen, onClose, initialMode }: QuickCaptureProps
 
       // Check if trade was detected with sufficient confidence
       if (responseData.tradeDetection?.detected && responseData.entry?.id) {
+        const td = responseData.tradeDetection;
         // Show trade detection prompt instead of closing
         setSavedEntryId(responseData.entry.id);
         setTradeDetection({
           detected: true,
-          confidence: responseData.tradeDetection.confidence,
+          confidence: td.confidence,
           signals: {
-            ticker: responseData.tradeDetection.signals.ticker || null,
-            tickerConfidence: 0.8,
-            action: responseData.tradeDetection.signals.action || null,
-            actionConfidence: 0.8,
-            outcome: responseData.tradeDetection.signals.outcome || null,
-            outcomeConfidence: 0.8,
-            approximatePnL: responseData.tradeDetection.signals.approximatePnL || null,
-            pnlConfidence: 0.8,
+            ticker: td.signals.ticker || null,
+            tickerConfidence: td.signals.tickerConfidence ?? 0,
+            action: td.signals.action || null,
+            actionConfidence: td.signals.actionConfidence ?? 0,
+            outcome: td.signals.outcome || null,
+            outcomeConfidence: td.signals.outcomeConfidence ?? 0,
+            approximatePnL: td.signals.approximatePnL ?? null,
+            pnlConfidence: td.signals.pnlConfidence ?? 0,
           },
-          evidenceQuote: null,
+          evidenceQuote: td.evidenceQuote || null,
         });
         setShowTradePrompt(true);
       } else {

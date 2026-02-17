@@ -322,33 +322,62 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fire-and-forget trade detection in background (truly non-blocking)
-    // Only run for entries with sufficient content and not already OCR-scanned
-    if (
+    // Trade detection: run synchronously for short entries so the UI can
+    // show the inline "Log as trade?" prompt immediately after creation.
+    // For longer entries, keep async to avoid blocking the response.
+    let tradeDetectionResult = null;
+    const shouldDetect =
       sanitizedContent.length >= 20 &&
       !body.isOcrScanned &&
-      !body.thesisTradeId
-    ) {
-      detectTradeInContent(sanitizedContent)
-        .then(async (tradeDetection) => {
-          if (tradeDetection && meetsConfidenceThreshold(tradeDetection)) {
-            const storageData = formatForStorage(tradeDetection);
+      !body.thesisTradeId;
+
+    if (shouldDetect) {
+      const runSync = sanitizedContent.length < 500;
+
+      if (runSync) {
+        try {
+          const detection = await detectTradeInContent(sanitizedContent);
+          if (detection && meetsConfidenceThreshold(detection)) {
+            const storageData = formatForStorage(detection);
             if (storageData) {
               await prisma.entry.update({
                 where: { id: entry.id },
                 data: {
                   tradeDetected: true,
-                  tradeDetectionConfidence: tradeDetection.confidence,
+                  tradeDetectionConfidence: detection.confidence,
                   tradeDetectionData: storageData,
-                  ticker: entry.ticker || tradeDetection.signals.ticker || null,
+                  ticker: entry.ticker || detection.signals.ticker || null,
                 },
               });
             }
+            tradeDetectionResult = detection;
           }
-        })
-        .catch((detectionError) => {
-          console.error('Trade detection error (background):', detectionError);
-        });
+        } catch (detectionError) {
+          console.error('Trade detection error (sync):', detectionError);
+        }
+      } else {
+        // Async fire-and-forget for longer entries
+        detectTradeInContent(sanitizedContent)
+          .then(async (detection) => {
+            if (detection && meetsConfidenceThreshold(detection)) {
+              const storageData = formatForStorage(detection);
+              if (storageData) {
+                await prisma.entry.update({
+                  where: { id: entry.id },
+                  data: {
+                    tradeDetected: true,
+                    tradeDetectionConfidence: detection.confidence,
+                    tradeDetectionData: storageData,
+                    ticker: entry.ticker || detection.signals.ticker || null,
+                  },
+                });
+              }
+            }
+          })
+          .catch((detectionError) => {
+            console.error('Trade detection error (background):', detectionError);
+          });
+      }
     }
 
     return NextResponse.json({
@@ -359,6 +388,12 @@ export async function POST(request: NextRequest) {
         totalEntries: streakData.totalEntries,
         celebrationMessage
       },
+      tradeDetection: tradeDetectionResult ? {
+        detected: true,
+        confidence: tradeDetectionResult.confidence,
+        signals: tradeDetectionResult.signals,
+        evidenceQuote: tradeDetectionResult.evidenceQuote,
+      } : null,
     }, { status: 201 });
   } catch (error) {
     console.error('Error creating entry:', error);

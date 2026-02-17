@@ -7,8 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import TradeLinkSuggestions, { LinkSuggestion } from '@/components/entries/TradeLinkSuggestions';
+import TradeDetectionPrompt from '@/components/entries/TradeDetectionPrompt';
 import AudioPlayer from '@/components/AudioPlayer';
 import { format } from 'date-fns';
+import type { TradeDetectionResult } from '@/lib/tradeDetection';
+import type { TradeOutcome } from '@/lib/constants/taxonomy';
 
 interface LinkedTrade {
   id: string;
@@ -33,6 +36,23 @@ interface Entry {
   thesisTrade: LinkedTrade | null;
   isOcrScanned?: boolean;
   ocrConfidence?: number;
+  // Trade detection fields
+  tradeDetected?: boolean;
+  tradeDetectionConfidence?: number | null;
+  tradeDetectionData?: {
+    confidence: number;
+    signals: {
+      ticker: string | null;
+      tickerConfidence: number;
+      action: string | null;
+      actionConfidence: number;
+      outcome: string | null;
+      outcomeConfidence: number;
+      approximatePnL: number | null;
+      pnlConfidence: number;
+    };
+    evidenceQuote: string | null;
+  } | null;
   // Voice memo fields
   audioUrl?: string | null;
   audioDuration?: number | null;
@@ -84,6 +104,10 @@ export default function EntryDetailPage() {
   // Voice memo state
   const [showTranscription, setShowTranscription] = useState(false);
 
+  // Trade detection state
+  const [tradePromptDismissed, setTradePromptDismissed] = useState(false);
+  const [loggingTrade, setLoggingTrade] = useState(false);
+
   // Trade linking state
   const [showLinkPanel, setShowLinkPanel] = useState(false);
   const [linkSuggestions, setLinkSuggestions] = useState<LinkSuggestion[]>([]);
@@ -134,6 +158,56 @@ export default function EntryDetailPage() {
       setError((err as Error).message);
       setDeleting(false);
     }
+  };
+
+  // Build trade detection result from entry data for the prompt component
+  const tradeDetection: TradeDetectionResult | null =
+    entry?.tradeDetected && entry.tradeDetectionData && !entry.thesisTradeId
+      ? {
+          detected: true,
+          confidence: entry.tradeDetectionData.confidence,
+          signals: {
+            ticker: entry.tradeDetectionData.signals.ticker,
+            tickerConfidence: entry.tradeDetectionData.signals.tickerConfidence,
+            action: entry.tradeDetectionData.signals.action as 'OPEN' | 'CLOSE' | 'ADD' | 'REDUCE' | null,
+            actionConfidence: entry.tradeDetectionData.signals.actionConfidence,
+            outcome: entry.tradeDetectionData.signals.outcome as TradeOutcome | null,
+            outcomeConfidence: entry.tradeDetectionData.signals.outcomeConfidence,
+            approximatePnL: entry.tradeDetectionData.signals.approximatePnL,
+            pnlConfidence: entry.tradeDetectionData.signals.pnlConfidence,
+          },
+          evidenceQuote: entry.tradeDetectionData.evidenceQuote,
+        }
+      : null;
+
+  // Handle logging trade from detection prompt on detail page
+  const handleLogTradeFromDetection = async (
+    outcome: TradeOutcome,
+    options?: { ticker?: string; pnl?: number }
+  ) => {
+    if (!entry) return;
+    setLoggingTrade(true);
+
+    const response = await fetch(`/api/entries/${entryId}/log-trade`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        outcome,
+        ticker: options?.ticker,
+        approximatePnL: options?.pnl,
+      }),
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      setLoggingTrade(false);
+      throw new Error(data.error || 'Failed to log trade');
+    }
+
+    // Refresh entry data to show the linked trade
+    setLoggingTrade(false);
+    setTradePromptDismissed(true);
+    await fetchEntry();
   };
 
   // Fetch link suggestions for the entry
@@ -440,6 +514,18 @@ export default function EntryDetailPage() {
                 </p>
               )}
             </div>
+
+            {/* Trade Detection Prompt */}
+            {tradeDetection && !tradePromptDismissed && !loggingTrade && (
+              <div className="border-t dark:border-gray-700 pt-6 mt-6">
+                <TradeDetectionPrompt
+                  detection={tradeDetection}
+                  entryId={entryId}
+                  onLogTrade={handleLogTradeFromDetection}
+                  onDismiss={() => setTradePromptDismissed(true)}
+                />
+              </div>
+            )}
 
             {/* Trade Link Section */}
             <div className="border-t dark:border-gray-700 pt-6 mt-6">

@@ -5,7 +5,11 @@ import { Plus } from 'lucide-react';
 import QuickCapture from './QuickCapture';
 import { cn } from '@/lib/utils';
 
-export default function FloatingActionButton() {
+interface FloatingActionButtonProps {
+  initialTab?: 'journal' | 'quick-trade';
+}
+
+export default function FloatingActionButton({ initialTab }: FloatingActionButtonProps = {}) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -22,7 +26,7 @@ export default function FloatingActionButton() {
         <Plus className="h-6 w-6" />
       </button>
 
-      <QuickCapture isOpen={isOpen} onClose={() => setIsOpen(false)} />
+      <QuickCapture isOpen={isOpen} onClose={() => setIsOpen(false)} initialTab={initialTab} />
     </>
   );
 }
