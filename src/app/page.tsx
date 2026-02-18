@@ -114,7 +114,7 @@ export default function DashboardPage() {
     setLoading(true);
     try {
       // Fetch recent entries (limit to 3)
-      const entriesResponse = await fetch('/api/entries?limit=3');
+      const entriesResponse = await fetch('/api/entries?limit=6');
       const entriesData = await entriesResponse.json();
 
       setRecentEntries(entriesData.entries || []);
@@ -136,7 +136,7 @@ export default function DashboardPage() {
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
         <SimpleGreeting />
 
-        <div className="max-w-lg mx-auto px-4">
+        <div className="max-w-2xl mx-auto px-4">
           {/* Capture Buttons */}
           <CaptureButtons className="mb-8" />
 
@@ -216,26 +216,38 @@ export default function DashboardPage() {
   // Dashboard with data
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-      {/* Simple Greeting */}
-      <SimpleGreeting />
+      <div className="max-w-6xl mx-auto px-4">
+        <div className="lg:grid lg:grid-cols-[2fr_3fr] lg:gap-10 lg:pt-4">
 
-      <div className="max-w-lg mx-auto px-4 space-y-6">
-        {/* Capture Buttons */}
-        <CaptureButtons />
+          {/* Left column: Greeting + Capture Buttons */}
+          <div>
+            <SimpleGreeting className="px-0" />
+            <CaptureButtons />
+          </div>
 
-        {/* Recent Entries */}
-        {recentEntries.length > 0 && (
-          <section>
-            <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wide mb-3">
-              Recent Entries
-            </h2>
-            <div>
-              {recentEntries.map((entry) => (
-                <EntryRow key={entry.id} entry={entry} />
-              ))}
-            </div>
-          </section>
-        )}
+          {/* Right column: Recent Entries */}
+          <div className="mt-6 lg:mt-0 lg:pt-8">
+            {recentEntries.length > 0 && (
+              <section>
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wide mb-3">
+                  Recent Entries
+                </h2>
+                <div>
+                  {recentEntries.map((entry) => (
+                    <EntryRow key={entry.id} entry={entry} />
+                  ))}
+                </div>
+                <Link
+                  href="/journal"
+                  className="block mt-4 text-sm text-amber-600 dark:text-amber-400 hover:underline"
+                >
+                  View all entries →
+                </Link>
+              </section>
+            )}
+          </div>
+
+        </div>
       </div>
     </div>
   );

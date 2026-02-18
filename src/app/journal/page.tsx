@@ -390,7 +390,7 @@ function JournalContent() {
       />
 
       {/* Quick Actions */}
-      <div className="max-w-4xl mx-auto px-4 py-2 flex gap-2">
+      <div className="max-w-6xl mx-auto px-4 py-2 flex gap-2">
         <Link href="/journal/import/smart">
           <Button
             variant="outline"
@@ -413,7 +413,7 @@ function JournalContent() {
       </div>
 
       {/* Content */}
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="max-w-6xl mx-auto px-4 py-6">
         {/* Results Count */}
         {!loading && totalCount > 0 && (
           <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
@@ -498,7 +498,7 @@ export default function JournalPage() {
       fallback={
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
           <div className="h-24 skeleton" />
-          <div className="max-w-4xl mx-auto px-4 py-6">
+          <div className="max-w-6xl mx-auto px-4 py-6">
             <div className="space-y-3">
               {[...Array(3)].map((_, i) => (
                 <EntryCardSkeleton key={i} />
