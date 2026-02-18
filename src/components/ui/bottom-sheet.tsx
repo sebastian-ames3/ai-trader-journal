@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +19,50 @@ export function BottomSheet({
   children,
   className,
 }: BottomSheetProps) {
+  // Swipe-to-dismiss state
+  const [dragY, setDragY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartY = useRef(0);
+  const dragVelocity = useRef(0);
+  const lastDragY = useRef(0);
+  const lastDragTime = useRef(0);
+
+  const handleDragStart = useCallback((clientY: number) => {
+    dragStartY.current = clientY;
+    lastDragY.current = clientY;
+    lastDragTime.current = Date.now();
+    dragVelocity.current = 0;
+    setIsDragging(true);
+  }, []);
+
+  const handleDragMove = useCallback(
+    (clientY: number) => {
+      if (!isDragging) return;
+      const delta = Math.max(0, clientY - dragStartY.current);
+
+      const now = Date.now();
+      const dt = now - lastDragTime.current;
+      if (dt > 0) {
+        dragVelocity.current = (clientY - lastDragY.current) / dt;
+      }
+      lastDragY.current = clientY;
+      lastDragTime.current = now;
+
+      setDragY(delta);
+    },
+    [isDragging]
+  );
+
+  const handleDragEnd = useCallback(() => {
+    if (!isDragging) return;
+    setIsDragging(false);
+
+    if (dragY > 100 || dragVelocity.current > 0.5) {
+      onClose();
+    }
+    setDragY(0);
+  }, [isDragging, dragY, onClose]);
+
   // Handle escape key
   const handleEscape = useCallback(
     (e: KeyboardEvent) => {
@@ -53,6 +97,11 @@ export function BottomSheet({
           "transition-opacity duration-300",
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         )}
+        style={{
+          opacity: isDragging
+            ? Math.max(0.1, 1 - dragY / 300) * 0.4
+            : undefined,
+        }}
         onClick={onClose}
         aria-hidden="true"
       />
@@ -62,6 +111,10 @@ export function BottomSheet({
         role="dialog"
         aria-modal="true"
         aria-label={title || "Bottom sheet"}
+        style={{
+          transform: dragY > 0 ? `translateY(${dragY}px)` : undefined,
+          transition: isDragging ? "none" : undefined,
+        }}
         className={cn(
           "fixed inset-x-0 bottom-0 z-50",
           "bg-white dark:bg-slate-900",
@@ -74,7 +127,12 @@ export function BottomSheet({
         )}
       >
         {/* Drag handle */}
-        <div className="flex justify-center pt-3 pb-2">
+        <div
+          className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none"
+          onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
+          onTouchMove={(e) => handleDragMove(e.touches[0].clientY)}
+          onTouchEnd={handleDragEnd}
+        >
           <div className="w-10 h-1 bg-slate-300 dark:bg-slate-700 rounded-full" />
         </div>
 
@@ -101,7 +159,7 @@ export function BottomSheet({
         )}
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 pb-safe">
+        <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4 pb-safe">
           {children}
         </div>
       </div>

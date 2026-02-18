@@ -425,8 +425,9 @@ export default function TradeReviewCard({
                 <div className="space-y-1">
                   <Label className="text-xs">Realized P/L</Label>
                   <Input
-                    type="number"
-                    step="0.01"
+                    type="text"
+                    inputMode="decimal"
+                    pattern="[0-9]*[.,]?[0-9]*"
                     value={edits.realizedPL ?? trade.realizedPL ?? ''}
                     onChange={(e) =>
                       handleEditChange(

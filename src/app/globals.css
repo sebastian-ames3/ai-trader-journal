@@ -133,6 +133,10 @@
     @apply border-border;
   }
 
+  html, body {
+    overscroll-behavior: none;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
@@ -258,9 +262,9 @@
     padding-top: env(safe-area-inset-top, 0px);
   }
 
-  /* Bottom nav safe area */
+  /* Bottom nav safe area (64px nav + 16px FAB clearance) */
   .mb-nav {
-    margin-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    margin-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -476,6 +480,19 @@
   animation: page-fade-in 0.2s ease-out;
 }
 
+/* View Transitions API */
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-old(root) {
+  animation: fade-out 150ms ease-out;
+}
+
+::view-transition-new(root) {
+  animation: fade-in 200ms ease-out;
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .animate-success,
@@ -495,6 +512,11 @@
   }
 
   .btn-ripple:active::after {
+    animation: none;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
     animation: none;
   }
 

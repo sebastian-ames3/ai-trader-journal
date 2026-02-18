@@ -45,7 +45,7 @@ const pwaConfig = withPWA({
     image: '/icon-192.png',
   },
   cacheOnFrontEndNav: true,
-  reloadOnOnline: true,
+  reloadOnOnline: false,
   runtimeCaching: [
     {
       urlPattern: /^https:\/\/fonts\.(?:gstatic)\.com\/.*/i,

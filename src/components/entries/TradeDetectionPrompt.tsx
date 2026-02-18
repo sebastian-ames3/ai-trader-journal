@@ -140,7 +140,9 @@ export function TradeDetectionPrompt({
             </span>
             <Input
               id="trade-pnl"
-              type="number"
+              type="text"
+              inputMode="decimal"
+              pattern="[0-9]*[.,]?[0-9]*"
               value={pnlValue}
               onChange={(e) => setPnlValue(e.target.value)}
               placeholder="0"

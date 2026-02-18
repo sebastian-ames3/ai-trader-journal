@@ -429,6 +429,7 @@ export default function CoachChat({
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask your trading coach..."
             disabled={isLoading}
+            enterKeyHint="send"
             className={cn(
               'flex-1 min-h-[44px]',
               'rounded-xl',

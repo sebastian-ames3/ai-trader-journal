@@ -250,7 +250,9 @@ export function QuickTradeCapture({
           </span>
           <Input
             id="quick-pnl"
-            type="number"
+            type="text"
+            inputMode="decimal"
+            pattern="[0-9]*[.,]?[0-9]*"
             value={pnl}
             onChange={(e) => setPnl(e.target.value)}
             placeholder="0"

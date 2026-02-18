@@ -53,7 +53,7 @@ function getExcerpt(content: string, maxLength: number = 40): string {
 // Skeleton for loading state
 function DashboardSkeleton() {
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-24">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       {/* Greeting Skeleton */}
       <div className="px-4 py-8">
         <div className="h-12 w-64 skeleton rounded" />
@@ -133,7 +133,7 @@ export default function DashboardPage() {
   // Empty state for first-time users
   if (!hasData) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-24">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
         <SimpleGreeting />
 
         <div className="max-w-lg mx-auto px-4">
@@ -215,7 +215,7 @@ export default function DashboardPage() {
 
   // Dashboard with data
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-24">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       {/* Simple Greeting */}
       <SimpleGreeting />
 

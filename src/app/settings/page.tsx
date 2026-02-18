@@ -43,7 +43,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-24">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       {/* Header */}
       <div className="sticky top-0 z-30 bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800">
         <div className="max-w-2xl mx-auto px-4 py-4">

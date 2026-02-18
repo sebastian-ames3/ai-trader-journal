@@ -238,8 +238,9 @@ export function TradeEditModal({
               </Label>
               <Input
                 id="edit-debitCredit"
-                type="number"
-                step="0.01"
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
                 value={debitCredit}
                 onChange={(e) => setDebitCredit(e.target.value)}
                 className="min-h-[44px] rounded-xl border-slate-200 dark:border-slate-700"
@@ -259,6 +260,7 @@ export function TradeEditModal({
               <Input
                 id="edit-quantity"
                 type="number"
+                inputMode="numeric"
                 min="1"
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
@@ -279,8 +281,9 @@ export function TradeEditModal({
               </Label>
               <Input
                 id="edit-realizedPL"
-                type="number"
-                step="0.01"
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
                 value={realizedPL}
                 onChange={(e) => setRealizedPL(e.target.value)}
                 className="min-h-[44px] rounded-xl border-slate-200 dark:border-slate-700"

@@ -369,7 +369,7 @@ export default function LogTradePage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-20">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
         <div className="max-w-2xl mx-auto px-4 py-4">
@@ -717,8 +717,9 @@ export default function LogTradePage() {
               </Label>
               <Input
                 id="debitCredit"
-                type="number"
-                step="0.01"
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
                 value={debitCredit}
                 onChange={(e) => {
                   setDebitCredit(e.target.value);
@@ -751,6 +752,7 @@ export default function LogTradePage() {
               <Input
                 id="quantity"
                 type="number"
+                inputMode="numeric"
                 min="1"
                 value={quantity}
                 onChange={(e) => {
