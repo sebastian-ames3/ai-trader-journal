@@ -66,6 +66,7 @@ export function UnassignedTradesView({
   const [trades, setTrades] = useState<UnassignedTrade[]>([]);
   const [summary, setSummary] = useState<TickerSummary[]>([]);
   const [suggestions, setSuggestions] = useState<ThesisSuggestion[]>([]);
+  const [suggestionsAttempted, setSuggestionsAttempted] = useState(false);
 
   // Fetch unassigned trades
   const fetchTrades = useCallback(async () => {
@@ -89,6 +90,7 @@ export function UnassignedTradesView({
   // Fetch thesis suggestions
   const fetchSuggestions = useCallback(async () => {
     setIsFetchingSuggestions(true);
+    setSuggestionsAttempted(true);
 
     try {
       const response = await fetch('/api/theses/suggestions');
@@ -109,12 +111,12 @@ export function UnassignedTradesView({
     fetchTrades();
   }, [fetchTrades]);
 
-  // Fetch suggestions when we have trades
+  // Fetch suggestions once when we have trades
   useEffect(() => {
-    if (trades.length > 0 && suggestions.length === 0 && !isFetchingSuggestions) {
+    if (trades.length > 0 && !suggestionsAttempted && !isFetchingSuggestions) {
       fetchSuggestions();
     }
-  }, [trades.length, suggestions.length, isFetchingSuggestions, fetchSuggestions]);
+  }, [trades.length, suggestionsAttempted, isFetchingSuggestions, fetchSuggestions]);
 
   // Handle accepting a suggestion
   const handleAcceptSuggestion = async (
