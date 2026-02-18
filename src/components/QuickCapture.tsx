@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { X, Send, Loader2, Mic, Camera, ChevronDown, ChevronUp, Sparkles, ScanText, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -120,6 +120,9 @@ export function QuickCapture({ isOpen, onClose, initialMode, initialTab: initial
   // Tab state for Journal vs Quick Trade (PRD-B)
   const [activeTab, setActiveTab] = useState<QuickCaptureTab>(initialTabProp || 'journal');
 
+  // Deferred focus ref - wait for slide-in animation to complete
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
   // Reset form when closed
   useEffect(() => {
     if (!isOpen) {
@@ -176,6 +179,17 @@ export function QuickCapture({ isOpen, onClose, initialMode, initialTab: initial
       // 'text' mode is the default - just focus on textarea
     }
   }, [isOpen, initialMode]);
+
+  // Deferred focus - wait for slide-in animation to finish before focusing textarea
+  useEffect(() => {
+    if (isOpen && activeTab === 'journal') {
+      const timer = setTimeout(() => {
+        textareaRef.current?.focus();
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [isOpen, activeTab]);
 
   // Handle voice recording complete
   const handleRecordingComplete = useCallback(
@@ -586,6 +600,50 @@ export function QuickCapture({ isOpen, onClose, initialMode, initialTab: initial
     return () => window.removeEventListener('keydown', handleEscape);
   }, [isOpen, onClose]);
 
+  // Swipe-to-dismiss state
+  const modalRef = useRef<HTMLDivElement>(null);
+  const [dragY, setDragY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartY = useRef(0);
+  const dragVelocity = useRef(0);
+  const lastDragY = useRef(0);
+  const lastDragTime = useRef(0);
+
+  const handleDragStart = useCallback((clientY: number) => {
+    dragStartY.current = clientY;
+    lastDragY.current = clientY;
+    lastDragTime.current = Date.now();
+    dragVelocity.current = 0;
+    setIsDragging(true);
+  }, []);
+
+  const handleDragMove = useCallback((clientY: number) => {
+    if (!isDragging) return;
+    const delta = Math.max(0, clientY - dragStartY.current);
+
+    // Track velocity
+    const now = Date.now();
+    const dt = now - lastDragTime.current;
+    if (dt > 0) {
+      dragVelocity.current = (clientY - lastDragY.current) / dt;
+    }
+    lastDragY.current = clientY;
+    lastDragTime.current = now;
+
+    setDragY(delta);
+  }, [isDragging]);
+
+  const handleDragEnd = useCallback(() => {
+    if (!isDragging) return;
+    setIsDragging(false);
+
+    // Close if dragged far enough or fast enough
+    if (dragY > 120 || dragVelocity.current > 0.5) {
+      onClose();
+    }
+    setDragY(0);
+  }, [isDragging, dragY, onClose]);
+
   if (!isOpen) return null;
 
   return (
@@ -593,23 +651,39 @@ export function QuickCapture({ isOpen, onClose, initialMode, initialTab: initial
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        style={{ opacity: isDragging ? Math.max(0.1, 1 - dragY / 300) : undefined }}
         onClick={onClose}
         aria-hidden="true"
       />
 
       {/* Modal */}
       <div
+        ref={modalRef}
+        style={{
+          transform: dragY > 0 ? `translateY(${dragY}px)` : undefined,
+          transition: isDragging ? 'none' : 'transform 0.3s ease-out',
+        }}
         className={cn(
           'relative w-full max-w-lg bg-background rounded-t-2xl sm:rounded-2xl shadow-xl',
           'max-h-[90vh] overflow-hidden flex flex-col',
-          'animate-in slide-in-from-bottom duration-300'
+          dragY === 0 && 'animate-in slide-in-from-bottom duration-300'
         )}
         role="dialog"
         aria-modal="true"
         aria-labelledby="quick-capture-title"
       >
+        {/* Drag handle */}
+        <div
+          className="flex justify-center pt-3 pb-0 sm:hidden cursor-grab active:cursor-grabbing touch-none"
+          onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
+          onTouchMove={(e) => handleDragMove(e.touches[0].clientY)}
+          onTouchEnd={handleDragEnd}
+        >
+          <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+        </div>
+
         {/* Header */}
-        <div className="p-4 border-b space-y-3">
+        <div className="p-4 pt-2 sm:pt-4 border-b space-y-3">
           <div className="flex items-center justify-between">
             <h2 id="quick-capture-title" className="text-lg font-semibold">
               Quick Capture
@@ -680,12 +754,12 @@ export function QuickCapture({ isOpen, onClose, initialMode, initialTab: initial
                   What&apos;s on your mind?
                 </Label>
                 <Textarea
+                  ref={textareaRef}
                   id="quick-content"
                   placeholder="What's on your mind? Just start typing..."
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   className="min-h-[120px] resize-none text-base"
-                  autoFocus={activeTab === 'journal'}
                 />
               </div>
 

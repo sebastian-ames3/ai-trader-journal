@@ -397,7 +397,7 @@ export default function ThesisDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-20">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
         <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
           <div className="h-8 w-48 skeleton rounded" />
           <div className="h-32 skeleton rounded-2xl" />
@@ -419,7 +419,7 @@ export default function ThesisDetailPage() {
   const directionColors = DIRECTION_CONFIG[thesis.direction];
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-20">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
         <div className="max-w-4xl mx-auto px-4 py-4">
@@ -628,7 +628,9 @@ export default function ThesisDetailPage() {
                   <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                   <Input
                     id="quick-outcome-pnl"
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
+                    pattern="[0-9]*[.,]?[0-9]*"
                     value={quickOutcomePnl}
                     onChange={(e) => setQuickOutcomePnl(e.target.value)}
                     placeholder="optional"
@@ -799,8 +801,9 @@ export default function ThesisDetailPage() {
               <div>
                 <Label>Debit/Credit</Label>
                 <Input
-                  type="number"
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
+                  pattern="[0-9]*[.,]?[0-9]*"
                   value={tradeDebitCredit}
                   onChange={(e) => setTradeDebitCredit(e.target.value)}
                   placeholder="Negative for debit, positive for credit"

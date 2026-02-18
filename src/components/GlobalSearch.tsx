@@ -50,14 +50,27 @@ const typeColors = {
   trade: 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300',
 };
 
-export default function GlobalSearch() {
+interface GlobalSearchProps {
+  externalOpen?: boolean;
+  onExternalClose?: () => void;
+}
+
+export default function GlobalSearch({ externalOpen, onExternalClose }: GlobalSearchProps) {
   const router = useRouter();
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [counts, setCounts] = useState({ entries: 0, theses: 0, trades: 0, total: 0 });
   const [loading, setLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
+
+  const isOpen = externalOpen ?? internalOpen;
+  const setIsOpen = useCallback((open: boolean) => {
+    if (!open && onExternalClose) {
+      onExternalClose();
+    }
+    setInternalOpen(open);
+  }, [onExternalClose]);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -65,12 +78,17 @@ export default function GlobalSearch() {
 
   // Focus input when opened
   useEffect(() => {
-    if (isOpen && inputRef.current) {
-      inputRef.current.focus();
+    if (isOpen) {
+      // Defer focus to after animation
+      const timer = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+      return () => clearTimeout(timer);
     }
+    return undefined;
   }, [isOpen]);
 
-  // Handle click outside
+  // Handle click outside (desktop only)
   useEffect(() => {
     if (!isOpen) return;
 
@@ -82,7 +100,7 @@ export default function GlobalSearch() {
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen]);
+  }, [isOpen, setIsOpen]);
 
   // Handle keyboard shortcut (Cmd/Ctrl + K)
   useEffect(() => {
@@ -98,7 +116,21 @@ export default function GlobalSearch() {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [setIsOpen]);
+
+  // Reset state when closed
+  useEffect(() => {
+    if (!isOpen) {
+      const timer = setTimeout(() => {
+        setQuery('');
+        setResults([]);
+        setCounts({ entries: 0, theses: 0, trades: 0, total: 0 });
+        setSelectedIndex(0);
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [isOpen]);
 
   // Search function with debounce
   const search = useCallback(async (searchQuery: string) => {
@@ -140,8 +172,6 @@ export default function GlobalSearch() {
   // Navigate to result
   const navigateToResult = (result: SearchResult) => {
     setIsOpen(false);
-    setQuery('');
-    setResults([]);
 
     switch (result.type) {
       case 'entry':
@@ -151,7 +181,6 @@ export default function GlobalSearch() {
         router.push(`/theses/${result.id}`);
         break;
       case 'trade':
-        // Trades don't have their own page, navigate to thesis
         router.push(`/theses`);
         break;
     }
@@ -171,133 +200,173 @@ export default function GlobalSearch() {
     }
   };
 
+  const searchResults = (
+    <>
+      {query.length < 2 ? (
+        <div className="p-6 text-center text-muted-foreground">
+          <p className="text-sm">Type at least 2 characters to search</p>
+        </div>
+      ) : results.length === 0 && !loading ? (
+        <div className="p-6 text-center text-muted-foreground">
+          <p className="text-sm">No results found for &ldquo;{query}&rdquo;</p>
+        </div>
+      ) : (
+        <div className="py-2">
+          {counts.total > 0 && (
+            <div className="px-3 py-1 text-xs text-muted-foreground">
+              Found {counts.total} result{counts.total !== 1 ? 's' : ''}
+              {counts.entries > 0 && ` (${counts.entries} entries`}
+              {counts.theses > 0 && `, ${counts.theses} theses`}
+              {counts.trades > 0 && `, ${counts.trades} trades`}
+              {counts.total > 0 && ')'}
+            </div>
+          )}
+
+          {results.map((result, index) => {
+            const Icon = typeIcons[result.type];
+            return (
+              <button
+                key={`${result.type}-${result.id}`}
+                onClick={() => navigateToResult(result)}
+                className={cn(
+                  'w-full px-3 py-3 text-left hover:bg-muted/50 flex items-start gap-3 transition-colors active:bg-muted',
+                  index === selectedIndex && 'bg-muted/50'
+                )}
+              >
+                <div className="mt-0.5">
+                  <Icon className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-medium text-sm truncate">
+                      {result.title}
+                    </span>
+                    {result.ticker && (
+                      <Badge variant="secondary" className="font-mono text-xs shrink-0">
+                        {result.ticker}
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground line-clamp-2">
+                    {result.content}
+                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge variant="outline" className={cn('text-xs', typeColors[result.type])}>
+                      {typeLabels[result.type]}
+                      {result.entryType && ` - ${result.entryType.replace('_', ' ')}`}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(result.createdAt), { addSuffix: true })}
+                    </span>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+
   return (
     <div ref={containerRef} className="relative">
-      {/* Search Trigger Button */}
+      {/* Desktop Search Trigger Button */}
       <Button
         variant="ghost"
         size="sm"
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 text-muted-foreground hover:text-foreground min-h-[44px]"
+        className="hidden md:flex items-center gap-2 text-muted-foreground hover:text-foreground min-h-[44px]"
         aria-label="Search (Ctrl+K)"
       >
         <Search className="h-5 w-5" />
         <span className="hidden lg:inline text-sm">Search</span>
         <kbd className="hidden lg:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
-          <span className="text-xs">⌘</span>K
+          <span className="text-xs">&#8984;</span>K
         </kbd>
       </Button>
 
-      {/* Search Modal/Dropdown */}
+      {/* Search Modal - Full screen on mobile, dropdown on desktop */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-[400px] max-w-[calc(100vw-2rem)] bg-background border rounded-lg shadow-lg z-50">
-          {/* Search Input */}
-          <div className="flex items-center gap-2 p-3 border-b">
-            <Search className="h-5 w-5 text-muted-foreground shrink-0" />
-            <Input
-              ref={inputRef}
-              type="text"
-              placeholder="Search entries, theses, trades..."
-              value={query}
-              onChange={(e) => handleInputChange(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="border-0 focus-visible:ring-0 p-0 h-auto"
-            />
-            {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 shrink-0"
-              onClick={() => setIsOpen(false)}
-              aria-label="Close search"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {/* Results */}
-          <div className="max-h-[400px] overflow-y-auto">
-            {query.length < 2 ? (
-              <div className="p-6 text-center text-muted-foreground">
-                <p className="text-sm">Type at least 2 characters to search</p>
+        <>
+          {/* Mobile: full-screen overlay */}
+          <div className="fixed inset-0 z-50 bg-background md:hidden animate-fade-in">
+            <div className="flex flex-col h-full pt-safe">
+              {/* Search Input */}
+              <div className="flex items-center gap-2 p-3 border-b">
+                <Search className="h-5 w-5 text-muted-foreground shrink-0" />
+                <Input
+                  ref={inputRef}
+                  type="text"
+                  placeholder="Search entries, theses, trades..."
+                  value={query}
+                  onChange={(e) => handleInputChange(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="border-0 focus-visible:ring-0 p-0 h-auto text-base"
+                  enterKeyHint="search"
+                />
+                {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsOpen(false)}
+                  className="shrink-0"
+                >
+                  Cancel
+                </Button>
               </div>
-            ) : results.length === 0 && !loading ? (
-              <div className="p-6 text-center text-muted-foreground">
-                <p className="text-sm">No results found for &ldquo;{query}&rdquo;</p>
-              </div>
-            ) : (
-              <div className="py-2">
-                {/* Results count */}
-                {counts.total > 0 && (
-                  <div className="px-3 py-1 text-xs text-muted-foreground">
-                    Found {counts.total} result{counts.total !== 1 ? 's' : ''}
-                    {counts.entries > 0 && ` (${counts.entries} entries`}
-                    {counts.theses > 0 && `, ${counts.theses} theses`}
-                    {counts.trades > 0 && `, ${counts.trades} trades`}
-                    {counts.total > 0 && ')'}
-                  </div>
-                )}
 
-                {/* Result items */}
-                {results.map((result, index) => {
-                  const Icon = typeIcons[result.type];
-                  return (
-                    <button
-                      key={`${result.type}-${result.id}`}
-                      onClick={() => navigateToResult(result)}
-                      className={cn(
-                        'w-full px-3 py-2 text-left hover:bg-muted/50 flex items-start gap-3 transition-colors',
-                        index === selectedIndex && 'bg-muted/50'
-                      )}
-                    >
-                      <div className="mt-0.5">
-                        <Icon className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium text-sm truncate">
-                            {result.title}
-                          </span>
-                          {result.ticker && (
-                            <Badge variant="secondary" className="font-mono text-xs shrink-0">
-                              {result.ticker}
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground line-clamp-2">
-                          {result.content}
-                        </p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="outline" className={cn('text-xs', typeColors[result.type])}>
-                            {typeLabels[result.type]}
-                            {result.entryType && ` - ${result.entryType.replace('_', ' ')}`}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(new Date(result.createdAt), { addSuffix: true })}
-                          </span>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
+              {/* Results */}
+              <div className="flex-1 overflow-y-auto overscroll-contain">
+                {searchResults}
               </div>
-            )}
-          </div>
-
-          {/* Footer */}
-          <div className="p-2 border-t text-xs text-muted-foreground flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">↑↓</kbd>
-              <span>Navigate</span>
-              <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">↵</kbd>
-              <span>Select</span>
-            </div>
-            <div>
-              <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">Esc</kbd>
-              <span className="ml-1">Close</span>
             </div>
           </div>
-        </div>
+
+          {/* Desktop: dropdown */}
+          <div className="hidden md:block absolute right-0 top-full mt-2 w-[400px] max-w-[calc(100vw-2rem)] bg-background border rounded-lg shadow-lg z-50">
+            {/* Search Input */}
+            <div className="flex items-center gap-2 p-3 border-b">
+              <Search className="h-5 w-5 text-muted-foreground shrink-0" />
+              <Input
+                type="text"
+                placeholder="Search entries, theses, trades..."
+                value={query}
+                onChange={(e) => handleInputChange(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="border-0 focus-visible:ring-0 p-0 h-auto"
+              />
+              {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                onClick={() => setIsOpen(false)}
+                aria-label="Close search"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Results */}
+            <div className="max-h-[400px] overflow-y-auto">
+              {searchResults}
+            </div>
+
+            {/* Footer */}
+            <div className="p-2 border-t text-xs text-muted-foreground flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">&#8593;&#8595;</kbd>
+                <span>Navigate</span>
+                <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">&#8629;</kbd>
+                <span>Select</span>
+              </div>
+              <div>
+                <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px]">Esc</kbd>
+                <span className="ml-1">Close</span>
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

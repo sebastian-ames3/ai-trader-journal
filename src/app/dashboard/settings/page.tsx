@@ -217,7 +217,7 @@ export default function DashboardSettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-24">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
         <div className="px-4 py-6">
           <div className="h-8 w-48 skeleton rounded mb-6" />
           <div className="grid grid-cols-12 gap-4">
@@ -231,7 +231,7 @@ export default function DashboardSettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-24">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       {/* Header */}
       <div className="sticky top-0 z-30 bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800">
         <div className="max-w-6xl mx-auto px-4 py-4">

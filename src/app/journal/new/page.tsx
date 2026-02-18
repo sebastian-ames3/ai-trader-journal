@@ -192,7 +192,7 @@ export default function NewEntryPage() {
       </div>
 
       {/* Form Content */}
-      <div className="max-w-4xl mx-auto px-4 py-6 pb-24">
+      <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Mode Toggle */}
         <div className="mb-6">
           <div className="inline-flex rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 p-1">

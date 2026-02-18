@@ -121,7 +121,7 @@ const config: Config = {
       },
       spacing: {
         safe: "env(safe-area-inset-bottom, 0px)",
-        nav: "calc(64px + env(safe-area-inset-bottom, 0px))",
+        nav: "calc(80px + env(safe-area-inset-bottom, 0px))",
       },
       animation: {
         "success-pop": "success-pop 400ms ease-out",

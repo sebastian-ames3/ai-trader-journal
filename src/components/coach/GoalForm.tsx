@@ -201,6 +201,7 @@ function CustomGoalFields({
           <Input
             id="target-value"
             type="number"
+            inputMode="numeric"
             min="1"
             value={formData.targetValue}
             onChange={(e) => onChange({ targetValue: parseInt(e.target.value) || 0 })}

@@ -443,6 +443,7 @@ export default function ScreenshotExtractor({
               onSave={(value) => updateField('quantity', parseInt(value as string, 10) || 1)}
               onCancel={() => setEditingField(null)}
               type="number"
+              inputMode="numeric"
             />
 
             {/* Debit/Credit Field */}
@@ -453,8 +454,9 @@ export default function ScreenshotExtractor({
               onStartEdit={() => setEditingField('debitCredit')}
               onSave={(value) => updateField('debitCredit', parseFloat(value as string) || 0)}
               onCancel={() => setEditingField(null)}
-              type="number"
-              step="0.01"
+              type="text"
+              inputMode="decimal"
+              pattern="[0-9]*[.,]?[0-9]*"
               prefix="$"
             />
 
@@ -520,6 +522,8 @@ interface ExtractedFieldRowProps {
   onSave: (value: string | number) => void;
   onCancel: () => void;
   type?: 'text' | 'number' | 'date';
+  inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode'];
+  pattern?: string;
   step?: string;
   prefix?: string;
 }
@@ -532,6 +536,8 @@ function ExtractedFieldRow({
   onSave,
   onCancel,
   type = 'text',
+  inputMode,
+  pattern,
   step,
   prefix,
 }: ExtractedFieldRowProps) {
@@ -559,6 +565,8 @@ function ExtractedFieldRow({
           <div className="flex items-center gap-2">
             <Input
               type={type}
+              inputMode={inputMode}
+              pattern={pattern}
               value={localValue}
               onChange={(e) => setLocalValue(e.target.value)}
               onKeyDown={handleKeyDown}

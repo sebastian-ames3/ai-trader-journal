@@ -488,7 +488,9 @@ export function ScreenshotTradeCapture({
               </span>
               <Input
                 id="ss-pnl"
-                type="number"
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
                 value={pnl}
                 onChange={(e) => setPnl(e.target.value)}
                 placeholder="0.00"

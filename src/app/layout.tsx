@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import Navigation from "@/components/Navigation";
 import { BottomNav } from "@/components/navigation/BottomNav";
+import { MobileNav } from "@/components/navigation/MobileNav";
 import OfflineIndicator from "@/components/OfflineIndicator";
 import InstallPrompt from "@/components/InstallPrompt";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -13,6 +14,8 @@ const inter = Inter({ subsets: ["latin"] });
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  maximumScale: 1,
+  viewportFit: "cover",
   themeColor: "#171717",
 };
 
@@ -97,6 +100,7 @@ export default function RootLayout({
           </a>
           <OfflineIndicator />
           <Navigation />
+          <MobileNav />
           <main id="main-content" className="pb-nav md:pb-0">{children}</main>
           <Toaster />
           <BottomNav />
