@@ -92,6 +92,11 @@ export default function PatternsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [analyzeResult, setAnalyzeResult] = useState<{
+    entryCount?: number;
+    required?: number;
+    patternsFound?: number;
+  } | null>(null);
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     return { year: now.getFullYear(), month: now.getMonth() + 1 };
@@ -138,6 +143,7 @@ export default function PatternsPage() {
   // Trigger pattern analysis
   const runPatternAnalysis = async () => {
     setIsAnalyzing(true);
+    setAnalyzeResult(null);
     try {
       const response = await fetch('/api/patterns/analyze', {
         method: 'POST',
@@ -147,8 +153,14 @@ export default function PatternsPage() {
         throw new Error('Analysis failed');
       }
 
-      // Refresh patterns
-      await fetchPatterns();
+      const data = await response.json();
+
+      if (data.reason === 'insufficient_entries') {
+        setAnalyzeResult({ entryCount: data.entryCount, required: data.required });
+      } else {
+        setAnalyzeResult({ patternsFound: data.patternsFound });
+        await fetchPatterns();
+      }
     } catch (err) {
       console.error('Pattern analysis failed:', err);
       setError('Pattern analysis failed. Please try again.');
@@ -270,6 +282,36 @@ export default function PatternsPage() {
         {/* Active Patterns Section */}
         <section>
           <h2 className="text-lg font-semibold mb-3">Active Patterns</h2>
+
+          {/* Analyze result banner */}
+          {analyzeResult && (
+            <div className={cn(
+              'p-4 rounded-lg border mb-4 text-sm',
+              analyzeResult.entryCount !== undefined
+                ? 'bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800'
+                : 'bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800'
+            )}>
+              {analyzeResult.entryCount !== undefined ? (
+                <>
+                  <p className="font-medium text-amber-800 dark:text-amber-300 mb-1">
+                    Not enough data yet
+                  </p>
+                  <p className="text-amber-700 dark:text-amber-400">
+                    You have <strong>{analyzeResult.entryCount}</strong> entries in the last 90 days.
+                    AI pattern analysis requires at least <strong>{analyzeResult.required}</strong> entries.
+                    Keep journaling — {(analyzeResult.required ?? 20) - (analyzeResult.entryCount ?? 0)} more to go!
+                  </p>
+                </>
+              ) : (
+                <p className="text-green-800 dark:text-green-300">
+                  Analysis complete —{' '}
+                  {analyzeResult.patternsFound === 0
+                    ? 'no new patterns found yet. Keep journaling!'
+                    : `${analyzeResult.patternsFound} pattern${analyzeResult.patternsFound !== 1 ? 's' : ''} detected.`}
+                </p>
+              )}
+            </div>
+          )}
 
           {patterns.length === 0 ? (
             <div className="p-6 text-center border rounded-lg bg-muted/20">
