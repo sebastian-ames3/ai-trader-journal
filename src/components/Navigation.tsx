@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, BookOpen, BarChart3, TrendingUp, MessageSquare, Settings } from 'lucide-react';
+import { Home, BookOpen, BarChart3, TrendingUp, MessageSquare, Settings, Brain } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import GlobalSearch from './GlobalSearch';
 
@@ -43,6 +43,10 @@ export default function Navigation() {
   const isActive = (path: string) => {
     if (path === '/') {
       return pathname === '/';
+    }
+    // Exact match for /insights so it doesn't highlight when on /insights/patterns
+    if (path === '/insights') {
+      return pathname === '/insights';
     }
     return pathname.startsWith(path);
   };
@@ -112,6 +116,18 @@ export default function Navigation() {
             >
               <BarChart3 className="h-5 w-5" />
               <span className="hidden sm:inline">Insights</span>
+            </Link>
+
+            <Link
+              href="/insights/patterns"
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 min-h-[44px] ${
+                isActive('/insights/patterns')
+                  ? 'bg-amber-500 text-white shadow-md'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              <Brain className="h-5 w-5" />
+              <span className="hidden sm:inline">Patterns</span>
             </Link>
 
             <Link

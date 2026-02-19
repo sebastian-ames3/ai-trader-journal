@@ -123,7 +123,15 @@ export default function WeeklyInsightsPage() {
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700">
         <div className="max-w-6xl mx-auto px-4 py-6">
-          <h1 className="text-2xl font-bold mb-2 dark:text-gray-100">Weekly Insights</h1>
+          <div className="flex items-center justify-between mb-2">
+            <h1 className="text-2xl font-bold dark:text-gray-100">Weekly Insights</h1>
+            <Link href="/insights/patterns">
+              <Button variant="outline" size="sm" className="gap-2">
+                <Brain className="h-4 w-4" />
+                Patterns
+              </Button>
+            </Link>
+          </div>
           <p className="text-gray-600 dark:text-gray-400">
             {formatDate(insights.weekStart)} - {formatDate(insights.weekEnd)}
           </p>
