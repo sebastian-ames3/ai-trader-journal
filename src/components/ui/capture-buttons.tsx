@@ -17,28 +17,24 @@ function CaptureButton({ icon, label, onClick, className }: CaptureButtonProps) 
     <button
       onClick={onClick}
       className={cn(
-        // Base styling
-        'flex flex-col items-center justify-center gap-2',
-        'p-4 rounded-xl',
-        'min-h-[100px] w-full',
-
-        // Colors - dark blue card with border
-        'bg-slate-800 dark:bg-slate-800',
-        'border border-slate-700 dark:border-slate-600',
-
-        // Interaction
-        'transition-all duration-200',
-        'hover:bg-slate-700 dark:hover:bg-slate-700',
-        'hover:border-slate-600 dark:hover:border-slate-500',
-        'active:scale-[0.98]',
-
+        'flex flex-col items-center justify-center gap-2 p-4 rounded-xl min-h-[100px] w-full',
+        // Light mode: clean white card
+        'bg-white border border-slate-200/70 shadow-sm',
+        // Dark mode: glassmorphic
+        'dark:bg-card/60 dark:backdrop-blur-md',
+        'dark:border dark:border-white/[0.07]',
+        'dark:shadow-lg dark:shadow-black/30',
+        // Hover
+        'hover:shadow-md hover:border-slate-300/50',
+        'dark:hover:bg-card/80 dark:hover:border-white/10',
+        'transition-all duration-200 active:scale-[0.98]',
         className
       )}
     >
       <div className="p-3 rounded-lg bg-amber-500">
         {icon}
       </div>
-      <span className="text-sm font-medium text-white">
+      <span className="text-sm font-medium text-slate-800 dark:text-white">
         {label}
       </span>
     </button>

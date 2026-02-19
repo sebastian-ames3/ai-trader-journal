@@ -9,13 +9,16 @@ import { SimpleGreeting } from '@/components/ui/greeting-header';
 import { CaptureButtons } from '@/components/ui/capture-buttons';
 import { HomePatternsCard } from '@/components/dashboard/HomePatternsCard';
 import { HomeWeeklyPulse } from '@/components/dashboard/HomeWeeklyPulse';
-import { cn } from '@/lib/utils';
+import { EntryCard } from '@/components/ui/entry-card';
 
 interface RecentEntry {
   id: string;
   type: 'IDEA' | 'DECISION' | 'REFLECTION' | 'OBSERVATION';
   content: string;
   createdAt: string;
+  mood?: string | null;
+  ticker?: string | null;
+  conviction?: string | null;
 }
 
 interface PatternInsight {
@@ -44,35 +47,10 @@ interface WeeklyPulseData {
   comparison?: { entriesChange: number; sentimentChange: 'improving' | 'declining' | 'stable' };
 }
 
-// Format time for display
-function formatEntryTime(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) {
-    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-  } else if (diffDays === 1) {
-    return 'Yesterday';
-  } else if (diffDays < 7) {
-    return `${diffDays} days ago`;
-  } else {
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  }
-}
-
-// Get excerpt from content
-function getExcerpt(content: string, maxLength: number = 40): string {
-  const cleaned = content.replace(/\[Image:.*?\]/g, '').trim();
-  if (cleaned.length <= maxLength) return cleaned;
-  return cleaned.substring(0, maxLength).trim() + '...';
-}
-
 // Skeleton for loading state
 function DashboardSkeleton() {
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+    <div className="min-h-screen bg-background">
       <div className="max-w-6xl mx-auto px-4">
         <div className="lg:grid lg:grid-cols-[2fr_3fr] lg:gap-10 lg:pt-4">
           {/* Left skeleton */}
@@ -109,28 +87,6 @@ function DashboardSkeleton() {
         </div>
       </div>
     </div>
-  );
-}
-
-// Simple entry row component
-function EntryRow({ entry }: { entry: RecentEntry }) {
-  const time = formatEntryTime(entry.createdAt);
-  const excerpt = getExcerpt(entry.content);
-
-  return (
-    <Link href={`/journal/${entry.id}`}>
-      <div className={cn(
-        'py-3 border-b border-amber-500/30',
-        'hover:bg-slate-100 dark:hover:bg-slate-800/50',
-        'transition-colors cursor-pointer'
-      )}>
-        <p className="text-sm text-slate-900 dark:text-white">
-          <span className="font-medium">{time}</span>
-          <span className="text-slate-500 dark:text-slate-400"> - </span>
-          <span>{excerpt}</span>
-        </p>
-      </div>
-    </Link>
   );
 }
 
@@ -192,7 +148,7 @@ export default function DashboardPage() {
   // Empty state for first-time users
   if (!hasData) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+      <div className="min-h-screen bg-background">
         <SimpleGreeting />
 
         <div className="max-w-2xl mx-auto px-4">
@@ -254,7 +210,7 @@ export default function DashboardPage() {
 
   // Dashboard with data
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+    <div className="min-h-screen bg-background">
       <div className="max-w-6xl mx-auto px-4">
         <div className="lg:grid lg:grid-cols-[2fr_3fr] lg:gap-10 lg:pt-4">
 
@@ -279,9 +235,18 @@ export default function DashboardPage() {
                 <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wide mb-3">
                   Recent Entries
                 </h2>
-                <div>
+                <div className="space-y-3">
                   {recentEntries.map((entry) => (
-                    <EntryRow key={entry.id} entry={entry} />
+                    <EntryCard
+                      key={entry.id}
+                      id={entry.id}
+                      type={entry.type}
+                      content={entry.content}
+                      createdAt={entry.createdAt}
+                      mood={entry.mood}
+                      ticker={entry.ticker}
+                      conviction={entry.conviction}
+                    />
                   ))}
                 </div>
                 <Link

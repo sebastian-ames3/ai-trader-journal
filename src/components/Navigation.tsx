@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { Home, BookOpen, BarChart3, TrendingUp, MessageSquare, Settings, Brain } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import GlobalSearch from './GlobalSearch';
+import { cn } from '@/lib/utils';
 
 export default function Navigation() {
   const pathname = usePathname();
@@ -52,7 +53,13 @@ export default function Navigation() {
   };
 
   return (
-    <nav className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 hidden md:block">
+    <nav className="sticky top-0 z-50 hidden md:block">
+      <div className={cn(
+        "bg-white/90 dark:bg-card/70",
+        "backdrop-blur-xl",
+        "border-b border-slate-200/50 dark:border-white/[0.07]",
+        "dark:shadow-lg dark:shadow-black/20"
+      )}>
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-4">
@@ -61,7 +68,7 @@ export default function Navigation() {
             </Link>
 
             {!loading && streak >= 2 && (
-              <div className="flex items-center gap-1 px-3 py-1 bg-amber-50 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400 rounded-full text-sm font-medium">
+              <div className="flex items-center gap-1 px-3 py-1 bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400 rounded-full text-sm font-medium">
                 🔥 {streak} day{streak !== 1 ? 's' : ''}
               </div>
             )}
@@ -75,7 +82,7 @@ export default function Navigation() {
               className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 min-h-[44px] ${
                 isActive('/')
                   ? 'bg-amber-500 text-white shadow-md'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/[0.05]'
               }`}
             >
               <Home className="h-5 w-5" />
@@ -87,7 +94,7 @@ export default function Navigation() {
               className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 min-h-[44px] ${
                 isActive('/journal')
                   ? 'bg-amber-500 text-white shadow-md'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/[0.05]'
               }`}
             >
               <BookOpen className="h-5 w-5" />
@@ -99,7 +106,7 @@ export default function Navigation() {
               className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 min-h-[44px] ${
                 isActive('/theses')
                   ? 'bg-amber-500 text-white shadow-md'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/[0.05]'
               }`}
             >
               <TrendingUp className="h-5 w-5" />
@@ -111,7 +118,7 @@ export default function Navigation() {
               className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 min-h-[44px] ${
                 isActive('/insights')
                   ? 'bg-amber-500 text-white shadow-md'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/[0.05]'
               }`}
             >
               <BarChart3 className="h-5 w-5" />
@@ -123,7 +130,7 @@ export default function Navigation() {
               className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 min-h-[44px] ${
                 isActive('/insights/patterns')
                   ? 'bg-amber-500 text-white shadow-md'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/[0.05]'
               }`}
             >
               <Brain className="h-5 w-5" />
@@ -135,7 +142,7 @@ export default function Navigation() {
               className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 min-h-[44px] ${
                 isActive('/coach')
                   ? 'bg-amber-500 text-white shadow-md'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/[0.05]'
               }`}
             >
               <MessageSquare className="h-5 w-5" />
@@ -147,7 +154,7 @@ export default function Navigation() {
               className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 min-h-[44px] ${
                 isActive('/settings')
                   ? 'bg-amber-500 text-white shadow-md'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/[0.05]'
               }`}
             >
               <Settings className="h-5 w-5" />
@@ -155,6 +162,7 @@ export default function Navigation() {
             </Link>
           </div>
         </div>
+      </div>
       </div>
     </nav>
   );
