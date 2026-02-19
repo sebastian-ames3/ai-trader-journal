@@ -46,13 +46,13 @@ interface WeeklyInsights {
 const sentimentColors = {
   positive: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800',
   negative: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800',
-  neutral: 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700',
+  neutral: 'bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
 };
 
 const sentimentIcons = {
   improving: <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />,
   declining: <TrendingDown className="h-5 w-5 text-red-600 dark:text-red-400" />,
-  stable: <Minus className="h-5 w-5 text-gray-600 dark:text-gray-400" />,
+  stable: <Minus className="h-5 w-5 text-slate-600 dark:text-slate-400" />,
 };
 
 export default function WeeklyInsightsPage() {
@@ -95,19 +95,19 @@ export default function WeeklyInsightsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <Loader className="animate-spin h-8 w-8 text-gray-400 dark:text-gray-600" />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader className="animate-spin h-8 w-8 text-muted-foreground" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen bg-background">
         <div className="max-w-6xl mx-auto px-4 py-12 text-center">
           <div className="text-6xl mb-4">❌</div>
-          <h2 className="text-xl font-semibold mb-2 dark:text-gray-100">Error</h2>
-          <p className="text-gray-600 dark:text-gray-400">{error}</p>
+          <h2 className="text-xl font-semibold mb-2 text-foreground">Error</h2>
+          <p className="text-muted-foreground">{error}</p>
         </div>
       </div>
     );
@@ -119,12 +119,12 @@ export default function WeeklyInsightsPage() {
   const showEmptyState = selectedWeek === 0 && insights.stats.totalEntries < 3;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-12">
+    <div className="min-h-screen bg-background pb-12">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700">
+      <div className="bg-card border-b border-border">
         <div className="max-w-6xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between mb-2">
-            <h1 className="text-2xl font-bold dark:text-gray-100">Weekly Insights</h1>
+            <h1 className="text-2xl font-bold text-foreground">Weekly Insights</h1>
             <Link href="/insights/patterns">
               <Button variant="outline" size="sm" className="gap-2">
                 <Brain className="h-4 w-4" />
@@ -132,7 +132,7 @@ export default function WeeklyInsightsPage() {
               </Button>
             </Link>
           </div>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-muted-foreground">
             {formatDate(insights.weekStart)} - {formatDate(insights.weekEnd)}
           </p>
 
@@ -140,30 +140,30 @@ export default function WeeklyInsightsPage() {
           <div className="mt-4 flex gap-2">
             <button
               onClick={() => setSelectedWeek(0)}
-              className={`px-4 py-2 rounded-lg border dark:border-gray-600 min-h-[44px] ${
+              className={`px-4 py-2 rounded-lg border border-border min-h-[44px] ${
                 selectedWeek === 0
                   ? 'bg-primary text-primary-foreground'
-                  : 'bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 dark:text-gray-100'
+                  : 'bg-card dark:bg-secondary hover:bg-slate-50 dark:hover:bg-muted/80 text-foreground'
               }`}
             >
               This Week
             </button>
             <button
               onClick={() => setSelectedWeek(-1)}
-              className={`px-4 py-2 rounded-lg border dark:border-gray-600 min-h-[44px] ${
+              className={`px-4 py-2 rounded-lg border border-border min-h-[44px] ${
                 selectedWeek === -1
                   ? 'bg-primary text-primary-foreground'
-                  : 'bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 dark:text-gray-100'
+                  : 'bg-card dark:bg-secondary hover:bg-slate-50 dark:hover:bg-muted/80 text-foreground'
               }`}
             >
               Last Week
             </button>
             <button
               onClick={() => setSelectedWeek(-2)}
-              className={`px-4 py-2 rounded-lg border dark:border-gray-600 min-h-[44px] ${
+              className={`px-4 py-2 rounded-lg border border-border min-h-[44px] ${
                 selectedWeek === -2
                   ? 'bg-primary text-primary-foreground'
-                  : 'bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 dark:text-gray-100'
+                  : 'bg-card dark:bg-secondary hover:bg-slate-50 dark:hover:bg-muted/80 text-foreground'
               }`}
             >
               2 Weeks Ago
@@ -177,16 +177,16 @@ export default function WeeklyInsightsPage() {
           // Empty State - Not enough entries this week
           <div className="max-w-2xl mx-auto text-center py-12">
             <div className="text-8xl mb-6">📊</div>
-            <h2 className="text-2xl font-bold mb-3 dark:text-gray-100">Weekly Insights</h2>
-            <p className="text-lg text-gray-700 dark:text-gray-300 mb-2">
+            <h2 className="text-2xl font-bold mb-3 text-foreground">Weekly Insights</h2>
+            <p className="text-lg text-muted-foreground mb-2">
               Log at least <span className="font-semibold text-primary dark:text-primary">3 entries</span> this week
             </p>
-            <p className="text-gray-600 dark:text-gray-400 mb-8">
+            <p className="text-muted-foreground mb-8">
               to unlock personalized insights about your trading psychology
             </p>
 
             {insights.stats.totalEntries > 0 && (
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+              <p className="text-sm text-muted-foreground mb-6">
                 You have {insights.stats.totalEntries} {insights.stats.totalEntries === 1 ? 'entry' : 'entries'} so far.
                 Just {3 - insights.stats.totalEntries} more to go! 🎯
               </p>
@@ -215,12 +215,12 @@ export default function WeeklyInsightsPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Entries</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Entries</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold dark:text-gray-100">{insights.stats.totalEntries}</div>
+              <div className="text-3xl font-bold text-foreground">{insights.stats.totalEntries}</div>
               {insights.comparison && (
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   {insights.comparison.entriesChange > 0 ? '+' : ''}
                   {insights.comparison.entriesChange}% from last week
                 </p>
@@ -230,19 +230,19 @@ export default function WeeklyInsightsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">Trade Ideas</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Trade Ideas</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold dark:text-gray-100">{insights.stats.tradeIdeas}</div>
+              <div className="text-3xl font-bold text-foreground">{insights.stats.tradeIdeas}</div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">Reflections</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Reflections</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold dark:text-gray-100">{insights.stats.reflections}</div>
+              <div className="text-3xl font-bold text-foreground">{insights.stats.reflections}</div>
             </CardContent>
           </Card>
         </div>
@@ -259,14 +259,14 @@ export default function WeeklyInsightsPage() {
             {/* Dominant Sentiment */}
             {insights.emotional.dominantSentiment && (
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Dominant Sentiment</p>
+                <p className="text-sm text-muted-foreground mb-2">Dominant Sentiment</p>
                 <Badge
                   variant="outline"
                   className={`text-base px-3 py-1 ${sentimentColors[insights.emotional.dominantSentiment]}`}
                 >
                   {insights.emotional.dominantSentiment.charAt(0).toUpperCase() + insights.emotional.dominantSentiment.slice(1)}
                 </Badge>
-                <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                <div className="mt-2 text-sm text-muted-foreground">
                   {insights.emotional.sentimentBreakdown.positive} positive,{' '}
                   {insights.emotional.sentimentBreakdown.negative} negative,{' '}
                   {insights.emotional.sentimentBreakdown.neutral} neutral entries
@@ -277,7 +277,7 @@ export default function WeeklyInsightsPage() {
             {/* Top Emotions */}
             {insights.emotional.topEmotions.length > 0 && (
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Top Emotions</p>
+                <p className="text-sm text-muted-foreground mb-2">Top Emotions</p>
                 <div className="flex flex-wrap gap-2">
                   {insights.emotional.topEmotions.map((emotion) => (
                     <Badge key={emotion.emotion} variant="secondary" className="text-sm">
@@ -290,9 +290,9 @@ export default function WeeklyInsightsPage() {
 
             {/* Sentiment Change */}
             {insights.comparison && (
-              <div className="flex items-center gap-2 pt-2 border-t dark:border-gray-700">
+              <div className="flex items-center gap-2 pt-2 border-t border-border">
                 {sentimentIcons[insights.comparison.sentimentChange]}
-                <span className="text-sm dark:text-gray-300">
+                <span className="text-sm text-muted-foreground">
                   Sentiment is {insights.comparison.sentimentChange} compared to last week
                 </span>
               </div>
@@ -311,23 +311,23 @@ export default function WeeklyInsightsPage() {
           <CardContent className="space-y-4">
             {/* Conviction Distribution */}
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Conviction Levels</p>
+              <p className="text-sm text-muted-foreground mb-2">Conviction Levels</p>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm dark:text-gray-300">High</span>
+                  <span className="text-sm text-foreground">High</span>
                   <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800">
                     {insights.patterns.convictionDistribution.high}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm dark:text-gray-300">Medium</span>
+                  <span className="text-sm text-foreground">Medium</span>
                   <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-950 dark:text-yellow-300 dark:border-yellow-800">
                     {insights.patterns.convictionDistribution.medium}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm dark:text-gray-300">Low</span>
-                  <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700">
+                  <span className="text-sm text-foreground">Low</span>
+                  <Badge variant="outline" className="bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
                     {insights.patterns.convictionDistribution.low}
                   </Badge>
                 </div>
@@ -336,12 +336,12 @@ export default function WeeklyInsightsPage() {
 
             {/* Detected Biases */}
             {insights.patterns.detectedBiases.length > 0 && (
-              <div className="pt-4 border-t dark:border-gray-700">
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Detected Biases</p>
+              <div className="pt-4 border-t border-border">
+                <p className="text-sm text-muted-foreground mb-2">Detected Biases</p>
                 <div className="space-y-2">
                   {insights.patterns.detectedBiases.map((bias) => (
                     <div key={bias.bias} className="flex items-center justify-between">
-                      <span className="text-sm capitalize dark:text-gray-300">{bias.bias.replace(/_/g, ' ')}</span>
+                      <span className="text-sm capitalize text-foreground">{bias.bias.replace(/_/g, ' ')}</span>
                       <Badge variant="secondary">{bias.count}x</Badge>
                     </div>
                   ))}
@@ -364,7 +364,7 @@ export default function WeeklyInsightsPage() {
               {insights.insights.map((insight, index) => (
                 <li key={index} className="flex items-start">
                   <span className="text-blue-600 dark:text-blue-400 mr-2">•</span>
-                  <span className="text-gray-700 dark:text-gray-300">{insight}</span>
+                  <span className="text-foreground">{insight}</span>
                 </li>
               ))}
             </ul>

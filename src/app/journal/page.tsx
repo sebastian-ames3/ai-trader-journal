@@ -365,7 +365,7 @@ function JournalContent() {
   return (
     <PullToRefresh
       onRefresh={handleRefresh}
-      className="min-h-screen bg-slate-50 dark:bg-slate-900"
+      className="min-h-screen bg-background"
     >
       {/* Calendar Month View */}
       <CalendarMonthView
@@ -496,7 +496,7 @@ export default function JournalPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+        <div className="min-h-screen bg-background">
           <div className="h-24 skeleton" />
           <div className="max-w-6xl mx-auto px-4 py-6">
             <div className="space-y-3">

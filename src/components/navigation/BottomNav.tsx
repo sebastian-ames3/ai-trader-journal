@@ -34,7 +34,7 @@ function NavItem({ icon: Icon, label, href, isActive, onNavigate }: NavItemProps
         "active:scale-90",
         isActive
           ? "text-amber-500"
-          : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
+          : "text-slate-400 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
       )}
     >
       <Icon
@@ -97,9 +97,9 @@ export function BottomNav() {
           {/* Nav bar */}
           <div
             className={cn(
-              "bg-white/90 dark:bg-slate-900/90",
+              "bg-white/90 dark:bg-background/80",
               "backdrop-blur-xl",
-              "border-t border-slate-200/20 dark:border-white/5",
+              "border-t border-slate-200/20 dark:border-white/[0.06]",
               "pb-safe"
             )}
           >
