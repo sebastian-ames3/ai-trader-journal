@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, BookOpen, BarChart3, TrendingUp } from 'lucide-react';
+import { Home, BookOpen, BarChart3, TrendingUp, MessageSquare, Settings } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import GlobalSearch from './GlobalSearch';
 
@@ -49,7 +49,7 @@ export default function Navigation() {
 
   return (
     <nav className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 hidden md:block">
-      <div className="max-w-4xl mx-auto px-4">
+      <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-4">
             <Link href="/" className="text-xl font-bold text-slate-900 dark:text-slate-100">
@@ -112,6 +112,30 @@ export default function Navigation() {
             >
               <BarChart3 className="h-5 w-5" />
               <span className="hidden sm:inline">Insights</span>
+            </Link>
+
+            <Link
+              href="/coach"
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 min-h-[44px] ${
+                isActive('/coach')
+                  ? 'bg-amber-500 text-white shadow-md'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              <MessageSquare className="h-5 w-5" />
+              <span className="hidden sm:inline">Coach</span>
+            </Link>
+
+            <Link
+              href="/settings"
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 min-h-[44px] ${
+                isActive('/settings')
+                  ? 'bg-amber-500 text-white shadow-md'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              <Settings className="h-5 w-5" />
+              <span className="hidden sm:inline">Settings</span>
             </Link>
           </div>
         </div>

@@ -132,7 +132,7 @@ export default function SharingPage() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-        <div className="max-w-2xl mx-auto px-4 py-4">
+        <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.back()}
@@ -149,7 +149,7 @@ export default function SharingPage() {
       </div>
 
       {/* Content */}
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-8">
+      <div className="max-w-4xl mx-auto px-4 py-6 space-y-8">
         {/* Active Share Links */}
         <section>
           <div className="flex items-center justify-between mb-4">
