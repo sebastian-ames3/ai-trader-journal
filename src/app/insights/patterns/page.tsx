@@ -139,7 +139,7 @@ export default function PatternsPage() {
   const runPatternAnalysis = async () => {
     setIsAnalyzing(true);
     try {
-      const response = await fetch('/api/cron/pattern-analysis', {
+      const response = await fetch('/api/patterns/analyze', {
         method: 'POST',
       });
 
