@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { ThesisTradeStatus, StrategyType, Prisma } from '@prisma/client';
+import { ThesisTradeStatus, StrategyType, TradeOutcome, Prisma } from '@prisma/client';
 import { requireAuth } from '@/lib/auth';
 import { calculateTotalPL, calculateCapitalDeployed } from '@/lib/money';
 
@@ -109,6 +109,14 @@ export async function PATCH(
       updateData.extractedData = body.extractedData === null ? Prisma.JsonNull : body.extractedData;
     }
     if (body.reasoningNote !== undefined) updateData.reasoningNote = body.reasoningNote;
+
+    if (body.outcome !== undefined) {
+      const validOutcomes = Object.values(TradeOutcome);
+      if (body.outcome !== null && !validOutcomes.includes(body.outcome)) {
+        return NextResponse.json({ error: 'Invalid outcome' }, { status: 400 });
+      }
+      updateData.outcome = body.outcome;
+    }
 
     if (body.status !== undefined) {
       updateData.status = body.status;
