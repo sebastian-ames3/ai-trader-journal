@@ -7,6 +7,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { MarketState } from '@prisma/client';
+import { getTickerInfo } from '@/lib/yahooFinance';
 
 // Market data types
 export interface MarketQuote {
@@ -77,42 +78,24 @@ async function fetchQuoteFromYFinance(ticker: string): Promise<MarketQuote | nul
 }
 
 /**
- * Fetch quote from Yahoo Finance API directly (fallback)
+ * Fetch quote from yahoo-finance2 package (fallback)
  */
 async function fetchQuoteFromYahoo(ticker: string): Promise<MarketQuote | null> {
   try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d`;
+    const info = await getTickerInfo(ticker);
 
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0',
-      },
-      next: { revalidate: 300 },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Yahoo Finance error: ${response.status}`);
+    if (!info || info.regularMarketPrice == null) {
+      return null;
     }
-
-    const data = await response.json();
-    const quote = data.chart?.result?.[0]?.meta;
-
-    if (!quote) {
-      throw new Error('Invalid response format');
-    }
-
-    const price = quote.regularMarketPrice;
-    const previousClose = quote.previousClose || quote.chartPreviousClose;
-    const change = previousClose ? ((price - previousClose) / previousClose) * 100 : 0;
 
     return {
       ticker,
-      price,
-      change,
-      volume: quote.regularMarketVolume,
+      price: info.regularMarketPrice,
+      change: info.regularMarketChangePercent ?? 0,
+      volume: info.regularMarketVolume,
     };
   } catch (error) {
-    console.error(`Failed to fetch ${ticker} from Yahoo:`, error);
+    console.error(`Failed to fetch ${ticker} from yahoo-finance2:`, error);
     return null;
   }
 }
