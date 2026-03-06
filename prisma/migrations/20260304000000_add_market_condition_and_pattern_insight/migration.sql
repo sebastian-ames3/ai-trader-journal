@@ -53,7 +53,10 @@ CREATE INDEX IF NOT EXISTS "MarketCondition_marketState_idx" ON "MarketCondition
 -- STEP 3: Create PatternInsight table
 -- ============================================
 
-CREATE TABLE IF NOT EXISTS "PatternInsight" (
+-- Drop and recreate to handle case where table existed without userId column
+DROP TABLE IF EXISTS "PatternInsight";
+
+CREATE TABLE "PatternInsight" (
     "id" TEXT NOT NULL,
     "patternType" "PatternType" NOT NULL,
     "patternName" TEXT NOT NULL,
@@ -73,11 +76,11 @@ CREATE TABLE IF NOT EXISTS "PatternInsight" (
     CONSTRAINT "PatternInsight_pkey" PRIMARY KEY ("id")
 );
 
-CREATE INDEX IF NOT EXISTS "PatternInsight_patternType_idx" ON "PatternInsight"("patternType");
-CREATE INDEX IF NOT EXISTS "PatternInsight_patternName_idx" ON "PatternInsight"("patternName");
-CREATE INDEX IF NOT EXISTS "PatternInsight_isActive_idx" ON "PatternInsight"("isActive");
-CREATE INDEX IF NOT EXISTS "PatternInsight_lastUpdated_idx" ON "PatternInsight"("lastUpdated" DESC);
-CREATE INDEX IF NOT EXISTS "PatternInsight_userId_idx" ON "PatternInsight"("userId");
+CREATE INDEX "PatternInsight_patternType_idx" ON "PatternInsight"("patternType");
+CREATE INDEX "PatternInsight_patternName_idx" ON "PatternInsight"("patternName");
+CREATE INDEX "PatternInsight_isActive_idx" ON "PatternInsight"("isActive");
+CREATE INDEX "PatternInsight_lastUpdated_idx" ON "PatternInsight"("lastUpdated" DESC);
+CREATE INDEX "PatternInsight_userId_idx" ON "PatternInsight"("userId");
 
 -- Add foreign key constraint for PatternInsight -> User
 DO $$
