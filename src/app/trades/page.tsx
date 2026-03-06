@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   TrendingUp,
   TrendingDown,
@@ -11,6 +12,7 @@ import {
   Loader2,
   Plus,
   X,
+  Pencil,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -53,9 +55,11 @@ function formatPL(value: number): string {
 function TradeCard({
   trade,
   onClose,
+  onEdit,
 }: {
   trade: Trade;
   onClose: (trade: Trade) => void;
+  onEdit: (trade: Trade) => void;
 }) {
   const SourceIcon = SOURCE_ICONS[trade.sourceType] ?? Keyboard;
   const date = new Date(trade.openedAt || trade.createdAt);
@@ -67,13 +71,24 @@ function TradeCard({
         'rounded-2xl p-4',
         'border border-slate-200/50 dark:border-slate-700/50',
         'transition-all duration-200',
-        trade.status === 'OPEN' && 'cursor-pointer hover:shadow-md hover:border-slate-300/50 dark:hover:border-slate-600/50 active:scale-[0.98]'
+        trade.status !== 'OPEN' && 'cursor-pointer hover:shadow-md hover:border-slate-300/50 dark:hover:border-slate-600/50 active:scale-[0.98]'
       )}
-      onClick={() => trade.status === 'OPEN' && onClose(trade)}
+      onClick={() => trade.status !== 'OPEN' && onEdit(trade)}
     >
       <div className="flex items-start justify-between gap-3">
         {/* Left: ticker + status */}
-        <div className="flex items-center gap-2 flex-wrap min-w-0">
+        <div
+          className={cn(
+            'flex items-center gap-2 flex-wrap min-w-0',
+            trade.status === 'OPEN' && 'cursor-pointer'
+          )}
+          onClick={(e) => {
+            if (trade.status === 'OPEN') {
+              e.stopPropagation();
+              onClose(trade);
+            }
+          }}
+        >
           {/* Status dot */}
           <span
             className={cn(
@@ -110,17 +125,26 @@ function TradeCard({
           )}
         </div>
 
-        {/* Right: P/L */}
-        {trade.realizedPL !== null && (
-          <span
-            className={cn(
-              'text-base font-semibold flex-shrink-0',
-              trade.realizedPL >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-            )}
+        {/* Right: P/L + edit button */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {trade.realizedPL !== null && (
+            <span
+              className={cn(
+                'text-base font-semibold',
+                trade.realizedPL >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+              )}
+            >
+              {formatPL(trade.realizedPL)}
+            </span>
+          )}
+          <button
+            onClick={(e) => { e.stopPropagation(); onEdit(trade); }}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+            aria-label="Edit trade"
           >
-            {formatPL(trade.realizedPL)}
-          </span>
-        )}
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
 
       {/* Secondary line: thesis + date + source */}
@@ -252,6 +276,7 @@ function CloseTradeModal({
 }
 
 export default function TradesPage() {
+  const router = useRouter();
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<TradeFilter>('all');
@@ -286,6 +311,10 @@ export default function TradesPage() {
   const handleCloseDone = () => {
     setClosingTrade(null);
     fetchTrades();
+  };
+
+  const handleEditTrade = (trade: Trade) => {
+    router.push(`/trades/${trade.id}`);
   };
 
   const emptyMessage =
@@ -351,7 +380,7 @@ export default function TradesPage() {
         ) : (
           <div className="space-y-3">
             {trades.map((trade) => (
-              <TradeCard key={trade.id} trade={trade} onClose={setClosingTrade} />
+              <TradeCard key={trade.id} trade={trade} onClose={setClosingTrade} onEdit={handleEditTrade} />
             ))}
           </div>
         )}

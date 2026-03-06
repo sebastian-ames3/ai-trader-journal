@@ -99,6 +99,7 @@ export async function PATCH(
     // Build update data using Prisma's update input type
     const updateData: Prisma.ThesisTradeUpdateInput = {};
 
+    if (body.ticker !== undefined) updateData.ticker = body.ticker;
     if (body.description !== undefined) updateData.description = body.description;
     if (body.strategyType !== undefined) updateData.strategyType = body.strategyType;
     if (body.expiration !== undefined) updateData.expiration = body.expiration ? new Date(body.expiration) : null;
