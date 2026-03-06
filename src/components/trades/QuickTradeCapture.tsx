@@ -8,6 +8,8 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import type { TradeOutcome } from '@/lib/constants/taxonomy';
 
+type TradeMode = 'open' | 'close';
+
 interface RecentTicker {
   ticker: string;
   count: number;
@@ -18,7 +20,7 @@ interface QuickTradeCaptureProps {
   onTradeCreated: (trade: {
     id: string;
     ticker: string;
-    outcome: TradeOutcome;
+    outcome: TradeOutcome | null;
     thesisId?: string | null;
   }) => void;
   onCancel: () => void;
@@ -26,14 +28,15 @@ interface QuickTradeCaptureProps {
 }
 
 /**
- * Ultra-simple 2-tap trade logging component.
- * Allows logging a trade with just ticker + outcome.
+ * Ultra-simple trade logging component.
+ * Supports two modes: Opening a position (no outcome) and Closing one (outcome required).
  */
 export function QuickTradeCapture({
   onTradeCreated,
   onCancel,
   defaultTicker,
 }: QuickTradeCaptureProps) {
+  const [mode, setMode] = useState<TradeMode>('close');
   const [ticker, setTicker] = useState(defaultTicker?.toUpperCase() || '');
   const [outcome, setOutcome] = useState<TradeOutcome | null>(null);
   const [pnl, setPnl] = useState<string>('');
@@ -62,6 +65,13 @@ export function QuickTradeCapture({
     fetchRecentTickers();
   }, []);
 
+  // Reset outcome and error when mode switches
+  const handleModeChange = (newMode: TradeMode) => {
+    setMode(newMode);
+    setOutcome(null);
+    setError(null);
+  };
+
   // Filter suggestions based on input
   const filteredSuggestions = recentTickers.filter(
     (t) =>
@@ -77,7 +87,7 @@ export function QuickTradeCapture({
       return;
     }
 
-    if (!effectiveOutcome) {
+    if (mode === 'close' && !effectiveOutcome) {
       setError('Select an outcome');
       return;
     }
@@ -86,14 +96,21 @@ export function QuickTradeCapture({
     setError(null);
 
     try {
+      const body: Record<string, unknown> = {
+        ticker: ticker.toUpperCase(),
+        approximatePnL: pnl ? parseFloat(pnl) : undefined,
+      };
+
+      if (mode === 'close') {
+        body.outcome = effectiveOutcome;
+      } else {
+        body.status = 'OPEN';
+      }
+
       const response = await fetch('/api/trades/quick', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ticker: ticker.toUpperCase(),
-          outcome: effectiveOutcome,
-          approximatePnL: pnl ? parseFloat(pnl) : undefined,
-        }),
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) {
@@ -111,7 +128,7 @@ export function QuickTradeCapture({
       onTradeCreated({
         id: data.trade.id,
         ticker: data.trade.ticker,
-        outcome: data.trade.outcome,
+        outcome: data.trade.outcome ?? null,
         thesisId: data.trade.thesisId,
       });
     } catch (err) {
@@ -119,14 +136,12 @@ export function QuickTradeCapture({
       setError(err instanceof Error ? err.message : 'Failed to create trade');
       setIsSubmitting(false);
     }
-  }, [ticker, outcome, pnl, onTradeCreated]);
+  }, [ticker, outcome, pnl, mode, onTradeCreated]);
 
-  // Auto-submit when outcome is selected and ticker is filled
+  // Auto-submit when outcome is selected and ticker is filled (close mode only)
   const handleOutcomeSelect = (selected: TradeOutcome) => {
     setOutcome(selected);
-    // If ticker is already filled, submit automatically for faster UX
-    // Pass outcome directly to avoid stale closure reading null state
-    if (ticker.trim() && !error) {
+    if (mode === 'close' && ticker.trim() && !error) {
       setTimeout(() => {
         if (ticker.trim()) {
           handleSubmit(selected);
@@ -135,8 +150,40 @@ export function QuickTradeCapture({
     }
   };
 
+  const canSubmit = ticker.trim() && (mode === 'open' || outcome !== null);
+
   return (
     <div className="space-y-4" data-testid="quick-trade-capture">
+      {/* Mode toggle */}
+      <div className="flex gap-1 p-1 bg-muted rounded-lg">
+        <button
+          type="button"
+          onClick={() => handleModeChange('open')}
+          className={cn(
+            'flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors',
+            mode === 'open'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+          data-testid="mode-opening"
+        >
+          Opening
+        </button>
+        <button
+          type="button"
+          onClick={() => handleModeChange('close')}
+          className={cn(
+            'flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors',
+            mode === 'close'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+          data-testid="mode-closing"
+        >
+          Closing
+        </button>
+      </div>
+
       {/* Ticker input */}
       <div className="space-y-2">
         <Label htmlFor="quick-ticker">Ticker</Label>
@@ -152,7 +199,6 @@ export function QuickTradeCapture({
             }}
             onFocus={() => setShowSuggestions(true)}
             onBlur={() => {
-              // Delay to allow click on suggestion
               setTimeout(() => setShowSuggestions(false), 200);
             }}
             placeholder="e.g., AAPL"
@@ -188,61 +234,63 @@ export function QuickTradeCapture({
         </div>
       </div>
 
-      {/* Outcome buttons */}
-      <div className="space-y-2">
-        <Label>Outcome</Label>
-        <div className="grid grid-cols-3 gap-2">
-          <Button
-            type="button"
-            variant={outcome === 'WIN' ? 'default' : 'outline'}
-            className={cn(
-              'h-14 flex-col gap-1',
-              outcome === 'WIN' && 'bg-green-600 hover:bg-green-700 text-white'
-            )}
-            onClick={() => handleOutcomeSelect('WIN')}
-            disabled={isSubmitting}
-            data-testid="outcome-win"
-          >
-            <TrendingUp className="h-5 w-5" />
-            <span className="text-xs">Win</span>
-          </Button>
+      {/* Outcome buttons — only shown in close mode */}
+      {mode === 'close' && (
+        <div className="space-y-2">
+          <Label>Outcome</Label>
+          <div className="grid grid-cols-3 gap-2">
+            <Button
+              type="button"
+              variant={outcome === 'WIN' ? 'default' : 'outline'}
+              className={cn(
+                'h-14 flex-col gap-1',
+                outcome === 'WIN' && 'bg-green-600 hover:bg-green-700 text-white'
+              )}
+              onClick={() => handleOutcomeSelect('WIN')}
+              disabled={isSubmitting}
+              data-testid="outcome-win"
+            >
+              <TrendingUp className="h-5 w-5" />
+              <span className="text-xs">Win</span>
+            </Button>
 
-          <Button
-            type="button"
-            variant={outcome === 'LOSS' ? 'default' : 'outline'}
-            className={cn(
-              'h-14 flex-col gap-1',
-              outcome === 'LOSS' && 'bg-red-600 hover:bg-red-700 text-white'
-            )}
-            onClick={() => handleOutcomeSelect('LOSS')}
-            disabled={isSubmitting}
-            data-testid="outcome-loss"
-          >
-            <TrendingDown className="h-5 w-5" />
-            <span className="text-xs">Loss</span>
-          </Button>
+            <Button
+              type="button"
+              variant={outcome === 'LOSS' ? 'default' : 'outline'}
+              className={cn(
+                'h-14 flex-col gap-1',
+                outcome === 'LOSS' && 'bg-red-600 hover:bg-red-700 text-white'
+              )}
+              onClick={() => handleOutcomeSelect('LOSS')}
+              disabled={isSubmitting}
+              data-testid="outcome-loss"
+            >
+              <TrendingDown className="h-5 w-5" />
+              <span className="text-xs">Loss</span>
+            </Button>
 
-          <Button
-            type="button"
-            variant={outcome === 'BREAKEVEN' ? 'default' : 'outline'}
-            className={cn(
-              'h-14 flex-col gap-1',
-              outcome === 'BREAKEVEN' && 'bg-gray-600 hover:bg-gray-700 text-white'
-            )}
-            onClick={() => handleOutcomeSelect('BREAKEVEN')}
-            disabled={isSubmitting}
-            data-testid="outcome-breakeven"
-          >
-            <Minus className="h-5 w-5" />
-            <span className="text-xs">Even</span>
-          </Button>
+            <Button
+              type="button"
+              variant={outcome === 'BREAKEVEN' ? 'default' : 'outline'}
+              className={cn(
+                'h-14 flex-col gap-1',
+                outcome === 'BREAKEVEN' && 'bg-gray-600 hover:bg-gray-700 text-white'
+              )}
+              onClick={() => handleOutcomeSelect('BREAKEVEN')}
+              disabled={isSubmitting}
+              data-testid="outcome-breakeven"
+            >
+              <Minus className="h-5 w-5" />
+              <span className="text-xs">Even</span>
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Optional P/L input */}
+      {/* P/L input */}
       <div className="space-y-2">
         <Label htmlFor="quick-pnl" className="text-sm text-muted-foreground">
-          P/L (optional)
+          {mode === 'open' ? 'Amount / Risk (optional)' : 'P/L (optional)'}
         </Label>
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
@@ -259,9 +307,9 @@ export function QuickTradeCapture({
             className="pl-7 h-10"
           />
         </div>
-        <p className="text-xs text-muted-foreground">
-          Use negative for loss
-        </p>
+        {mode === 'close' && (
+          <p className="text-xs text-muted-foreground">Use negative for loss</p>
+        )}
       </div>
 
       {/* Linked thesis indicator */}
@@ -293,7 +341,7 @@ export function QuickTradeCapture({
         <Button
           className="flex-1 h-11"
           onClick={() => handleSubmit()}
-          disabled={!ticker.trim() || !outcome || isSubmitting}
+          disabled={!canSubmit || isSubmitting}
           data-testid="save-quick-trade"
         >
           {isSubmitting ? (
@@ -301,6 +349,8 @@ export function QuickTradeCapture({
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
               Saving...
             </>
+          ) : mode === 'open' ? (
+            'Log Open Trade'
           ) : (
             'Save Trade'
           )}

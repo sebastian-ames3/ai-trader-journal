@@ -16,13 +16,15 @@ import {
 } from '@/components/ui/select';
 import VoiceRecorder from './VoiceRecorder';
 import AudioPlayer from './AudioPlayer';
+import { VoiceCapturePreview } from './voice/VoiceCapturePreview';
+import type { TradeDetectionResult } from '@/lib/tradeDetection';
+import { TRADE_DETECTION_CONFIDENCE_THRESHOLD } from '@/lib/tradeDetection';
 import ImageCapture, { ImageAnalysis, OCRResult } from './ImageCapture';
 import OCRReviewModal from './entries/OCRReviewModal';
 import TradeLinkSuggestions, { LinkSuggestion } from './entries/TradeLinkSuggestions';
 import TradeDetectionPrompt from './entries/TradeDetectionPrompt';
 import QuickTradeCapture from './trades/QuickTradeCapture';
 import { cn } from '@/lib/utils';
-import type { TradeDetectionResult } from '@/lib/tradeDetection';
 import type { TradeOutcome } from '@/lib/constants/taxonomy';
 
 type QuickCaptureTab = 'journal' | 'quick-trade';
@@ -117,6 +119,14 @@ export function QuickCapture({ isOpen, onClose, initialMode, initialTab: initial
   const [tradeDetection, setTradeDetection] = useState<TradeDetectionResult | null>(null);
   const [showTradePrompt, setShowTradePrompt] = useState(false);
 
+  // Voice + Trade preview state (Fix C)
+  const [voicePreviewMode, setVoicePreviewMode] = useState(false);
+  const [voiceDetection, setVoiceDetection] = useState<TradeDetectionResult | null>(null);
+  const [voiceAudioUrl, setVoiceAudioUrl] = useState<string | null>(null);
+  const [voiceAudioDuration, setVoiceAudioDuration] = useState<number | null>(null);
+  const [voiceTranscription, setVoiceTranscription] = useState<string | null>(null);
+  const [isDetecting, setIsDetecting] = useState(false);
+
   // Tab state for Journal vs Quick Trade (PRD-B)
   const [activeTab, setActiveTab] = useState<QuickCaptureTab>(initialTabProp || 'journal');
 
@@ -157,6 +167,12 @@ export function QuickCapture({ isOpen, onClose, initialMode, initialTab: initial
         setSavedEntryId(null);
         setTradeDetection(null);
         setShowTradePrompt(false);
+        setVoicePreviewMode(false);
+        setVoiceDetection(null);
+        setVoiceAudioUrl(null);
+        setVoiceAudioDuration(null);
+        setVoiceTranscription(null);
+        setIsDetecting(false);
         setActiveTab(initialTabProp || 'journal');
       }, 300);
       return () => clearTimeout(timer);
@@ -191,23 +207,130 @@ export function QuickCapture({ isOpen, onClose, initialMode, initialTab: initial
     return undefined;
   }, [isOpen, activeTab]);
 
-  // Handle voice recording complete
+  // Handle voice recording complete — runs trade detection and shows preview if confident
   const handleRecordingComplete = useCallback(
-    (data: { audioBlob: Blob; audioUrl: string; duration: number; transcription: string }) => {
+    async (data: { audioBlob: Blob; audioUrl: string; duration: number; transcription: string }) => {
       setAudioBlob(data.audioBlob);
       setAudioUrl(data.audioUrl);
       setAudioDuration(data.duration);
       setTranscription(data.transcription);
-      // Append transcription to content
+      setShowVoice(false);
+
+      // Store for voice preview
+      setVoiceAudioUrl(data.audioUrl);
+      setVoiceAudioDuration(data.duration);
+      setVoiceTranscription(data.transcription);
+
+      // Run trade detection on the transcription
+      setIsDetecting(true);
+      try {
+        const response = await fetch('/api/trades/detect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: data.transcription }),
+        });
+        if (response.ok) {
+          const detection: TradeDetectionResult = await response.json();
+          if (detection.detected && detection.confidence >= TRADE_DETECTION_CONFIDENCE_THRESHOLD) {
+            setVoiceDetection(detection);
+            setVoicePreviewMode(true);
+            setIsDetecting(false);
+            return; // Don't append to textarea — preview handles saving
+          }
+        }
+      } catch (err) {
+        console.error('Trade detection failed:', err);
+      }
+      setIsDetecting(false);
+
+      // No trade detected — fall through to normal textarea flow
       setContent((prev) => {
         if (prev.trim()) {
           return `${prev}\n\n${data.transcription}`;
         }
         return data.transcription;
       });
-      setShowVoice(false);
     },
     []
+  );
+
+  // Save both journal entry and trade from voice preview
+  const handleVoiceSaveBoth = useCallback(
+    async (options: { transcription: string; tradeOutcome?: TradeOutcome }) => {
+      const entryResponse = await fetch('/api/entries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: options.transcription,
+          type: 'REFLECTION',
+          mood: 'NEUTRAL',
+          conviction: 'MEDIUM',
+          captureMethod: 'VOICE',
+          transcription: options.transcription,
+          audioDuration: voiceAudioDuration || undefined,
+        }),
+      });
+
+      if (!entryResponse.ok) {
+        const data = await entryResponse.json();
+        throw new Error(data.error || 'Failed to create entry');
+      }
+
+      const entryData = await entryResponse.json();
+      const entryId = entryData.entry?.id || entryData.id;
+
+      if (options.tradeOutcome && entryId) {
+        const tradeResponse = await fetch(`/api/entries/${entryId}/log-trade`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            outcome: options.tradeOutcome,
+            ticker: voiceDetection?.signals.ticker || undefined,
+            approximatePnL: voiceDetection?.signals.approximatePnL || undefined,
+          }),
+        });
+        if (!tradeResponse.ok) {
+          const data = await tradeResponse.json();
+          throw new Error(data.error || 'Failed to log trade');
+        }
+      }
+
+      setVoicePreviewMode(false);
+      onClose();
+      router.push('/trades');
+      router.refresh();
+    },
+    [voiceAudioDuration, voiceDetection, onClose, router]
+  );
+
+  // Save just the journal entry from voice preview
+  const handleVoiceSaveEntryOnly = useCallback(
+    async (transcriptionText: string) => {
+      const entryResponse = await fetch('/api/entries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: transcriptionText,
+          type: 'REFLECTION',
+          mood: 'NEUTRAL',
+          conviction: 'MEDIUM',
+          captureMethod: 'VOICE',
+          transcription: transcriptionText,
+          audioDuration: voiceAudioDuration || undefined,
+        }),
+      });
+
+      if (!entryResponse.ok) {
+        const data = await entryResponse.json();
+        throw new Error(data.error || 'Failed to create entry');
+      }
+
+      setVoicePreviewMode(false);
+      onClose();
+      router.push('/journal');
+      router.refresh();
+    },
+    [voiceAudioDuration, onClose, router]
   );
 
   // Handle image capture complete
@@ -386,12 +509,12 @@ export function QuickCapture({ isOpen, onClose, initialMode, initialTab: initial
     let match;
     const regex = new RegExp(TICKER_REGEX.source, 'gi');
     while ((match = regex.exec(text)) !== null) {
-      const ticker = (match[1] || match[2])?.toUpperCase();
-      if (ticker && ticker.length >= 2 && ticker.length <= 5) {
+      const t = (match[1] || match[2])?.toUpperCase();
+      if (t && t.length >= 2 && t.length <= 5) {
         // Skip common words that aren't tickers
         const skipWords = ['THE', 'AND', 'FOR', 'ARE', 'BUT', 'NOT', 'YOU', 'ALL', 'CAN', 'HER', 'WAS', 'ONE', 'OUR', 'OUT'];
-        if (!skipWords.includes(ticker)) {
-          tickers.add(ticker);
+        if (!skipWords.includes(t)) {
+          tickers.add(t);
         }
       }
     }
@@ -576,7 +699,7 @@ export function QuickCapture({ isOpen, onClose, initialMode, initialTab: initial
     // Success - close and redirect
     setShowTradePrompt(false);
     onClose();
-    router.push('/journal');
+    router.push('/trades');
     router.refresh();
   };
 
@@ -699,46 +822,48 @@ export function QuickCapture({ isOpen, onClose, initialMode, initialTab: initial
             </Button>
           </div>
 
-          {/* Tab switcher */}
-          <div className="flex gap-1 p-1 bg-muted rounded-lg">
-            <button
-              type="button"
-              onClick={() => setActiveTab('journal')}
-              className={cn(
-                'flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors',
-                activeTab === 'journal'
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-              data-testid="journal-tab"
-            >
-              Journal
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('quick-trade')}
-              className={cn(
-                'flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors',
-                activeTab === 'quick-trade'
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-              data-testid="quick-trade-tab"
-            >
-              Quick Trade
-            </button>
-          </div>
+          {/* Tab switcher — hide when in voice preview mode */}
+          {!voicePreviewMode && (
+            <div className="flex gap-1 p-1 bg-muted rounded-lg">
+              <button
+                type="button"
+                onClick={() => setActiveTab('journal')}
+                className={cn(
+                  'flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors',
+                  activeTab === 'journal'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+                data-testid="journal-tab"
+              >
+                Journal
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('quick-trade')}
+                className={cn(
+                  'flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors',
+                  activeTab === 'quick-trade'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+                data-testid="quick-trade-tab"
+              >
+                Quick Trade
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {/* Quick Trade Tab Content */}
-          {activeTab === 'quick-trade' && (
+          {activeTab === 'quick-trade' && !voicePreviewMode && (
             <QuickTradeCapture
               defaultTicker={effectiveTicker || undefined}
               onTradeCreated={() => {
                 onClose();
-                router.push('/theses');
+                router.push('/trades');
                 router.refresh();
               }}
               onCancel={onClose}
@@ -748,317 +873,347 @@ export function QuickCapture({ isOpen, onClose, initialMode, initialTab: initial
           {/* Journal Tab Content */}
           {activeTab === 'journal' && (
             <>
-              {/* Main textarea */}
-              <div className="space-y-2">
-                <Label htmlFor="quick-content" className="sr-only">
-                  What&apos;s on your mind?
-                </Label>
-                <Textarea
-                  ref={textareaRef}
-                  id="quick-content"
-                  placeholder="What's on your mind? Just start typing..."
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  className="min-h-[120px] resize-none text-base"
+              {/* Voice + Trade Preview (shown immediately after voice recording if trade detected) */}
+              {voicePreviewMode && voiceDetection && voiceTranscription ? (
+                <VoiceCapturePreview
+                  transcription={voiceTranscription}
+                  tradeDetection={voiceDetection}
+                  audioUrl={voiceAudioUrl || undefined}
+                  audioDuration={voiceAudioDuration || undefined}
+                  onSaveBoth={handleVoiceSaveBoth}
+                  onSaveEntryOnly={handleVoiceSaveEntryOnly}
+                  onEdit={() => {
+                    setVoicePreviewMode(false);
+                    setContent(voiceTranscription);
+                  }}
+                  onCancel={() => {
+                    setVoicePreviewMode(false);
+                    onClose();
+                  }}
                 />
-              </div>
-
-          {/* Voice recorder */}
-          {showVoice && (
-            <div className="flex justify-center py-4">
-              <VoiceRecorder
-                onRecordingComplete={handleRecordingComplete}
-                onError={(err) => setError(err)}
-              />
-            </div>
-          )}
-
-          {/* Audio player (if recording exists) */}
-          {audioUrl && !showVoice && (
-            <AudioPlayer src={audioUrl} duration={audioDuration || undefined} />
-          )}
-
-          {/* Image capture */}
-          {showImage && (
-            <div className="flex justify-center py-4">
-              <ImageCapture
-                onImageCapture={handleImageCapture}
-                onError={(err) => setError(err)}
-                maxImages={5}
-                mode="chart"
-              />
-            </div>
-          )}
-
-          {/* Journal scanner */}
-          {showJournalScanner && (
-            <div className="flex justify-center py-4">
-              <ImageCapture
-                onImageCapture={handleImageCapture}
-                onJournalScan={handleJournalScan}
-                onError={(err) => setError(err)}
-                mode="journal"
-              />
-            </div>
-          )}
-
-          {/* Image previews */}
-          {imageUrls.length > 0 && !showImage && (
-            <div className="flex flex-wrap gap-2">
-              {imageUrls.map((url, index) => (
-                <div key={url} className="relative group">
-                  {/* Using native img for blob URL preview - Next/Image requires explicit dimensions and doesn't support blob URLs */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={url}
-                    alt={`Screenshot ${index + 1}`}
-                    className="w-20 h-20 object-cover rounded-lg border"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(index)}
-                    className="absolute -top-2 -right-2 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    aria-label="Remove image"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                  {imageAnalyses[index] && (
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] px-1 py-0.5 rounded-b-lg truncate">
-                      {imageAnalyses[index]?.ticker || 'Analyzed'}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Inline trade link suggestions */}
-          {inlineLinkSuggestions.length > 0 && !linkDismissed && !selectedTradeId && (
-            <TradeLinkSuggestions
-              suggestions={inlineLinkSuggestions}
-              onLink={(tradeId) => setSelectedTradeId(tradeId)}
-              onDismiss={() => setLinkDismissed(true)}
-              mode="inline"
-            />
-          )}
-
-          {/* Selected trade indicator */}
-          {selectedTradeId && inlineLinkSuggestions.length > 0 && (
-            <div className="flex items-center justify-between p-3 rounded-lg border border-primary/20 bg-primary/5">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-full bg-primary/10">
-                  <Check className="h-3 w-3 text-primary" />
-                </div>
-                <div className="text-sm">
-                  <span className="text-muted-foreground">Linked to </span>
-                  <span className="font-medium">
-                    {inlineLinkSuggestions.find(s => s.tradeId === selectedTradeId)?.thesisName || 'trade'}
-                  </span>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setSelectedTradeId(null);
-                  setLinkDismissed(false);
-                }}
-                className="h-7 text-xs"
-              >
-                Change
-              </Button>
-            </div>
-          )}
-
-          {/* Action buttons */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button
-              type="button"
-              variant={showVoice ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => {
-                setShowVoice(!showVoice);
-                setShowImage(false);
-                setShowJournalScanner(false);
-              }}
-              className="gap-2"
-            >
-              <Mic className="h-4 w-4" />
-              Voice
-            </Button>
-
-            <Button
-              type="button"
-              variant={showImage ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => {
-                setShowImage(!showImage);
-                setShowVoice(false);
-                setShowJournalScanner(false);
-              }}
-              className="gap-2"
-              disabled={imageUrls.length >= 5}
-            >
-              <Camera className="h-4 w-4" />
-              Photo {imageUrls.length > 0 && `(${imageUrls.length})`}
-            </Button>
-
-            <Button
-              type="button"
-              variant={showJournalScanner ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => {
-                setShowJournalScanner(!showJournalScanner);
-                setShowVoice(false);
-                setShowImage(false);
-              }}
-              className="gap-2"
-            >
-              <ScanText className="h-4 w-4" />
-              Scan Journal
-            </Button>
-
-            <div className="flex-1" />
-
-            {/* Inference indicator */}
-            <div aria-live="polite" aria-atomic="true" className="contents">
-              {submitState === 'inferring' && (
-                <Badge variant="secondary" className="gap-1">
-                  <Sparkles className="h-3 w-3 animate-pulse" />
-                  <span>Analyzing...</span>
-                </Badge>
-              )}
-
-              {inferred && submitState !== 'inferring' && (
-                <Badge variant="outline" className="gap-1">
-                  <Sparkles className="h-3 w-3" />
-                  <span>Auto-detected</span>
-                </Badge>
-              )}
-            </div>
-          </div>
-
-          {/* Inferred/editable metadata */}
-          {(inferred || showDetails) && (
-            <div className="space-y-3">
-              <button
-                type="button"
-                onClick={() => setShowDetails(!showDetails)}
-                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {showDetails ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
-                )}
-                {showDetails ? 'Hide' : 'Show'} details
-              </button>
-
-              {showDetails && (
-                <div className="grid grid-cols-2 gap-3">
-                  {/* Entry Type */}
-                  <div className="space-y-1">
-                    <Label htmlFor="entry-type" className="text-xs">
-                      Type
+              ) : (
+                <>
+                  {/* Main textarea */}
+                  <div className="space-y-2">
+                    <Label htmlFor="quick-content" className="sr-only">
+                      What&apos;s on your mind?
                     </Label>
-                    <Select
-                      value={effectiveType}
-                      onValueChange={setEntryType}
-                    >
-                      <SelectTrigger id="entry-type" className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(ENTRY_TYPE_LABELS).map(([value, label]) => (
-                          <SelectItem key={value} value={value}>
-                            {label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Mood */}
-                  <div className="space-y-1">
-                    <Label htmlFor="mood" className="text-xs">
-                      Mood
-                    </Label>
-                    <Select value={effectiveMood} onValueChange={setMood}>
-                      <SelectTrigger id="mood" className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(MOOD_LABELS).map(([value, label]) => (
-                          <SelectItem key={value} value={value}>
-                            {label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Conviction */}
-                  <div className="space-y-1">
-                    <Label htmlFor="conviction" className="text-xs">
-                      Conviction
-                    </Label>
-                    <Select
-                      value={effectiveConviction}
-                      onValueChange={setConviction}
-                    >
-                      <SelectTrigger id="conviction" className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(CONVICTION_LABELS).map(([value, label]) => (
-                          <SelectItem key={value} value={value}>
-                            {label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Ticker */}
-                  <div className="space-y-1">
-                    <Label htmlFor="ticker" className="text-xs">
-                      Ticker
-                    </Label>
-                    <input
-                      id="ticker"
-                      type="text"
-                      value={effectiveTicker || ''}
-                      onChange={(e) => setTicker(e.target.value.toUpperCase())}
-                      placeholder="e.g., AAPL"
-                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                      maxLength={5}
+                    <Textarea
+                      ref={textareaRef}
+                      id="quick-content"
+                      placeholder="What's on your mind? Just start typing..."
+                      value={content}
+                      onChange={(e) => setContent(e.target.value)}
+                      className="min-h-[120px] resize-none text-base"
                     />
                   </div>
-                </div>
+
+                  {/* Voice recorder */}
+                  {showVoice && (
+                    <div className="flex justify-center py-4">
+                      <VoiceRecorder
+                        onRecordingComplete={handleRecordingComplete}
+                        onError={(err) => setError(err)}
+                      />
+                    </div>
+                  )}
+
+                  {/* Detecting trades indicator */}
+                  {isDetecting && (
+                    <div className="flex items-center justify-center gap-2 py-4 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Analyzing for trades...
+                    </div>
+                  )}
+
+                  {/* Audio player (if recording exists) */}
+                  {audioUrl && !showVoice && !isDetecting && (
+                    <AudioPlayer src={audioUrl} duration={audioDuration || undefined} />
+                  )}
+
+                  {/* Image capture */}
+                  {showImage && (
+                    <div className="flex justify-center py-4">
+                      <ImageCapture
+                        onImageCapture={handleImageCapture}
+                        onError={(err) => setError(err)}
+                        maxImages={5}
+                        mode="chart"
+                      />
+                    </div>
+                  )}
+
+                  {/* Journal scanner */}
+                  {showJournalScanner && (
+                    <div className="flex justify-center py-4">
+                      <ImageCapture
+                        onImageCapture={handleImageCapture}
+                        onJournalScan={handleJournalScan}
+                        onError={(err) => setError(err)}
+                        mode="journal"
+                      />
+                    </div>
+                  )}
+
+                  {/* Image previews */}
+                  {imageUrls.length > 0 && !showImage && (
+                    <div className="flex flex-wrap gap-2">
+                      {imageUrls.map((url, index) => (
+                        <div key={url} className="relative group">
+                          {/* Using native img for blob URL preview - Next/Image requires explicit dimensions and doesn't support blob URLs */}
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={url}
+                            alt={`Screenshot ${index + 1}`}
+                            className="w-20 h-20 object-cover rounded-lg border"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
+                            className="absolute -top-2 -right-2 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            aria-label="Remove image"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                          {imageAnalyses[index] && (
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] px-1 py-0.5 rounded-b-lg truncate">
+                              {imageAnalyses[index]?.ticker || 'Analyzed'}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Inline trade link suggestions */}
+                  {inlineLinkSuggestions.length > 0 && !linkDismissed && !selectedTradeId && (
+                    <TradeLinkSuggestions
+                      suggestions={inlineLinkSuggestions}
+                      onLink={(tradeId) => setSelectedTradeId(tradeId)}
+                      onDismiss={() => setLinkDismissed(true)}
+                      mode="inline"
+                    />
+                  )}
+
+                  {/* Selected trade indicator */}
+                  {selectedTradeId && inlineLinkSuggestions.length > 0 && (
+                    <div className="flex items-center justify-between p-3 rounded-lg border border-primary/20 bg-primary/5">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-full bg-primary/10">
+                          <Check className="h-3 w-3 text-primary" />
+                        </div>
+                        <div className="text-sm">
+                          <span className="text-muted-foreground">Linked to </span>
+                          <span className="font-medium">
+                            {inlineLinkSuggestions.find(s => s.tradeId === selectedTradeId)?.thesisName || 'trade'}
+                          </span>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedTradeId(null);
+                          setLinkDismissed(false);
+                        }}
+                        className="h-7 text-xs"
+                      >
+                        Change
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Action buttons */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Button
+                      type="button"
+                      variant={showVoice ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        setShowVoice(!showVoice);
+                        setShowImage(false);
+                        setShowJournalScanner(false);
+                      }}
+                      className="gap-2"
+                    >
+                      <Mic className="h-4 w-4" />
+                      Voice
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant={showImage ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        setShowImage(!showImage);
+                        setShowVoice(false);
+                        setShowJournalScanner(false);
+                      }}
+                      className="gap-2"
+                      disabled={imageUrls.length >= 5}
+                    >
+                      <Camera className="h-4 w-4" />
+                      Photo {imageUrls.length > 0 && `(${imageUrls.length})`}
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant={showJournalScanner ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        setShowJournalScanner(!showJournalScanner);
+                        setShowVoice(false);
+                        setShowImage(false);
+                      }}
+                      className="gap-2"
+                    >
+                      <ScanText className="h-4 w-4" />
+                      Scan Journal
+                    </Button>
+
+                    <div className="flex-1" />
+
+                    {/* Inference indicator */}
+                    <div aria-live="polite" aria-atomic="true" className="contents">
+                      {submitState === 'inferring' && (
+                        <Badge variant="secondary" className="gap-1">
+                          <Sparkles className="h-3 w-3 animate-pulse" />
+                          <span>Analyzing...</span>
+                        </Badge>
+                      )}
+
+                      {inferred && submitState !== 'inferring' && (
+                        <Badge variant="outline" className="gap-1">
+                          <Sparkles className="h-3 w-3" />
+                          <span>Auto-detected</span>
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Inferred/editable metadata */}
+                  {(inferred || showDetails) && (
+                    <div className="space-y-3">
+                      <button
+                        type="button"
+                        onClick={() => setShowDetails(!showDetails)}
+                        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {showDetails ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                        {showDetails ? 'Hide' : 'Show'} details
+                      </button>
+
+                      {showDetails && (
+                        <div className="grid grid-cols-2 gap-3">
+                          {/* Entry Type */}
+                          <div className="space-y-1">
+                            <Label htmlFor="entry-type" className="text-xs">
+                              Type
+                            </Label>
+                            <Select
+                              value={effectiveType}
+                              onValueChange={setEntryType}
+                            >
+                              <SelectTrigger id="entry-type" className="h-9">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {Object.entries(ENTRY_TYPE_LABELS).map(([value, label]) => (
+                                  <SelectItem key={value} value={value}>
+                                    {label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Mood */}
+                          <div className="space-y-1">
+                            <Label htmlFor="mood" className="text-xs">
+                              Mood
+                            </Label>
+                            <Select value={effectiveMood} onValueChange={setMood}>
+                              <SelectTrigger id="mood" className="h-9">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {Object.entries(MOOD_LABELS).map(([value, label]) => (
+                                  <SelectItem key={value} value={value}>
+                                    {label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Conviction */}
+                          <div className="space-y-1">
+                            <Label htmlFor="conviction" className="text-xs">
+                              Conviction
+                            </Label>
+                            <Select
+                              value={effectiveConviction}
+                              onValueChange={setConviction}
+                            >
+                              <SelectTrigger id="conviction" className="h-9">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {Object.entries(CONVICTION_LABELS).map(([value, label]) => (
+                                  <SelectItem key={value} value={value}>
+                                    {label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Ticker */}
+                          <div className="space-y-1">
+                            <Label htmlFor="ticker" className="text-xs">
+                              Ticker
+                            </Label>
+                            <input
+                              id="ticker"
+                              type="text"
+                              value={effectiveTicker || ''}
+                              onChange={(e) => setTicker(e.target.value.toUpperCase())}
+                              placeholder="e.g., AAPL"
+                              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                              maxLength={5}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Trade Detection Prompt (PRD-B — for text entries) */}
+                  {showTradePrompt && tradeDetection && savedEntryId && (
+                    <TradeDetectionPrompt
+                      detection={tradeDetection}
+                      entryId={savedEntryId}
+                      onLogTrade={handleLogTrade}
+                      onDismiss={handleDismissTradePrompt}
+                    />
+                  )}
+
+                  {/* Error message */}
+                  {error && (
+                    <p className="text-sm text-destructive">{error}</p>
+                  )}
+                </>
               )}
-            </div>
-          )}
-
-          {/* Trade Detection Prompt (PRD-B) */}
-          {showTradePrompt && tradeDetection && savedEntryId && (
-            <TradeDetectionPrompt
-              detection={tradeDetection}
-              entryId={savedEntryId}
-              onLogTrade={handleLogTrade}
-              onDismiss={handleDismissTradePrompt}
-            />
-          )}
-
-          {/* Error message */}
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
-          )}
             </>
           )}
         </div>
 
-        {/* Footer - hide when trade prompt is shown or on quick-trade tab */}
-        {activeTab === 'journal' && !showTradePrompt && (
+        {/* Footer - hide when trade prompt shown, voice preview mode, or on quick-trade tab */}
+        {activeTab === 'journal' && !showTradePrompt && !voicePreviewMode && (
           <div className="p-4 border-t">
             <Button
               onClick={handleSubmit}

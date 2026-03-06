@@ -9,8 +9,9 @@ import { TradeOutcome, TradeSourceType, TradeAction, ThesisTradeStatus } from '@
  *
  * Request body:
  * - ticker: string (required)
- * - outcome: 'WIN' | 'LOSS' | 'BREAKEVEN' (required)
+ * - outcome?: 'WIN' | 'LOSS' | 'BREAKEVEN' (optional — omit when opening a position)
  * - approximatePnL?: number (optional)
+ * - status?: 'OPEN' | 'CLOSED' (optional — defaults to CLOSED if outcome provided, OPEN otherwise)
  *
  * Response:
  * - trade: The created ThesisTrade
@@ -39,14 +40,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate outcome
+    // outcome is now optional — only required when closing a trade
     const validOutcomes: TradeOutcome[] = ['WIN', 'LOSS', 'BREAKEVEN'];
-    if (!body.outcome || !validOutcomes.includes(body.outcome)) {
+    const hasOutcome = body.outcome && validOutcomes.includes(body.outcome);
+    if (body.outcome && !hasOutcome) {
       return NextResponse.json(
-        { error: 'Valid outcome (WIN, LOSS, BREAKEVEN) is required' },
+        { error: 'outcome must be WIN, LOSS, or BREAKEVEN' },
         { status: 400 }
       );
     }
+
+    // Determine trade status: CLOSED if outcome provided, OPEN otherwise
+    const tradeStatus: ThesisTradeStatus = hasOutcome
+      ? ThesisTradeStatus.CLOSED
+      : ThesisTradeStatus.OPEN;
 
     // Parse optional P/L
     let approximatePnL: number | null = null;
@@ -75,6 +82,16 @@ export async function POST(request: NextRequest) {
       ? { ...rawExtractedData, screenshotUrl }
       : null;
 
+    // Build description based on context
+    let description: string;
+    if (sourceType === TradeSourceType.SCREENSHOT) {
+      description = `Screenshot trade: ${ticker}${hasOutcome ? ` ${body.outcome}` : ''}`;
+    } else if (tradeStatus === ThesisTradeStatus.OPEN) {
+      description = `Open position: ${ticker}`;
+    } else {
+      description = `Quick trade: ${ticker} ${body.outcome}`;
+    }
+
     // Try to find an active thesis for this ticker to auto-link
     const matchingThesis = await prisma.tradingThesis.findFirst({
       where: {
@@ -93,15 +110,13 @@ export async function POST(request: NextRequest) {
         thesisId: matchingThesis?.id || null,
         ticker: ticker,
         action: TradeAction.INITIAL,
-        description: sourceType === TradeSourceType.SCREENSHOT
-          ? `Screenshot trade: ${ticker} ${body.outcome}`
-          : `Quick trade: ${ticker} ${body.outcome}`,
-        status: ThesisTradeStatus.CLOSED,
-        closedAt: new Date(),
+        description,
+        status: tradeStatus,
+        closedAt: tradeStatus === ThesisTradeStatus.CLOSED ? new Date() : null,
         debitCredit: 0,
         quantity: 1,
         realizedPL: approximatePnL,
-        outcome: body.outcome as TradeOutcome,
+        outcome: hasOutcome ? (body.outcome as TradeOutcome) : null,
         sourceType: sourceType,
         extractedData: extractedData,
       },
@@ -109,6 +124,7 @@ export async function POST(request: NextRequest) {
         id: true,
         ticker: true,
         outcome: true,
+        status: true,
         realizedPL: true,
         sourceType: true,
         thesisId: true,

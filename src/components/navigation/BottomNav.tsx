@@ -7,7 +7,7 @@ import {
   BookOpen,
   Plus,
   LucideIcon,
-  TrendingUp,
+  Activity,
   MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -65,7 +65,7 @@ export function BottomNav() {
   ];
 
   const rightNavItems = [
-    { icon: TrendingUp, label: "Theses", href: "/theses" },
+    { icon: Activity, label: "Trades", href: "/trades" },
     { icon: MessageSquare, label: "Coach", href: "/coach" },
   ];
 
